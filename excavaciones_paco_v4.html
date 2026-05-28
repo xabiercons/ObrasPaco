@@ -566,25 +566,40 @@ function startVoice(field, btnId, resId) {
     showToast('Reconocimiento de voz no disponible. Usa Chrome en Android.');
     return;
   }
-  if(listening) { if(recognition) recognition.stop(); return; }
+  if(listening) { listening = false; if(recognition) recognition.stop(); return; }
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new Rec();
   recognition.lang = 'es-ES';
-  recognition.continuous = false;
+  recognition.continuous = true;
   recognition.interimResults = false;
   const btn = document.getElementById(btnId);
   const res = document.getElementById(resId);
   btn.textContent = '⏹ Escuchando… (toca para parar)';
   btn.classList.add('listening');
   listening = true;
+  let textoAcumulado = '';
   recognition.onresult = e => {
-    const texto = e.results[0][0].transcript;
-    res.className = 'voice-result show';
-    res.textContent = '"' + texto + '"';
-    processVoice(field, texto);
+    let nuevo = '';
+    for(let i = e.resultIndex; i < e.results.length; i++) {
+      if(e.results[i].isFinal) nuevo += e.results[i][0].transcript + ' ';
+    }
+    if(nuevo.trim()) {
+      textoAcumulado = (textoAcumulado + ' ' + nuevo).trim();
+      res.className = 'voice-result show';
+      res.textContent = '"' + textoAcumulado + '"';
+      processVoice(field, textoAcumulado);
+    }
   };
-  recognition.onerror = () => { resetVoiceBtn(btn, field); };
-  recognition.onend = () => { resetVoiceBtn(btn, field); };
+  recognition.onerror = e => {
+    if(e.error !== 'no-speech') { listening = false; resetVoiceBtn(btn, field); }
+  };
+  recognition.onend = () => {
+    if(listening) {
+      try { recognition.start(); } catch(err) { listening = false; resetVoiceBtn(btn, field); }
+    } else {
+      resetVoiceBtn(btn, field);
+    }
+  };
   recognition.start();
 }
 
@@ -801,7 +816,19 @@ function renderListado() {
 function cambiarEstado(id, nuevoEstado) {
   const trabajos = getTrab();
   const t = trabajos.find(x=>x.id===id);
-  if(t) { t.estado=nuevoEstado; saveTrab(trabajos); renderListado(); showToast('→ '+nuevoEstado); }
+  if(!t) return;
+  const nombre = (t.cliente||'Sin cliente') + ' — ' + (t.direccion||'Sin dirección');
+  let msg;
+  if(nuevoEstado === 'Realizado') {
+    msg = '¿Marcar como REALIZADO?\n' + nombre + '\n\nEsta acción no se puede deshacer.';
+  } else {
+    msg = '¿Cambiar a "' + nuevoEstado + '"?\n' + nombre;
+  }
+  if(!confirm(msg)) return;
+  t.estado = nuevoEstado;
+  saveTrab(trabajos);
+  renderListado();
+  showToast('→ ' + nuevoEstado);
 }
 
 function eliminar(id) {
