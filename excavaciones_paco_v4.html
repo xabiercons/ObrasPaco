@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Excavaciones Paco v3</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #1C1C1C;
+    --card: #272727;
+    --text: #FFD100;
+    --text2: #C9A800;
+    --text3: #7A6600;
+    --accent: #FFD100;
+    --accent-light: #332B00;
+    --accent2: #FFA500;
+    --accent2-light: #2A1F00;
+    --border: rgba(255,209,0,0.18);
+    --danger: #FF4444;
+    --danger-light: #3A0000;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: var(--accent); color: #1C1C1C; padding: 16px 20px 14px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+  .header-icon { font-size: 22px; }
+  .header h1 { font-size: 17px; font-weight: normal; letter-spacing: 0.02em; flex: 1; }
+  .header-sub { font-size: 11px; opacity: 0.7; font-family: 'Courier New', monospace; }
+
+  /* NAV TABS */
+  .nav { display: flex; background: #1C1C1C; border-bottom: 1px solid var(--border); }
+  .nav-tab { flex: 1; padding: 12px 4px; text-align: center; font-size: 12px; color: #7A6600; cursor: pointer; border: none; background: none; font-family: 'Courier New', monospace; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; } .nav { background: #222; }
+
+  /* VIEWS */
+  .view { display: none; padding: 16px; }
+  .view.active { display: block; }
+
+  /* PROGRESS BAR */
+  .progress-wrap { margin-bottom: 20px; }
+  .progress-steps { display: flex; gap: 4px; margin-bottom: 6px; }
+  .progress-step { flex: 1; height: 4px; background: var(--border); border-radius: 2px; transition: background 0.3s; }
+  .progress-step.done { background: var(--accent); }
+  .progress-step.active { background: var(--accent2); }
+  .progress-label { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* STEP CARD */
+  .step-card { background: #272727; border-radius: var(--radius); border: 1px solid rgba(255,209,0,0.18); padding: 20px; margin-bottom: 12px; }
+  .step-number { font-size: 10px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .step-title { font-size: 20px; color: var(--text); margin-bottom: 4px; font-weight: normal; }
+  .step-hint { font-size: 13px; color: var(--text2); margin-bottom: 18px; }
+
+  /* VOICE BUTTON */
+  .voice-btn { width: 100%; padding: 16px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: Georgia, serif; margin-bottom: 10px; transition: opacity 0.2s; }
+  .voice-btn:active { opacity: 0.85; transform: scale(0.99); }
+  .voice-btn.listening { background: var(--danger); animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.8} }
+  .voice-result { background: #332B00; border: 1px solid #FFD100; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 14px; color: #FFD100; margin-bottom: 10px; min-height: 40px; font-style: italic; display: none; }
+  .voice-result.show { display: block; }
+  .divider { text-align: center; font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; margin: 8px 0; letter-spacing: 0.1em; }
+
+  /* INPUTS */
+  input[type=text], input[type=number], textarea, select {
+    width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 15px; color: var(--text); background: #1C1C1C; font-family: Georgia, serif; color: #FFD100;
+    outline: none; transition: border-color 0.2s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { min-height: 80px; resize: none; }
+
+  /* SELECTOR CHIPS */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .chip-opt { padding: 9px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; background: var(--card); color: var(--text2); transition: all 0.15s; font-family: Georgia, serif; }
+  .chip-opt.selected { background: var(--accent); color: #1C1C1C; border-color: var(--accent); }
+  .chip-opt:active { transform: scale(0.97); }
+
+  /* MAPA LEAFLET */
+  .map-btn { width: 100%; padding: 14px; background: var(--accent2-light); color: var(--accent2); border: 1px solid var(--accent2); border-radius: var(--radius-sm); font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: Georgia, serif; margin-bottom: 10px; }
+  .map-wrap { display: none; margin-bottom: 10px; border-radius: var(--radius-sm); overflow: hidden; border: 2px solid var(--accent2); }
+  .map-wrap.show { display: block; }
+  #map-picker { height: 280px; width: 100%; }
+  .map-hint { font-size: 12px; color: var(--text3); font-family: 'Courier New', monospace; text-align: center; padding: 6px; background: #1C1C1C; }
+  .map-accept { width: 100%; padding: 13px; background: var(--accent); color: #1C1C1C; border: none; font-size: 15px; cursor: pointer; font-family: Georgia, serif; font-weight: bold; }
+  .gps-result { background: #2A1F00; border: 1px solid #FFA500; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: #FFA500; margin-bottom: 10px; display: none; }
+  .gps-result.show { display: block; }
+
+  /* STEPPER */
+  .stepper { display: flex; align-items: center; gap: 0; margin-bottom: 10px; }
+  .step-btn { width: 48px; height: 48px; border: 1px solid var(--border); background: #2E2E2E; font-size: 22px; cursor: pointer; color: var(--text); display: flex; align-items: center; justify-content: center; }
+  .step-btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+  .step-btn:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+  .step-val { flex: 1; text-align: center; font-size: 24px; border: 1px solid var(--border); border-left: none; border-right: none; padding: 10px; background: #222; }
+
+  /* URGENCY */
+  .urgency-opts { display: flex; gap: 8px; margin-bottom: 12px; }
+  .urg-opt { flex: 1; padding: 12px 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); text-align: center; font-size: 13px; cursor: pointer; background: var(--card); color: var(--text2); transition: all 0.15s; }
+  .urg-opt.sel-normal { background: #332B00; color: #FFD100; border-color: #FFD100; }
+  .urg-opt.sel-alta { background: #2A1800; color: #FFA500; border-color: #FFA500; }
+  .urg-opt.sel-urgente { background: #3A0000; color: #FF4444; border-color: #FF4444; }
+
+  /* NAV BUTTONS */
+  .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-back { flex: 1; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text2); font-size: 15px; cursor: pointer; font-family: Georgia, serif; }
+  .btn-next { flex: 2; padding: 14px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 15px; cursor: pointer; font-family: Georgia, serif; }
+  .btn-next:active { opacity: 0.85; }
+  .btn-next:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* RESUMEN */
+  .resumen-field { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+  .resumen-field:last-child { border-bottom: none; }
+  .resumen-key { font-size: 12px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.05em; min-width: 90px; padding-top: 2px; }
+  .resumen-val { font-size: 15px; color: var(--text); text-align: right; }
+  .btn-guardar { width: 100%; padding: 16px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 17px; cursor: pointer; font-family: Georgia, serif; margin-top: 16px; letter-spacing: 0.02em; }
+  .btn-guardar:active { opacity: 0.85; }
+
+  /* LISTADO */
+  .listado-filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .listado-filters select { flex: 1; min-width: 120px; font-size: 13px; padding: 8px 10px; }
+  .listado-filters input { flex: 2; min-width: 140px; font-size: 13px; padding: 8px 10px; }
+  .listado-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .ltab { flex: 1; padding: 8px 4px; text-align: center; font-size: 12px; color: var(--text2); cursor: pointer; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.04em; }
+  .ltab.active { background: var(--accent); color: #1C1C1C; border-color: var(--accent); }
+  .maq-group-header { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; padding: 12px 0 6px; display: flex; align-items: center; gap: 8px; }
+  .maq-pill { display: inline-block; font-size: 11px; padding: 2px 10px; border-radius: 20px; font-weight: bold; }
+  .trabajo-card { background: #272727; border: 1px solid rgba(255,209,0,0.18); border-left: 3px solid #FFD100; border-radius: var(--radius); padding: 14px; margin-bottom: 8px; }
+  .tc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .tc-titulo { font-size: 15px; color: var(--text); }
+  .tc-dir { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .status-pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; white-space: nowrap; font-family: 'Courier New', monospace; }
+  .sp-borrador { background: #2A2A2A; color: #888; }
+  .sp-presupuestar { background: #2A2000; color: #FFB800; }
+  .sp-presupuestado { background: #001040; color: #6699FF; }
+  .sp-aceptado { background: #332B00; color: #FFD100; }
+  .sp-programado { background: #1A0040; color: #BB88FF; }
+  .sp-realizado { background: #003310; color: #44CC77; }
+  .tc-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .tc-chip { font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 20px; color: var(--text2); }
+  .tc-actions { display: flex; gap: 6px; margin-top: 10px; }
+  .tc-btn { font-size: 12px; padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text2); cursor: pointer; font-family: Georgia, serif; }
+  .tc-btn.realizado { background: var(--accent); color: #1C1C1C; border-color: var(--accent); }
+  .tc-btn.realizado:active { opacity: 0.85; }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 14px; }
+
+  /* STATS */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .stat-box { background: #2E2E2E; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; }
+  .stat-n { font-size: 22px; color: var(--text); }
+  .stat-l { font-size: 10px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+
+  /* BACKUP PANEL */
+  .backup-panel { background: #272727; border: 1px solid rgba(255,209,0,0.18); border-left: 3px solid #FFA500; border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+  .backup-title { font-size: 11px; color: #FFA500; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+  .backup-row { display: flex; gap: 8px; }
+  .btn-export { flex: 1; padding: 13px 8px; background: #332B00; color: #FFD100; border: 1px solid #FFD100; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: Georgia, serif; text-align: center; }
+  .btn-export:active { opacity: 0.8; }
+  .btn-import { flex: 1; padding: 13px 8px; background: #2A1F00; color: #FFA500; border: 1px solid #FFA500; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: Georgia, serif; text-align: center; }
+  .btn-import:active { opacity: 0.8; }
+  .backup-info { font-size: 11px; color: #7A6600; margin-top: 8px; text-align: center; font-family: 'Courier New', monospace; }
+  #import-file { display: none; }
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #1C1C1C; padding: 12px 24px; border-radius: 24px; font-size: 14px; font-family: Georgia, serif; z-index: 999; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .toast.show { opacity: 1; }
+
+  /* MAQ COLORS */
+  .mc-jcb { background: #003322; color: #00CC88; }
+  .mc-volvo { background: #1A1040; color: #9988FF; }
+  .mc-camion { background: #332200; color: #FFB84D; }
+  .mc-niv { background: #2A1000; color: #FF8844; }
+  .mc-man { background: #2A2A28; color: #AAAAAA; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-icon" style="font-size:28px;font-weight:bold;color:#FFD100;">EP</span>
+  <div>
+    <h1>Excavaciones Paco</h1>
+    <div class="header-sub" style="color:#1C1C1C;opacity:0.6">GESTIÓN DE OBRAS · v3.0</div>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="nav-tab active" onclick="showView('captura')">+ Nuevo</button>
+  <button class="nav-tab" onclick="showView('listado')">Listado</button>
+</div>
+
+<!-- ═══════════════════════════════════════
+     VISTA: CAPTURA
+════════════════════════════════════════ -->
+<div class="view active" id="view-captura">
+
+  <div class="progress-wrap">
+    <div class="progress-steps" id="prog-steps"></div>
+    <div class="progress-label" id="prog-label">Paso 1 de 7</div>
+  </div>
+
+  <!-- PASO 1: CLIENTE -->
+  <div class="step-card" id="step-1">
+    <div class="step-number">Paso 1 / 7</div>
+    <div class="step-title">Cliente</div>
+    <div class="step-hint">Di el nombre del cliente o escríbelo</div>
+    <button class="voice-btn" id="vbtn-1" onclick="startVoice('cliente', 'vbtn-1', 'vres-1')">🎤 Hablar</button>
+    <div class="voice-result" id="vres-1"></div>
+    <div class="divider">— o escribe —</div>
+    <input type="text" id="f-cliente" placeholder="Nombre del cliente…" oninput="syncField('cliente', this.value)">
+    <div class="btn-row">
+      <button class="btn-next" onclick="nextStep(1)" id="next-1">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PASO 2: UBICACIÓN -->
+  <div class="step-card" id="step-2" style="display:none">
+    <div class="step-number">Paso 2 / 7</div>
+    <div class="step-title">Ubicación</div>
+    <div class="step-hint">Pulsa el botón para abrir el mapa con tu posición GPS</div>
+
+    <button class="map-btn" id="btn-abrirmapa" onclick="abrirMapaGPS()">📍 Localizar en el mapa</button>
+
+    <div class="map-wrap" id="map-wrap">
+      <div id="map-picker"></div>
+      <div class="map-hint">Arrastra el marcador para ajustar la posición exacta</div>
+      <button class="map-accept" onclick="aceptarMapa()">✓ Aceptar esta ubicación</button>
+    </div>
+
+    <div class="gps-result" id="gps-result"></div>
+
+    <button class="voice-btn" id="vbtn-2" onclick="startVoice('direccion', 'vbtn-2', 'vres-2')">🎤 Hablar dirección</button>
+    <div class="voice-result" id="vres-2"></div>
+    <div class="divider">— o escribe manualmente —</div>
+    <input type="text" id="f-direccion" placeholder="Rúa, lugar, número…" oninput="syncField('direccion', this.value)">
+    <input type="text" id="f-zona" placeholder="Zona (Milladoiro, Conxo…)" style="margin-top:8px" oninput="syncField('zona', this.value)">
+    <div class="btn-row">
+      <button class="btn-back" onclick="prevStep(2)">← Atrás</button>
+      <button class="btn-next" onclick="nextStep(2)" id="next-2">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PASO 3: TIPO DE TRABAJO -->
+  <div class="step-card" id="step-3" style="display:none">
+    <div class="step-number">Paso 3 / 7</div>
+    <div class="step-title">Tipo de trabajo</div>
+    <div class="step-hint">¿Qué hay que hacer?</div>
+    <button class="voice-btn" id="vbtn-3" onclick="startVoice('tipo', 'vbtn-3', 'vres-3')">🎤 Hablar</button>
+    <div class="voice-result" id="vres-3"></div>
+    <div class="chips" id="chips-tipo"></div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="prevStep(3)">← Atrás</button>
+      <button class="btn-next" onclick="nextStep(3)" id="next-3">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PASO 4: MAQUINARIA -->
+  <div class="step-card" id="step-4" style="display:none">
+    <div class="step-number">Paso 4 / 7</div>
+    <div class="step-title">Maquinaria</div>
+    <div class="step-hint">¿Qué máquina se necesita?</div>
+    <button class="voice-btn" id="vbtn-4" onclick="startVoice('maquinaria', 'vbtn-4', 'vres-4')">🎤 Hablar</button>
+    <div class="voice-result" id="vres-4"></div>
+    <div class="chips" id="chips-maq"></div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="prevStep(4)">← Atrás</button>
+      <button class="btn-next" onclick="nextStep(4)" id="next-4">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PASO 5: HORAS -->
+  <div class="step-card" id="step-5" style="display:none">
+    <div class="step-number">Paso 5 / 7</div>
+    <div class="step-title">Horas previstas</div>
+    <div class="step-hint">¿Cuántas horas calculas?</div>
+    <button class="voice-btn" id="vbtn-5" onclick="startVoice('horas', 'vbtn-5', 'vres-5')">🎤 Hablar</button>
+    <div class="voice-result" id="vres-5"></div>
+    <div class="stepper">
+      <button class="step-btn" onclick="changeHoras(-1)">−</button>
+      <div class="step-val" id="horas-display">4</div>
+      <button class="step-btn" onclick="changeHoras(1)">+</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="prevStep(5)">← Atrás</button>
+      <button class="btn-next" onclick="nextStep(5)" id="next-5">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PASO 6: URGENCIA + NOTAS -->
+  <div class="step-card" id="step-6" style="display:none">
+    <div class="step-number">Paso 6 / 7</div>
+    <div class="step-title">Urgencia y notas</div>
+    <div class="step-hint">¿Con qué prioridad? ¿Algo más a tener en cuenta?</div>
+    <div class="urgency-opts">
+      <div class="urg-opt sel-normal" id="urg-normal" onclick="setUrgencia('Normal')">🟢 Normal</div>
+      <div class="urg-opt" id="urg-alta" onclick="setUrgencia('Alta')">🟡 Alta</div>
+      <div class="urg-opt" id="urg-urgente" onclick="setUrgencia('Urgente')">🔴 Urgente</div>
+    </div>
+    <button class="voice-btn" id="vbtn-6" onclick="startVoice('notas', 'vbtn-6', 'vres-6')">🎤 Dictar notas</button>
+    <div class="voice-result" id="vres-6"></div>
+    <textarea id="f-notas" placeholder="Notas adicionales…" oninput="syncField('notas', this.value)"></textarea>
+    <div class="btn-row">
+      <button class="btn-back" onclick="prevStep(6)">← Atrás</button>
+      <button class="btn-next" onclick="nextStep(6)" id="next-6">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PASO 7: RESUMEN -->
+  <div class="step-card" id="step-7" style="display:none">
+    <div class="step-number">Paso 7 / 7</div>
+    <div class="step-title">Revisa y guarda</div>
+    <div style="margin-top:12px" id="resumen-content"></div>
+    <div class="btn-row" style="margin-top:0">
+      <button class="btn-back" onclick="prevStep(7)">← Corregir</button>
+    </div>
+    <button class="btn-guardar" onclick="guardarTrabajo()">✓ Guardar trabajo</button>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════
+     VISTA: LISTADO
+════════════════════════════════════════ -->
+<div class="view" id="view-listado">
+  <div class="backup-panel">
+    <div class="backup-title">⚙ Copia de seguridad</div>
+    <div class="backup-row">
+      <button class="btn-export" onclick="exportarJSON()">⬇ Exportar datos</button>
+      <button class="btn-import" onclick="document.getElementById('import-file').click()">⬆ Importar datos</button>
+    </div>
+    <div class="backup-info" id="backup-info">Exporta para guardar en Drive, WhatsApp o email</div>
+    <input type="file" id="import-file" accept=".json" onchange="importarJSON(this)">
+  </div>
+  <div class="stats-row" id="stats-row"></div>
+  <div class="listado-filters">
+    <select id="l-zona" onchange="renderListado()">
+      <option value="">Todas las zonas</option>
+    </select>
+    <select id="l-maq" onchange="renderListado()">
+      <option value="">Toda la maquinaria</option>
+    </select>
+    <input type="text" id="l-dir" placeholder="Dirección / cliente…" oninput="renderListado()">
+  </div>
+  <div class="listado-tabs">
+    <div class="ltab active" id="ltab-pendientes" onclick="setLTab('pendientes')">Pendientes</div>
+    <div class="ltab" id="ltab-programados" onclick="setLTab('programados')">Programados</div>
+    <div class="ltab" id="ltab-realizados" onclick="setLTab('realizados')">Realizados</div>
+  </div>
+  <div id="listado-content"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══ CONFIG ═══
+const CONFIG = {
+  tipos: ['Excavación','Picado','Carga escombro','Zanjas','Nivelación','Limpieza solar'],
+  maquinaria: ['Minipala JCB','Volvo giratorio','Camión contenedor','Niveladora','Manual'],
+  sinonimos: {
+    'Minipala JCB': ['mini','jcb','pala pequeña','minipala'],
+    'Volvo giratorio': ['volvo','retro','giratorio','excavadora'],
+    'Camión contenedor': ['camión','contenedor','volquete'],
+    'Niveladora': ['niveladora','motoniveladora'],
+    'Excavación': ['excavar','excavación','abrir','cimientos'],
+    'Picado': ['picar','picado','romper','demoler'],
+    'Carga escombro': ['escombro','retirar','carga','llevar'],
+  }
+};
+
+// ═══ ESTADO ═══
+let form = { cliente:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
+let stepActual = 1;
+let ltabActual = 'pendientes';
+let recognition = null;
+let listening = false;
+
+// ═══ STORAGE ═══
+function getTrab() { try { return JSON.parse(localStorage.getItem('excavaciones_trabajos')||'[]'); } catch(e){ return []; } }
+function saveTrab(arr) { localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr)); }
+
+// ═══ PROGRESS ═══
+function updateProgress() {
+  const total = 7;
+  let html = '';
+  for(let i=1;i<=total;i++) {
+    let cls = i < stepActual ? 'done' : i === stepActual ? 'active' : '';
+    html += `<div class="progress-step ${cls}"></div>`;
+  }
+  document.getElementById('prog-steps').innerHTML = html;
+  document.getElementById('prog-label').textContent = `Paso ${stepActual} de ${total}`;
+}
+
+// ═══ NAVEGACIÓN ═══
+function showStep(n) {
+  for(let i=1;i<=7;i++) {
+    const el = document.getElementById('step-'+i);
+    if(el) el.style.display = i===n ? 'block' : 'none';
+  }
+  stepActual = n;
+  updateProgress();
+  if(n===7) buildResumen();
+}
+
+function nextStep(current) {
+  if(current===1 && !form.cliente.trim()) { showToast('Indica el nombre del cliente'); return; }
+  if(current===2 && !form.direccion.trim()) { showToast('Indica la dirección o usa el GPS'); return; }
+  if(current===3 && (!form.tipos || form.tipos.length===0)) { showToast('Selecciona al menos un tipo de trabajo'); return; }
+  if(current===4 && (!form.maquinarias || form.maquinarias.length===0)) { showToast('Selecciona al menos una máquina'); return; }
+  showStep(current+1);
+}
+function prevStep(current) { showStep(current-1); }
+
+// ═══ CHIPS — selección múltiple ═══
+function buildChips() {
+  const ct = document.getElementById('chips-tipo');
+  ct.innerHTML = CONFIG.tipos.map(t =>
+    `<div class="chip-opt ${(form.tipos||[]).includes(t)?'selected':''}" onclick="selectChipMulti('tipos','${t}',this)">${t}</div>`
+  ).join('');
+  const cm = document.getElementById('chips-maq');
+  cm.innerHTML = CONFIG.maquinaria.map(m =>
+    `<div class="chip-opt ${(form.maquinarias||[]).includes(m)?'selected':''}" onclick="selectChipMulti('maquinarias','${m}',this)">${m}</div>`
+  ).join('');
+}
+function selectChipMulti(field, val, el) {
+  if(!form[field]) form[field] = [];
+  const idx = form[field].indexOf(val);
+  if(idx === -1) { form[field].push(val); el.classList.add('selected'); }
+  else { form[field].splice(idx, 1); el.classList.remove('selected'); }
+}
+
+// ═══ URGENCIA ═══
+function setUrgencia(val) {
+  form.urgencia = val;
+  ['normal','alta','urgente'].forEach(u => {
+    const el = document.getElementById('urg-'+u);
+    el.className = 'urg-opt';
+    if(val.toLowerCase()===u) el.classList.add('sel-'+u);
+  });
+}
+
+// ═══ HORAS ═══
+function changeHoras(delta) {
+  form.horas = Math.max(1, Math.min(99, form.horas+delta));
+  document.getElementById('horas-display').textContent = form.horas;
+}
+
+// ═══ SYNC FIELD ═══
+function syncField(field, val) { form[field] = val; }
+
+// ═══ MAPA LEAFLET + GPS ═══
+let mapaLeaflet = null;
+let marcador = null;
+let coordsTemp = { lat: null, lng: null };
+
+function inicializarMapa(lat, lng, zoom) {
+  const wrap = document.getElementById('map-wrap');
+  wrap.classList.add('show');
+
+  if (!mapaLeaflet) {
+    mapaLeaflet = L.map('map-picker').setView([lat, lng], zoom);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19
+    }).addTo(mapaLeaflet);
+  } else {
+    mapaLeaflet.setView([lat, lng], zoom);
+  }
+
+  setTimeout(() => mapaLeaflet.invalidateSize(), 200);
+}
+
+function ponerMarcador(lat, lng) {
+  if (marcador) {
+    marcador.setLatLng([lat, lng]);
+  } else {
+    marcador = L.marker([lat, lng], { draggable: true }).addTo(mapaLeaflet);
+    marcador.on('dragend', () => {
+      const p = marcador.getLatLng();
+      coordsTemp = { lat: p.lat.toFixed(6), lng: p.lng.toFixed(6) };
+    });
+  }
+  coordsTemp = { lat: typeof lat === 'number' ? lat.toFixed(6) : lat, lng: typeof lng === 'number' ? lng.toFixed(6) : lng };
+}
+
+function activarClickMapa() {
+  mapaLeaflet.off('click');
+  mapaLeaflet.on('click', e => {
+    ponerMarcador(e.latlng.lat, e.latlng.lng);
+  });
+}
+
+function abrirMapaGPS() {
+  const btn = document.getElementById('btn-abrirmapa');
+  btn.textContent = '⏳ Obteniendo posición GPS…';
+  btn.disabled = true;
+
+  if (!navigator.geolocation) {
+    // Sin soporte GPS — abrir mapa en Santiago, usuario toca
+    inicializarMapa(42.8782, -8.5448, 13);
+    activarClickMapa();
+    btn.textContent = '📍 GPS no disponible — toca el mapa para marcar';
+    btn.disabled = false;
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      // GPS OK — abrir mapa centrado en la posición real
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      inicializarMapa(lat, lng, 17);
+      ponerMarcador(lat, lng);
+      btn.textContent = '✓ GPS capturado — arrastra el marcador si hay desvío';
+      btn.disabled = false;
+    },
+    err => {
+      // GPS bloqueado (file://, sin permiso, sin cobertura) — mapa en Santiago
+      inicializarMapa(42.8782, -8.5448, 13);
+      activarClickMapa();
+      btn.textContent = '📍 GPS no disponible — toca el mapa para marcar';
+      btn.disabled = false;
+    },
+    { timeout: 8000, enableHighAccuracy: true }
+  );
+}
+
+function aceptarMapa() {
+  if (!coordsTemp.lat) {
+    showToast('Marca un punto en el mapa primero');
+    return;
+  }
+  form.lat = coordsTemp.lat;
+  form.lng = coordsTemp.lng;
+
+  const res = document.getElementById('gps-result');
+  res.className = 'gps-result show';
+  res.textContent = `⏳ Buscando dirección…`;
+
+  // Reverse geocoding con Nominatim
+  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${form.lat}&lon=${form.lng}&format=json&accept-language=es`)
+    .then(r => r.json())
+    .then(d => {
+      const addr = d.address || {};
+      const partes = [addr.road, addr.house_number].filter(Boolean);
+      const dir = partes.join(' ') || d.display_name?.split(',')[0] || '';
+      const zona = addr.suburb || addr.neighbourhood || addr.town || addr.village || addr.city_district || addr.city || '';
+      if (dir) { form.direccion = dir; document.getElementById('f-direccion').value = dir; }
+      if (zona) { form.zona = zona; document.getElementById('f-zona').value = zona; }
+      res.textContent = `📍 ${dir || form.lat+', '+form.lng}${zona ? ' · '+zona : ''}`;
+      document.getElementById('map-wrap').classList.remove('show');
+      document.getElementById('btn-abrirmapa').textContent = '✓ Ubicación en mapa — toca para cambiar';
+      showToast('✓ Ubicación guardada');
+    })
+    .catch(() => {
+      res.textContent = `📍 ${form.lat}, ${form.lng}`;
+      document.getElementById('map-wrap').classList.remove('show');
+      document.getElementById('btn-abrirmapa').textContent = '✓ Ubicación guardada';
+      showToast('✓ Coordenadas guardadas');
+    });
+}
+
+// ═══ VOZ ═══
+function startVoice(field, btnId, resId) {
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Reconocimiento de voz no disponible. Usa Chrome en Android.');
+    return;
+  }
+  if(listening) { if(recognition) recognition.stop(); return; }
+  const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new Rec();
+  recognition.lang = 'es-ES';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  const btn = document.getElementById(btnId);
+  const res = document.getElementById(resId);
+  btn.textContent = '⏹ Escuchando… (toca para parar)';
+  btn.classList.add('listening');
+  listening = true;
+  recognition.onresult = e => {
+    const texto = e.results[0][0].transcript;
+    res.className = 'voice-result show';
+    res.textContent = '"' + texto + '"';
+    processVoice(field, texto);
+  };
+  recognition.onerror = () => { resetVoiceBtn(btn, field); };
+  recognition.onend = () => { resetVoiceBtn(btn, field); };
+  recognition.start();
+}
+
+function resetVoiceBtn(btn, field) {
+  listening = false;
+  const labels = { cliente:'🎤 Hablar', direccion:'🎤 Hablar dirección', tipo:'🎤 Hablar', maquinaria:'🎤 Hablar', horas:'🎤 Hablar', notas:'🎤 Dictar notas' };
+  btn.textContent = labels[field] || '🎤 Hablar';
+  btn.classList.remove('listening');
+}
+
+function processVoice(field, texto) {
+  const t = texto.toLowerCase();
+  if(field==='cliente') {
+    form.cliente = texto;
+    document.getElementById('f-cliente').value = texto;
+  } else if(field==='direccion') {
+    form.direccion = texto;
+    document.getElementById('f-direccion').value = texto;
+  } else if(field==='tipo') {
+    matchSinonimo('tipos', t, 'chips-tipo');
+  } else if(field==='maquinaria') {
+    matchSinonimo('maquinarias', t, 'chips-maq');
+  } else if(field==='horas') {
+    const nums = t.match(/\d+/);
+    if(nums) { form.horas = parseInt(nums[0]); document.getElementById('horas-display').textContent = form.horas; }
+  } else if(field==='notas') {
+    form.notas = texto;
+    document.getElementById('f-notas').value = texto;
+    if(t.includes('urgent')) setUrgencia('Urgente');
+    else if(t.includes('alta')) setUrgencia('Alta');
+  }
+}
+
+function matchSinonimo(field, texto, chipsId) {
+  const lista = field==='tipos' ? CONFIG.tipos : CONFIG.maquinaria;
+  let matched = null;
+  for(const val of lista) {
+    const sins = CONFIG.sinonimos[val] || [];
+    if(sins.some(s=>texto.includes(s)) || texto.includes(val.toLowerCase())) {
+      matched = val; break;
+    }
+  }
+  if(matched) {
+    if(!form[field]) form[field] = [];
+    if(!form[field].includes(matched)) form[field].push(matched);
+    document.querySelectorAll(`#${chipsId} .chip-opt`).forEach(c=>{
+      c.classList.toggle('selected', form[field].includes(c.textContent));
+    });
+    showToast('✓ Detectado: '+matched);
+  } else {
+    showToast('No reconocido. Selecciona manualmente.');
+  }
+}
+
+// ═══ RESUMEN ═══
+function buildResumen() {
+  const campos = [
+    ['Cliente', form.cliente || '—'],
+    ['Dirección', form.direccion || '—'],
+    ['Zona', form.zona || '—'],
+    ['GPS', form.lat ? `${form.lat}, ${form.lng}` : 'No capturado'],
+    ['Tipo', (form.tipos&&form.tipos.length) ? form.tipos.join(', ') : '—'],
+    ['Maquinaria', (form.maquinarias&&form.maquinarias.length) ? form.maquinarias.join(', ') : '—'],
+    ['Horas', form.horas + 'h'],
+    ['Urgencia', form.urgencia],
+    ['Notas', form.notas || '—'],
+  ];
+  document.getElementById('resumen-content').innerHTML = campos.map(([k,v])=>
+    `<div class="resumen-field"><span class="resumen-key">${k}</span><span class="resumen-val">${v}</span></div>`
+  ).join('');
+}
+
+// ═══ GUARDAR ═══
+function guardarTrabajo() {
+  const trabajos = getTrab();
+  const nuevo = {
+    id: Date.now(),
+    ...form,
+    tipo: (form.tipos||[]).join(', '),
+    maquinaria: (form.maquinarias||[]).join(', '),
+    estado: 'Pendiente presupuestar',
+    fecha: new Date().toISOString().slice(0,10),
+    fechaCreacion: new Date().toISOString()
+  };
+  trabajos.unshift(nuevo);
+  saveTrab(trabajos);
+  showToast('✓ Trabajo guardado');
+  resetForm();
+  setTimeout(()=>{ showView('listado'); }, 800);
+}
+
+function resetForm() {
+  form = { cliente:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
+  ['f-cliente','f-direccion','f-zona','f-notas'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['vres-1','vres-2','vres-3','vres-4','vres-5','vres-6'].forEach(id=>{ const el=document.getElementById(id); if(el){el.className='voice-result';el.textContent='';} });
+  document.getElementById('horas-display').textContent = '4';
+  setUrgencia('Normal');
+  document.getElementById('gps-result').className = 'gps-result';
+  document.getElementById('map-wrap').classList.remove('show');
+  const btnMapa = document.getElementById('btn-abrirmapa');
+  btnMapa.textContent = '📍 Localizar en el mapa';
+  btnMapa.disabled = false;
+  coordsTemp = { lat: null, lng: null };
+  if(marcador && mapaLeaflet) { mapaLeaflet.removeLayer(marcador); marcador = null; }
+  showStep(1);
+  buildChips();
+}
+
+// ═══ LISTADO ═══
+function setLTab(tab) {
+  ltabActual = tab;
+  ['pendientes','programados','realizados'].forEach(t=>{
+    document.getElementById('ltab-'+t).classList.toggle('active', t===tab);
+  });
+  renderListado();
+}
+
+function buildFiltros() {
+  const trabajos = getTrab();
+  const zonas = [...new Set(trabajos.map(t=>t.zona).filter(Boolean))].sort();
+  const lz = document.getElementById('l-zona');
+  const cur = lz.value;
+  lz.innerHTML = '<option value="">Todas las zonas</option>' + zonas.map(z=>`<option value="${z}">${z}</option>`).join('');
+  lz.value = cur;
+  const maqs = [...new Set(trabajos.map(t=>t.maquinaria).filter(Boolean))].sort();
+  const lm = document.getElementById('l-maq');
+  const curm = lm.value;
+  lm.innerHTML = '<option value="">Toda la maquinaria</option>' + maqs.map(m=>`<option value="${m}">${m}</option>`).join('');
+  lm.value = curm;
+}
+
+const ESTADOS_PENDIENTES = ['Pendiente presupuestar','Presupuestado','Aceptado'];
+const ESTADOS_PROGRAMADOS = ['Programado','En curso'];
+const ESTADOS_REALIZADOS = ['Realizado'];
+
+function renderListado() {
+  buildFiltros();
+  const trabajos = getTrab();
+  const zona = document.getElementById('l-zona').value;
+  const maq = document.getElementById('l-maq').value;
+  const dir = document.getElementById('l-dir').value.trim().toLowerCase();
+
+  // stats
+  const activos = trabajos.filter(t=>!ESTADOS_REALIZADOS.includes(t.estado));
+  const horasTotal = activos.reduce((a,b)=>a+(b.horas||0),0);
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-box"><div class="stat-n">${trabajos.length}</div><div class="stat-l">Total</div></div>
+    <div class="stat-box"><div class="stat-n">${activos.length}</div><div class="stat-l">Activos</div></div>
+    <div class="stat-box"><div class="stat-n">${horasTotal}h</div><div class="stat-l">H. previstas</div></div>
+    <div class="stat-box"><div class="stat-n">${trabajos.filter(t=>ESTADOS_REALIZADOS.includes(t.estado)).length}</div><div class="stat-l">Hechos</div></div>
+  `;
+
+  // filtrar
+  let lista = trabajos.filter(t=>{
+    const enTab = ltabActual==='pendientes' ? ESTADOS_PENDIENTES.includes(t.estado)
+                : ltabActual==='programados' ? ESTADOS_PROGRAMADOS.includes(t.estado)
+                : ESTADOS_REALIZADOS.includes(t.estado);
+    if(!enTab) return false;
+    if(zona && t.zona!==zona) return false;
+    if(maq && t.maquinaria!==maq) return false;
+    if(dir && !(
+      (t.direccion||'').toLowerCase().includes(dir)||
+      (t.zona||'').toLowerCase().includes(dir)||
+      (t.cliente||'').toLowerCase().includes(dir)||
+      (t.tipo||'').toLowerCase().includes(dir)
+    )) return false;
+    return true;
+  });
+
+  if(lista.length===0) {
+    document.getElementById('listado-content').innerHTML='<div class="empty-state">Sin trabajos en esta vista</div>';
+    return;
+  }
+
+  // agrupar por maquinaria
+  const grupos = {};
+  lista.forEach(t=>{ if(!grupos[t.maquinaria]) grupos[t.maquinaria]=[]; grupos[t.maquinaria].push(t); });
+  const MAQ_CLS = {'Minipala JCB':'mc-jcb','Volvo giratorio':'mc-volvo','Camión contenedor':'mc-camion','Niveladora':'mc-niv','Manual':'mc-man'};
+  const STATUS_CLS = {'Pendiente presupuestar':'sp-presupuestar','Presupuestado':'sp-presupuestado','Aceptado':'sp-aceptado','Programado':'sp-programado','En curso':'sp-programado','Realizado':'sp-realizado','Borrador':'sp-borrador'};
+  const NEXT_ESTADO = {'Pendiente presupuestar':'Presupuestado','Presupuestado':'Aceptado','Aceptado':'Programado','Programado':'En curso','En curso':'Realizado'};
+
+  let html='';
+  Object.keys(grupos).sort().forEach(maq=>{
+    const cls = MAQ_CLS[maq]||'mc-man';
+    const totalH = grupos[maq].reduce((a,b)=>a+(b.horas||0),0);
+    html+=`<div class="maq-group-header"><span class="maq-pill ${cls}">${maq}</span> ${grupos[maq].length} trabajo${grupos[maq].length>1?'s':''} · ${totalH}h</div>`;
+    grupos[maq].forEach(t=>{
+      const scls = STATUS_CLS[t.estado]||'sp-borrador';
+      const next = NEXT_ESTADO[t.estado];
+      html+=`<div class="trabajo-card" id="tc-${t.id}">
+        <div class="tc-top">
+          <div>
+            <div class="tc-titulo">${t.cliente||'Sin cliente'} — ${t.tipo||'Sin tipo'}</div>
+            <div class="tc-dir">📍 ${t.direccion||'Sin dirección'}${t.zona?' · '+t.zona:''}</div>
+          </div>
+          <span class="status-pill ${scls}">${t.estado}</span>
+        </div>
+        <div class="tc-meta">
+          <span class="tc-chip">⏱ ${t.horas||0}h</span>
+          <span class="tc-chip">${t.urgencia||'Normal'}</span>
+          <span class="tc-chip">${t.fecha||''}</span>
+        </div>
+        <div class="tc-actions">
+          ${next?`<button class="tc-btn" onclick="cambiarEstado(${t.id},'${next}')">→ ${next}</button>`:''}
+          ${t.estado!=='Realizado'?`<button class="tc-btn realizado" onclick="cambiarEstado(${t.id},'Realizado')">✓ Realizado</button>`:''}
+          <button class="tc-btn" onclick="eliminar(${t.id})" style="margin-left:auto;color:var(--danger)">Borrar</button>
+        </div>
+      </div>`;
+    });
+  });
+  document.getElementById('listado-content').innerHTML=html;
+}
+
+function cambiarEstado(id, nuevoEstado) {
+  const trabajos = getTrab();
+  const t = trabajos.find(x=>x.id===id);
+  if(t) { t.estado=nuevoEstado; saveTrab(trabajos); renderListado(); showToast('→ '+nuevoEstado); }
+}
+
+function eliminar(id) {
+  if(!confirm('¿Eliminar este trabajo?')) return;
+  saveTrab(getTrab().filter(t=>t.id!==id));
+  renderListado();
+}
+
+// ═══ VIEWS ═══
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  const idx = name==='captura'?0:1;
+  document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+  if(name==='listado') renderListado();
+}
+
+// ═══ TOAST ═══
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+
+// ═══ BACKUP — EXPORTAR ═══
+function exportarJSON() {
+  const trabajos = getTrab();
+  if(trabajos.length === 0) { showToast('No hay trabajos para exportar'); return; }
+  const fecha = new Date().toISOString().slice(0,10);
+  const nombre = 'excavaciones_paco_' + fecha + '.json';
+  const datos = JSON.stringify({
+    exportado: new Date().toISOString(),
+    version: '1.0',
+    empresa: 'Excavaciones Paco',
+    total: trabajos.length,
+    trabajos: trabajos
+  }, null, 2);
+  const blob = new Blob([datos], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  a.click();
+  URL.revokeObjectURL(url);
+  document.getElementById('backup-info').textContent = '✓ Exportado: ' + nombre + ' (' + trabajos.length + ' trabajos)';
+  showToast('✓ Datos exportados');
+}
+
+// ═══ BACKUP — IMPORTAR ═══
+function importarJSON(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const datos = JSON.parse(e.target.result);
+      // Acepta tanto el formato envuelto como un array directo
+      const trabajos = Array.isArray(datos) ? datos : (datos.trabajos || []);
+      if(!trabajos.length) { showToast('El archivo está vacío o no es válido'); return; }
+      const actuales = getTrab();
+      // Fusiona: los importados que no existan (por ID) se añaden
+      const idsActuales = new Set(actuales.map(t => t.id));
+      const nuevos = trabajos.filter(t => !idsActuales.has(t.id));
+      const fusionados = [...actuales, ...nuevos];
+      // Ordena por fecha de creación descendente
+      fusionados.sort((a,b) => (b.fechaCreacion||'').localeCompare(a.fechaCreacion||''));
+      saveTrab(fusionados);
+      renderListado();
+      const msg = nuevos.length > 0
+        ? '✓ ' + nuevos.length + ' trabajos importados (' + actuales.length + ' ya existían)'
+        : 'Todos los trabajos ya estaban en el sistema';
+      document.getElementById('backup-info').textContent = msg;
+      showToast(msg);
+    } catch(err) {
+      showToast('Error: archivo JSON no válido');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ═══ INIT ═══
+buildChips();
+updateProgress();
+renderListado();
+</script>
+</body>
+</html>
