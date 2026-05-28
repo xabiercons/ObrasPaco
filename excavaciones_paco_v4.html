@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Excavaciones Paco v3</title>
+<title>Excavaciones Paco v4</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -173,6 +173,67 @@
   .mc-camion { background: #332200; color: #FFB84D; }
   .mc-niv { background: #2A1000; color: #FF8844; }
   .mc-man { background: #2A2A28; color: #AAAAAA; }
+
+  /* ═══ MÓDULO 3 — PROGRAMACIÓN SEMANAL ═══ */
+  .semana-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .semana-titulo { font-size: 15px; color: var(--text); font-family: 'Courier New', monospace; letter-spacing: 0.04em; }
+  .semana-nav { display: flex; gap: 6px; }
+  .semana-nav button { padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text2); font-size: 14px; cursor: pointer; }
+  .semana-nav button:active { opacity: 0.8; }
+
+  .semana-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 16px; }
+  .dia-col { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); min-height: 120px; display: flex; flex-direction: column; }
+  .dia-header { padding: 6px 4px 4px; text-align: center; border-bottom: 1px solid var(--border); }
+  .dia-nombre { font-size: 9px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+  .dia-num { font-size: 15px; color: var(--text); line-height: 1.2; }
+  .dia-num.hoy { color: #1C1C1C; background: var(--accent); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 13px; }
+  .dia-trabajos { flex: 1; padding: 4px 3px; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+  .dia-trabajo-pill { font-size: 9px; padding: 3px 5px; border-radius: 4px; background: #332B00; color: #FFD100; border: 1px solid rgba(255,209,0,0.3); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+  .dia-trabajo-pill:active { opacity: 0.8; }
+  .dia-trabajo-pill.urgente { background: #3A0000; color: #FF6666; border-color: rgba(255,100,100,0.4); }
+  .dia-trabajo-pill.alta { background: #2A1800; color: #FFA500; border-color: rgba(255,165,0,0.4); }
+  .dia-mas { font-size: 9px; color: var(--text3); text-align: center; font-family: 'Courier New', monospace; padding: 2px; }
+
+  .bolsa-header { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+  .bolsa-count { background: var(--accent); color: #1C1C1C; border-radius: 20px; padding: 1px 8px; font-size: 10px; }
+  .bolsa-trabajo { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: border-color 0.15s; }
+  .bolsa-trabajo:active { opacity: 0.85; }
+  .bolsa-trabajo.urgente { border-left-color: #FF4444; }
+  .bolsa-trabajo.alta { border-left-color: #FFA500; }
+  .bolsa-info { flex: 1; min-width: 0; }
+  .bolsa-cliente { font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bolsa-dir { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .bolsa-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+  .bolsa-chip { font-size: 10px; padding: 1px 7px; border: 1px solid var(--border); border-radius: 20px; color: var(--text2); white-space: nowrap; }
+  .bolsa-btn { font-size: 20px; color: var(--accent); flex-shrink: 0; }
+
+  /* Modal programar */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal-sheet { background: #272727; border-radius: 18px 18px 0 0; width: 100%; max-width: 480px; padding: 20px 20px 32px; border-top: 2px solid var(--accent); max-height: 85vh; overflow-y: auto; }
+  .modal-title { font-size: 16px; color: var(--text); margin-bottom: 4px; }
+  .modal-sub { font-size: 12px; color: var(--text2); margin-bottom: 18px; }
+  .modal-label { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; margin-top: 14px; }
+  .dias-selector { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 4px; }
+  .dia-btn { padding: 8px 4px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text2); font-size: 11px; text-align: center; cursor: pointer; font-family: 'Courier New', monospace; }
+  .dia-btn.sel { background: var(--accent); color: #1C1C1C; border-color: var(--accent); font-weight: bold; }
+  .dia-btn:active { opacity: 0.8; }
+  .operarios-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+  .op-chip { padding: 8px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; background: var(--card); color: var(--text2); transition: all 0.15s; }
+  .op-chip.selected { background: var(--accent); color: #1C1C1C; border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-cancel { flex: 1; padding: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text2); font-size: 14px; cursor: pointer; font-family: Georgia, serif; }
+  .modal-confirm { flex: 2; padding: 13px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-family: Georgia, serif; font-weight: bold; }
+
+  /* Detail modal */
+  .detail-field { padding: 9px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .detail-field:last-child { border-bottom: none; }
+  .detail-key { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.05em; min-width: 80px; padding-top: 2px; }
+  .detail-val { font-size: 14px; color: var(--text); text-align: right; }
+  .btn-realizado-modal { width: 100%; padding: 15px; background: #003310; color: #44CC77; border: 1px solid #44CC77; border-radius: var(--radius-sm); font-size: 15px; cursor: pointer; font-family: Georgia, serif; margin-top: 14px; }
+  .btn-realizado-modal:active { opacity: 0.85; }
+  .btn-desprogramar { width: 100%; padding: 12px; background: none; color: var(--danger); border: 1px solid var(--danger); border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; font-family: Georgia, serif; margin-top: 8px; }
+
 </style>
 </head>
 <body>
@@ -181,13 +242,68 @@
   <span class="header-icon" style="font-size:28px;font-weight:bold;color:#FFD100;">EP</span>
   <div>
     <h1>Excavaciones Paco</h1>
-    <div class="header-sub" style="color:#1C1C1C;opacity:0.6">GESTIÓN DE OBRAS · v3.0</div>
+    <div class="header-sub" style="color:#1C1C1C;opacity:0.6">GESTIÓN DE OBRAS · v4.0</div>
   </div>
 </div>
 
 <div class="nav">
   <button class="nav-tab active" onclick="showView('captura')">+ Nuevo</button>
   <button class="nav-tab" onclick="showView('listado')">Listado</button>
+  <button class="nav-tab" onclick="showView('semana')">Semana</button>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     VISTA: SEMANA
+════════════════════════════════════════ -->
+<div class="view" id="view-semana">
+
+  <div class="semana-header">
+    <div class="semana-titulo" id="semana-titulo">Semana actual</div>
+    <div class="semana-nav">
+      <button onclick="cambiarSemana(-1)">◀</button>
+      <button onclick="cambiarSemana(0)">Hoy</button>
+      <button onclick="cambiarSemana(1)">▶</button>
+    </div>
+  </div>
+
+  <div class="semana-grid" id="semana-grid"></div>
+
+  <div class="bolsa-header">
+    <span>Pendientes de programar</span>
+    <span class="bolsa-count" id="bolsa-count">0</span>
+  </div>
+  <div id="bolsa-trabajos"></div>
+
+</div>
+
+<!-- Modal: programar trabajo -->
+<div class="modal-overlay" id="modal-programar">
+  <div class="modal-sheet">
+    <div class="modal-title" id="mprog-titulo">Programar trabajo</div>
+    <div class="modal-sub" id="mprog-sub"></div>
+    <div class="modal-label">Día de la semana</div>
+    <div class="dias-selector" id="dias-selector"></div>
+    <div class="modal-label">Operarios</div>
+    <div class="operarios-wrap" id="operarios-wrap"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="cerrarModal('modal-programar')">Cancelar</button>
+      <button class="modal-confirm" onclick="confirmarProgramar()">Programar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: detalle trabajo programado -->
+<div class="modal-overlay" id="modal-detalle">
+  <div class="modal-sheet">
+    <div class="modal-title" id="mdet-titulo">Detalle</div>
+    <div id="mdet-campos"></div>
+    <button class="btn-realizado-modal" onclick="realizarDesdeDetalle()">✓ Marcar como Realizado</button>
+    <button class="btn-desprogramar" onclick="desprogramarDesdeDetalle()">↩ Quitar de la semana</button>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="modal-cancel" style="flex:1" onclick="cerrarModal('modal-detalle')">Cerrar</button>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════
@@ -353,10 +469,18 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ═══ CONFIG ═══
+
+// ════════════════════════════════════════════════════════
+// CONFIG — Listas editables manualmente hasta que exista el Módulo 5
+// Para añadir maquinaria o tipos, editar estos arrays.
+// Los sinónimos permiten que la voz reconozca palabras alternativas.
+// ════════════════════════════════════════════════════════
 const CONFIG = {
+  // Tipos de trabajo disponibles (chips en el paso 3)
   tipos: ['Excavación','Picado','Carga escombro','Zanjas','Nivelación','Limpieza solar'],
+  // Maquinaria disponible (chips en el paso 4)
   maquinaria: ['Minipala JCB','Volvo giratorio','Camión contenedor','Niveladora','Manual'],
+  // Palabras que la voz reconoce como equivalentes a cada valor
   sinonimos: {
     'Minipala JCB': ['mini','jcb','pala pequeña','minipala'],
     'Volvo giratorio': ['volvo','retro','giratorio','excavadora'],
@@ -368,22 +492,39 @@ const CONFIG = {
   }
 };
 
-// ═══ ESTADO ═══
+// ════════════════════════════════════════════════════════
+// ESTADO GLOBAL — Variables que guardan los datos mientras la app está abierta
+// ════════════════════════════════════════════════════════
+
+// Datos del formulario en curso (se resetean al guardar)
 let form = { cliente:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
+// Paso actual del formulario de 7 pasos (1-7)
 let stepActual = 1;
+// Pestaña activa en el listado: 'pendientes', 'programados' o 'realizados'
 let ltabActual = 'pendientes';
+// Instancia del reconocedor de voz (Web Speech API)
 let recognition = null;
+// Indica si el micrófono está activo en este momento
 let listening = false;
 
-// ═══ STORAGE ═══
+// ════════════════════════════════════════════════════════
+// ALMACENAMIENTO — Lee y escribe en localStorage del navegador
+// Los datos sobreviven a cerrar Chrome y reinicios del móvil.
+// ════════════════════════════════════════════════════════
+
+// Devuelve el array de trabajos guardado, o array vacío si no hay nada
 function getTrab() { try { return JSON.parse(localStorage.getItem('excavaciones_trabajos')||'[]'); } catch(e){ return []; } }
+// Guarda el array de trabajos en localStorage
 function saveTrab(arr) { localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr)); }
 
-// ═══ PROGRESS ═══
+// ════════════════════════════════════════════════════════
+// BARRA DE PROGRESO — Los 7 segmentos de la parte superior del formulario
+// ════════════════════════════════════════════════════════
 function updateProgress() {
   const total = 7;
   let html = '';
   for(let i=1;i<=total;i++) {
+    // 'done' = completado, 'active' = actual, '' = pendiente
     let cls = i < stepActual ? 'done' : i === stepActual ? 'active' : '';
     html += `<div class="progress-step ${cls}"></div>`;
   }
@@ -391,7 +532,11 @@ function updateProgress() {
   document.getElementById('prog-label').textContent = `Paso ${stepActual} de ${total}`;
 }
 
-// ═══ NAVEGACIÓN ═══
+// ════════════════════════════════════════════════════════
+// NAVEGACIÓN DEL FORMULARIO — Avanzar y retroceder entre los 7 pasos
+// ════════════════════════════════════════════════════════
+
+// Muestra el paso n y oculta el resto. Si es el paso 7, construye el resumen.
 function showStep(n) {
   for(let i=1;i<=7;i++) {
     const el = document.getElementById('step-'+i);
@@ -402,6 +547,7 @@ function showStep(n) {
   if(n===7) buildResumen();
 }
 
+// Valida el paso actual antes de avanzar. Si falta algo, muestra aviso.
 function nextStep(current) {
   if(current===1 && !form.cliente.trim()) { showToast('Indica el nombre del cliente'); return; }
   if(current===2 && !form.direccion.trim()) { showToast('Indica la dirección o usa el GPS'); return; }
@@ -409,9 +555,14 @@ function nextStep(current) {
   if(current===4 && (!form.maquinarias || form.maquinarias.length===0)) { showToast('Selecciona al menos una máquina'); return; }
   showStep(current+1);
 }
+// Vuelve al paso anterior sin validar
 function prevStep(current) { showStep(current-1); }
 
-// ═══ CHIPS — selección múltiple ═══
+// ════════════════════════════════════════════════════════
+// CHIPS DE SELECCIÓN MÚLTIPLE — Botones táctiles para tipo y maquinaria
+// ════════════════════════════════════════════════════════
+
+// Construye los chips de tipo de trabajo y maquinaria a partir de CONFIG
 function buildChips() {
   const ct = document.getElementById('chips-tipo');
   ct.innerHTML = CONFIG.tipos.map(t =>
@@ -422,16 +573,21 @@ function buildChips() {
     `<div class="chip-opt ${(form.maquinarias||[]).includes(m)?'selected':''}" onclick="selectChipMulti('maquinarias','${m}',this)">${m}</div>`
   ).join('');
 }
+
+// Añade o quita un valor del array correspondiente en el formulario
 function selectChipMulti(field, val, el) {
   if(!form[field]) form[field] = [];
   const idx = form[field].indexOf(val);
-  if(idx === -1) { form[field].push(val); el.classList.add('selected'); }
-  else { form[field].splice(idx, 1); el.classList.remove('selected'); }
+  if(idx === -1) { form[field].push(val); el.classList.add('selected'); }   // Añadir
+  else { form[field].splice(idx, 1); el.classList.remove('selected'); }     // Quitar
 }
 
-// ═══ URGENCIA ═══
+// ════════════════════════════════════════════════════════
+// URGENCIA — Selector visual Normal / Alta / Urgente
+// ════════════════════════════════════════════════════════
 function setUrgencia(val) {
   form.urgencia = val;
+  // Quita la clase activa de los tres botones y la pone solo en el seleccionado
   ['normal','alta','urgente'].forEach(u => {
     const el = document.getElementById('urg-'+u);
     el.className = 'urg-opt';
@@ -439,65 +595,83 @@ function setUrgencia(val) {
   });
 }
 
-// ═══ HORAS ═══
+// ════════════════════════════════════════════════════════
+// HORAS — Stepper +/- para las horas previstas del trabajo
+// ════════════════════════════════════════════════════════
 function changeHoras(delta) {
+  // Mínimo 1h, máximo 99h
   form.horas = Math.max(1, Math.min(99, form.horas+delta));
   document.getElementById('horas-display').textContent = form.horas;
 }
 
-// ═══ SYNC FIELD ═══
+// Sincroniza un campo de texto con el objeto form al escribir
 function syncField(field, val) { form[field] = val; }
 
-// ═══ MAPA LEAFLET + GPS ═══
-let mapaLeaflet = null;
-let marcador = null;
-let coordsTemp = { lat: null, lng: null };
+// ════════════════════════════════════════════════════════
+// MAPA LEAFLET + GPS — Paso 2 del formulario
+// Usa la librería Leaflet con tiles de OpenStreetMap (gratuito).
+// El GPS requiere HTTPS — funciona desde GitHub Pages, no desde file://
+// ════════════════════════════════════════════════════════
 
+let mapaLeaflet = null;                    // Instancia del mapa Leaflet (se crea una sola vez)
+let marcador = null;                       // Marcador arrastrable sobre el mapa
+let coordsTemp = { lat: null, lng: null }; // Coordenadas seleccionadas antes de aceptar
+
+// Inicializa el mapa (o lo recentra si ya existe) en las coordenadas dadas
 function inicializarMapa(lat, lng, zoom) {
   const wrap = document.getElementById('map-wrap');
-  wrap.classList.add('show');
+  wrap.classList.add('show'); // Muestra el contenedor del mapa
 
   if (!mapaLeaflet) {
+    // Primera vez: crea el mapa con tiles de OpenStreetMap
     mapaLeaflet = L.map('map-picker').setView([lat, lng], zoom);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       maxZoom: 19
     }).addTo(mapaLeaflet);
   } else {
+    // Ya existía: solo recentra
     mapaLeaflet.setView([lat, lng], zoom);
   }
 
+  // Fuerza redibujado (necesario cuando el contenedor estaba oculto)
   setTimeout(() => mapaLeaflet.invalidateSize(), 200);
 }
 
+// Coloca o mueve el marcador en el mapa. El marcador es arrastrable.
 function ponerMarcador(lat, lng) {
   if (marcador) {
-    marcador.setLatLng([lat, lng]);
+    marcador.setLatLng([lat, lng]); // Ya existe: moverlo
   } else {
+    // Crear marcador arrastrable por primera vez
     marcador = L.marker([lat, lng], { draggable: true }).addTo(mapaLeaflet);
+    // Al terminar de arrastrar, actualiza las coordenadas temporales
     marcador.on('dragend', () => {
       const p = marcador.getLatLng();
       coordsTemp = { lat: p.lat.toFixed(6), lng: p.lng.toFixed(6) };
     });
   }
+  // Guarda las coordenadas actuales (con 6 decimales de precisión)
   coordsTemp = { lat: typeof lat === 'number' ? lat.toFixed(6) : lat, lng: typeof lng === 'number' ? lng.toFixed(6) : lng };
 }
 
+// Activa el modo "toca para marcar" cuando el GPS no está disponible
 function activarClickMapa() {
-  mapaLeaflet.off('click');
+  mapaLeaflet.off('click'); // Elimina listeners anteriores para evitar duplicados
   mapaLeaflet.on('click', e => {
     ponerMarcador(e.latlng.lat, e.latlng.lng);
   });
 }
 
+// Botón principal del paso 2: pide GPS y abre el mapa cuando hay respuesta
 function abrirMapaGPS() {
   const btn = document.getElementById('btn-abrirmapa');
   btn.textContent = '⏳ Obteniendo posición GPS…';
   btn.disabled = true;
 
   if (!navigator.geolocation) {
-    // Sin soporte GPS — abrir mapa en Santiago, usuario toca
-    inicializarMapa(42.8782, -8.5448, 13);
+    // El navegador no soporta GPS en absoluto
+    inicializarMapa(42.8782, -8.5448, 13); // Centro: Santiago de Compostela
     activarClickMapa();
     btn.textContent = '📍 GPS no disponible — toca el mapa para marcar';
     btn.disabled = false;
@@ -506,25 +680,27 @@ function abrirMapaGPS() {
 
   navigator.geolocation.getCurrentPosition(
     pos => {
-      // GPS OK — abrir mapa centrado en la posición real
+      // GPS OK: abre el mapa ya centrado en la posición real del móvil
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
-      inicializarMapa(lat, lng, 17);
+      inicializarMapa(lat, lng, 17); // Zoom 17 = nivel de calle
       ponerMarcador(lat, lng);
       btn.textContent = '✓ GPS capturado — arrastra el marcador si hay desvío';
       btn.disabled = false;
     },
     err => {
-      // GPS bloqueado (file://, sin permiso, sin cobertura) — mapa en Santiago
+      // GPS bloqueado (file://, sin permiso, sin cobertura, timeout)
+      // Abre el mapa en Santiago para que el usuario marque manualmente
       inicializarMapa(42.8782, -8.5448, 13);
       activarClickMapa();
       btn.textContent = '📍 GPS no disponible — toca el mapa para marcar';
       btn.disabled = false;
     },
-    { timeout: 8000, enableHighAccuracy: true }
+    { timeout: 8000, enableHighAccuracy: true } // Espera máximo 8 segundos
   );
 }
 
+// Botón "Aceptar ubicación": guarda las coordenadas y busca la dirección
 function aceptarMapa() {
   if (!coordsTemp.lat) {
     showToast('Marca un punto en el mapa primero');
@@ -537,22 +713,26 @@ function aceptarMapa() {
   res.className = 'gps-result show';
   res.textContent = `⏳ Buscando dirección…`;
 
-  // Reverse geocoding con Nominatim
+  // Geocodificación inversa: convierte coordenadas en dirección legible
+  // Usa Nominatim de OpenStreetMap (gratuito, sin clave de API)
   fetch(`https://nominatim.openstreetmap.org/reverse?lat=${form.lat}&lon=${form.lng}&format=json&accept-language=es`)
     .then(r => r.json())
     .then(d => {
       const addr = d.address || {};
+      // Construye la dirección con calle y número si están disponibles
       const partes = [addr.road, addr.house_number].filter(Boolean);
       const dir = partes.join(' ') || d.display_name?.split(',')[0] || '';
+      // Determina la zona (barrio, pueblo, ciudad...)
       const zona = addr.suburb || addr.neighbourhood || addr.town || addr.village || addr.city_district || addr.city || '';
       if (dir) { form.direccion = dir; document.getElementById('f-direccion').value = dir; }
       if (zona) { form.zona = zona; document.getElementById('f-zona').value = zona; }
       res.textContent = `📍 ${dir || form.lat+', '+form.lng}${zona ? ' · '+zona : ''}`;
-      document.getElementById('map-wrap').classList.remove('show');
+      document.getElementById('map-wrap').classList.remove('show'); // Oculta el mapa
       document.getElementById('btn-abrirmapa').textContent = '✓ Ubicación en mapa — toca para cambiar';
       showToast('✓ Ubicación guardada');
     })
     .catch(() => {
+      // Sin internet o fallo de Nominatim: guarda solo las coordenadas
       res.textContent = `📍 ${form.lat}, ${form.lng}`;
       document.getElementById('map-wrap').classList.remove('show');
       document.getElementById('btn-abrirmapa').textContent = '✓ Ubicación guardada';
@@ -560,24 +740,39 @@ function aceptarMapa() {
     });
 }
 
-// ═══ VOZ ═══
+// ════════════════════════════════════════════════════════
+// VOZ — Reconocimiento de voz con Web Speech API
+// Requiere HTTPS (GitHub Pages). No funciona desde file://
+// El micrófono permanece activo hasta que el usuario lo para.
+// ════════════════════════════════════════════════════════
+
+// Arranca el micrófono para el campo indicado.
+// field: qué campo rellena ('cliente', 'tipo', 'maquinaria', 'notas'...)
+// btnId: ID del botón que cambia de texto al activarse
+// resId: ID del div donde se muestra la transcripción
 function startVoice(field, btnId, resId) {
   if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     showToast('Reconocimiento de voz no disponible. Usa Chrome en Android.');
     return;
   }
+  // Si ya está escuchando, parar al tocar de nuevo
   if(listening) { listening = false; if(recognition) recognition.stop(); return; }
+
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new Rec();
   recognition.lang = 'es-ES';
-  recognition.continuous = true;
-  recognition.interimResults = false;
+  recognition.continuous = true;      // No para solo al hacer pausa
+  recognition.interimResults = false; // Solo resultados finales (más precisos)
+
   const btn = document.getElementById(btnId);
   const res = document.getElementById(resId);
   btn.textContent = '⏹ Escuchando… (toca para parar)';
-  btn.classList.add('listening');
+  btn.classList.add('listening'); // Pone el botón en rojo animado
   listening = true;
-  let textoAcumulado = '';
+
+  let textoAcumulado = ''; // Acumula todo lo dictado en esta sesión
+
+  // Se ejecuta cada vez que el API reconoce un fragmento de texto
   recognition.onresult = e => {
     let nuevo = '';
     for(let i = e.resultIndex; i < e.results.length; i++) {
@@ -586,23 +781,29 @@ function startVoice(field, btnId, resId) {
     if(nuevo.trim()) {
       textoAcumulado = (textoAcumulado + ' ' + nuevo).trim();
       res.className = 'voice-result show';
-      res.textContent = '"' + textoAcumulado + '"';
-      processVoice(field, textoAcumulado);
+      res.textContent = '"' + textoAcumulado + '"'; // Muestra en pantalla
+      processVoice(field, textoAcumulado);           // Procesa el texto
     }
   };
+
+  // Error: si es 'no-speech' (silencio) se ignora; cualquier otro error para el micro
   recognition.onerror = e => {
     if(e.error !== 'no-speech') { listening = false; resetVoiceBtn(btn, field); }
   };
+
+  // Al terminar (pausa larga, error, etc.): si seguimos en modo escucha, reinicia
   recognition.onend = () => {
     if(listening) {
       try { recognition.start(); } catch(err) { listening = false; resetVoiceBtn(btn, field); }
     } else {
-      resetVoiceBtn(btn, field);
+      resetVoiceBtn(btn, field); // Restaura el botón a su estado normal
     }
   };
+
   recognition.start();
 }
 
+// Restaura el botón del micrófono a su texto y estilo original
 function resetVoiceBtn(btn, field) {
   listening = false;
   const labels = { cliente:'🎤 Hablar', direccion:'🎤 Hablar dirección', tipo:'🎤 Hablar', maquinaria:'🎤 Hablar', horas:'🎤 Hablar', notas:'🎤 Dictar notas' };
@@ -610,6 +811,7 @@ function resetVoiceBtn(btn, field) {
   btn.classList.remove('listening');
 }
 
+// Interpreta el texto dictado y lo aplica al campo correcto del formulario
 function processVoice(field, texto) {
   const t = texto.toLowerCase();
   if(field==='cliente') {
@@ -619,32 +821,36 @@ function processVoice(field, texto) {
     form.direccion = texto;
     document.getElementById('f-direccion').value = texto;
   } else if(field==='tipo') {
-    matchSinonimo('tipos', t, 'chips-tipo');
+    matchSinonimo('tipos', t, 'chips-tipo'); // Busca coincidencia en la lista de tipos
   } else if(field==='maquinaria') {
-    matchSinonimo('maquinarias', t, 'chips-maq');
+    matchSinonimo('maquinarias', t, 'chips-maq'); // Busca coincidencia en maquinaria
   } else if(field==='horas') {
-    const nums = t.match(/\d+/);
+    const nums = t.match(/\d+/); // Extrae el primer número del texto
     if(nums) { form.horas = parseInt(nums[0]); document.getElementById('horas-display').textContent = form.horas; }
   } else if(field==='notas') {
     form.notas = texto;
     document.getElementById('f-notas').value = texto;
+    // Detecta urgencia en las notas automáticamente
     if(t.includes('urgent')) setUrgencia('Urgente');
     else if(t.includes('alta')) setUrgencia('Alta');
   }
 }
 
+// Busca en CONFIG.sinonimos si el texto dictado corresponde a algún valor de la lista
 function matchSinonimo(field, texto, chipsId) {
   const lista = field==='tipos' ? CONFIG.tipos : CONFIG.maquinaria;
   let matched = null;
   for(const val of lista) {
     const sins = CONFIG.sinonimos[val] || [];
+    // Comprueba si el texto contiene algún sinónimo o el propio nombre del valor
     if(sins.some(s=>texto.includes(s)) || texto.includes(val.toLowerCase())) {
       matched = val; break;
     }
   }
   if(matched) {
     if(!form[field]) form[field] = [];
-    if(!form[field].includes(matched)) form[field].push(matched);
+    if(!form[field].includes(matched)) form[field].push(matched); // Añade si no estaba
+    // Actualiza visualmente los chips en pantalla
     document.querySelectorAll(`#${chipsId} .chip-opt`).forEach(c=>{
       c.classList.toggle('selected', form[field].includes(c.textContent));
     });
@@ -654,7 +860,9 @@ function matchSinonimo(field, texto, chipsId) {
   }
 }
 
-// ═══ RESUMEN ═══
+// ════════════════════════════════════════════════════════
+// RESUMEN — Paso 7: muestra todos los datos del formulario para revisión
+// ════════════════════════════════════════════════════════
 function buildResumen() {
   const campos = [
     ['Cliente', form.cliente || '—'],
@@ -672,25 +880,28 @@ function buildResumen() {
   ).join('');
 }
 
-// ═══ GUARDAR ═══
+// ════════════════════════════════════════════════════════
+// GUARDAR TRABAJO — Crea el objeto trabajo y lo añade al array en localStorage
+// ════════════════════════════════════════════════════════
 function guardarTrabajo() {
   const trabajos = getTrab();
   const nuevo = {
-    id: Date.now(),
-    ...form,
-    tipo: (form.tipos||[]).join(', '),
+    id: Date.now(),   // ID único basado en timestamp (milisegundos)
+    ...form,          // Copia todos los campos del formulario
+    tipo: (form.tipos||[]).join(', '),         // Guarda también como texto plano para filtros
     maquinaria: (form.maquinarias||[]).join(', '),
-    estado: 'Pendiente presupuestar',
+    estado: 'Pendiente presupuestar',          // Estado inicial siempre
     fecha: new Date().toISOString().slice(0,10),
     fechaCreacion: new Date().toISOString()
   };
-  trabajos.unshift(nuevo);
+  trabajos.unshift(nuevo); // Añade al principio (más reciente primero)
   saveTrab(trabajos);
   showToast('✓ Trabajo guardado');
   resetForm();
-  setTimeout(()=>{ showView('listado'); }, 800);
+  setTimeout(()=>{ showView('listado'); }, 800); // Navega al listado tras 0.8s
 }
 
+// Limpia el formulario y lo vuelve al estado inicial (paso 1, valores vacíos)
 function resetForm() {
   form = { cliente:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
   ['f-cliente','f-direccion','f-zona','f-notas'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
@@ -703,12 +914,16 @@ function resetForm() {
   btnMapa.textContent = '📍 Localizar en el mapa';
   btnMapa.disabled = false;
   coordsTemp = { lat: null, lng: null };
-  if(marcador && mapaLeaflet) { mapaLeaflet.removeLayer(marcador); marcador = null; }
+  if(marcador && mapaLeaflet) { mapaLeaflet.removeLayer(marcador); marcador = null; } // Limpia el marcador del mapa
   showStep(1);
-  buildChips();
+  buildChips(); // Reconstruye los chips sin ninguno seleccionado
 }
 
-// ═══ LISTADO ═══
+// ════════════════════════════════════════════════════════
+// LISTADO — Vista de trabajos con filtros y pestañas
+// ════════════════════════════════════════════════════════
+
+// Cambia entre las pestañas Pendientes / Programados / Realizados
 function setLTab(tab) {
   ltabActual = tab;
   ['pendientes','programados','realizados'].forEach(t=>{
@@ -717,13 +932,16 @@ function setLTab(tab) {
   renderListado();
 }
 
+// Rellena los desplegables de zona y maquinaria con los valores reales de los trabajos
 function buildFiltros() {
   const trabajos = getTrab();
+  // Zonas únicas extraídas de los trabajos existentes, ordenadas alfabéticamente
   const zonas = [...new Set(trabajos.map(t=>t.zona).filter(Boolean))].sort();
   const lz = document.getElementById('l-zona');
-  const cur = lz.value;
+  const cur = lz.value; // Guarda el filtro actual para no perderlo al redibujar
   lz.innerHTML = '<option value="">Todas las zonas</option>' + zonas.map(z=>`<option value="${z}">${z}</option>`).join('');
   lz.value = cur;
+  // Maquinaria única extraída de los trabajos existentes
   const maqs = [...new Set(trabajos.map(t=>t.maquinaria).filter(Boolean))].sort();
   const lm = document.getElementById('l-maq');
   const curm = lm.value;
@@ -731,10 +949,12 @@ function buildFiltros() {
   lm.value = curm;
 }
 
+// Qué estados corresponden a cada pestaña del listado
 const ESTADOS_PENDIENTES = ['Pendiente presupuestar','Presupuestado','Aceptado'];
 const ESTADOS_PROGRAMADOS = ['Programado','En curso'];
 const ESTADOS_REALIZADOS = ['Realizado'];
 
+// Dibuja el listado completo: stats, filtros y tarjetas de trabajos
 function renderListado() {
   buildFiltros();
   const trabajos = getTrab();
@@ -742,7 +962,7 @@ function renderListado() {
   const maq = document.getElementById('l-maq').value;
   const dir = document.getElementById('l-dir').value.trim().toLowerCase();
 
-  // stats
+  // Estadísticas resumen en la parte superior
   const activos = trabajos.filter(t=>!ESTADOS_REALIZADOS.includes(t.estado));
   const horasTotal = activos.reduce((a,b)=>a+(b.horas||0),0);
   document.getElementById('stats-row').innerHTML = `
@@ -752,7 +972,7 @@ function renderListado() {
     <div class="stat-box"><div class="stat-n">${trabajos.filter(t=>ESTADOS_REALIZADOS.includes(t.estado)).length}</div><div class="stat-l">Hechos</div></div>
   `;
 
-  // filtrar
+  // Filtra por pestaña activa + filtros de zona, maquinaria y búsqueda de texto
   let lista = trabajos.filter(t=>{
     const enTab = ltabActual==='pendientes' ? ESTADOS_PENDIENTES.includes(t.estado)
                 : ltabActual==='programados' ? ESTADOS_PROGRAMADOS.includes(t.estado)
@@ -774,17 +994,22 @@ function renderListado() {
     return;
   }
 
-  // agrupar por maquinaria
+  // Agrupa los trabajos por maquinaria para mostrarlos con cabecera de grupo
   const grupos = {};
   lista.forEach(t=>{ if(!grupos[t.maquinaria]) grupos[t.maquinaria]=[]; grupos[t.maquinaria].push(t); });
+
+  // Color de la píldora de maquinaria según el tipo
   const MAQ_CLS = {'Minipala JCB':'mc-jcb','Volvo giratorio':'mc-volvo','Camión contenedor':'mc-camion','Niveladora':'mc-niv','Manual':'mc-man'};
+  // Color de la píldora de estado
   const STATUS_CLS = {'Pendiente presupuestar':'sp-presupuestar','Presupuestado':'sp-presupuestado','Aceptado':'sp-aceptado','Programado':'sp-programado','En curso':'sp-programado','Realizado':'sp-realizado','Borrador':'sp-borrador'};
+  // Siguiente estado en el flujo (para el botón de avance)
   const NEXT_ESTADO = {'Pendiente presupuestar':'Presupuestado','Presupuestado':'Aceptado','Aceptado':'Programado','Programado':'En curso','En curso':'Realizado'};
 
   let html='';
   Object.keys(grupos).sort().forEach(maq=>{
     const cls = MAQ_CLS[maq]||'mc-man';
     const totalH = grupos[maq].reduce((a,b)=>a+(b.horas||0),0);
+    // Cabecera del grupo con nombre de máquina, número de trabajos y horas totales
     html+=`<div class="maq-group-header"><span class="maq-pill ${cls}">${maq}</span> ${grupos[maq].length} trabajo${grupos[maq].length>1?'s':''} · ${totalH}h</div>`;
     grupos[maq].forEach(t=>{
       const scls = STATUS_CLS[t.estado]||'sp-borrador';
@@ -813,6 +1038,8 @@ function renderListado() {
   document.getElementById('listado-content').innerHTML=html;
 }
 
+// Cambia el estado de un trabajo con confirmación previa
+// Para 'Realizado' avisa que no se puede deshacer
 function cambiarEstado(id, nuevoEstado) {
   const trabajos = getTrab();
   const t = trabajos.find(x=>x.id===id);
@@ -831,37 +1058,48 @@ function cambiarEstado(id, nuevoEstado) {
   showToast('→ ' + nuevoEstado);
 }
 
+// Elimina un trabajo permanentemente (con confirmación)
 function eliminar(id) {
   if(!confirm('¿Eliminar este trabajo?')) return;
   saveTrab(getTrab().filter(t=>t.id!==id));
   renderListado();
 }
 
-// ═══ VIEWS ═══
+// ════════════════════════════════════════════════════════
+// NAVEGACIÓN ENTRE VISTAS — Cambia entre Nuevo / Listado / Semana
+// ════════════════════════════════════════════════════════
 function showView(name) {
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
-  const idx = name==='captura'?0:1;
+  const idx = name==='captura'?0:name==='listado'?1:2; // Índice del tab activo
   document.querySelectorAll('.nav-tab')[idx].classList.add('active');
-  if(name==='listado') renderListado();
+  if(name==='listado') renderListado(); // Refresca el listado al entrar
+  if(name==='semana') renderSemana();   // Refresca la semana al entrar
 }
 
-// ═══ TOAST ═══
+// ════════════════════════════════════════════════════════
+// TOAST — Mensaje emergente breve en la parte inferior
+// ════════════════════════════════════════════════════════
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2200);
+  setTimeout(()=>t.classList.remove('show'), 2200); // Desaparece a los 2.2 segundos
 }
 
+// ════════════════════════════════════════════════════════
+// BACKUP — Exportar e importar datos en formato JSON
+// Exportar: descarga un archivo con fecha en el nombre (va a la carpeta Descargas)
+// Importar: fusiona con los datos existentes sin duplicar (detecta por ID)
+// ════════════════════════════════════════════════════════
 
-// ═══ BACKUP — EXPORTAR ═══
 function exportarJSON() {
   const trabajos = getTrab();
   if(trabajos.length === 0) { showToast('No hay trabajos para exportar'); return; }
   const fecha = new Date().toISOString().slice(0,10);
   const nombre = 'excavaciones_paco_' + fecha + '.json';
+  // Envuelve los trabajos en un objeto con metadatos para identificar el archivo
   const datos = JSON.stringify({
     exportado: new Date().toISOString(),
     version: '1.0',
@@ -869,18 +1107,18 @@ function exportarJSON() {
     total: trabajos.length,
     trabajos: trabajos
   }, null, 2);
+  // Crea un enlace de descarga temporal y lo pulsa automáticamente
   const blob = new Blob([datos], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
   a.download = nombre;
   a.click();
-  URL.revokeObjectURL(url);
+  URL.revokeObjectURL(url); // Libera la memoria del enlace temporal
   document.getElementById('backup-info').textContent = '✓ Exportado: ' + nombre + ' (' + trabajos.length + ' trabajos)';
   showToast('✓ Datos exportados');
 }
 
-// ═══ BACKUP — IMPORTAR ═══
 function importarJSON(input) {
   const file = input.files[0];
   if(!file) return;
@@ -888,15 +1126,15 @@ function importarJSON(input) {
   reader.onload = e => {
     try {
       const datos = JSON.parse(e.target.result);
-      // Acepta tanto el formato envuelto como un array directo
+      // Acepta tanto el formato envuelto {trabajos:[]} como un array directo []
       const trabajos = Array.isArray(datos) ? datos : (datos.trabajos || []);
       if(!trabajos.length) { showToast('El archivo está vacío o no es válido'); return; }
       const actuales = getTrab();
-      // Fusiona: los importados que no existan (por ID) se añaden
+      // Detecta duplicados por ID: solo añade los que no existen ya
       const idsActuales = new Set(actuales.map(t => t.id));
       const nuevos = trabajos.filter(t => !idsActuales.has(t.id));
       const fusionados = [...actuales, ...nuevos];
-      // Ordena por fecha de creación descendente
+      // Ordena por fecha de creación descendente (más reciente primero)
       fusionados.sort((a,b) => (b.fechaCreacion||'').localeCompare(a.fechaCreacion||''));
       saveTrab(fusionados);
       renderListado();
@@ -908,15 +1146,270 @@ function importarJSON(input) {
     } catch(err) {
       showToast('Error: archivo JSON no válido');
     }
-    input.value = '';
+    input.value = ''; // Limpia el input para que se pueda volver a usar
   };
   reader.readAsText(file);
 }
 
-// ═══ INIT ═══
-buildChips();
-updateProgress();
-renderListado();
+
+// ════════════════════════════════════════════════════════
+// MÓDULO 3 — PROGRAMACIÓN SEMANAL
+// Vista de 7 columnas (lun-dom) con los trabajos asignados a cada día.
+// Debajo: bolsa de trabajos pendientes de programar.
+// Al tocar un trabajo de la bolsa → modal para asignar día(s) y operario(s).
+// Al tocar un trabajo en el calendario → modal de detalle con opción de realizarlo.
+// ════════════════════════════════════════════════════════
+
+let semanaOffset = 0;       // 0 = semana actual, -1 = semana anterior, +1 = siguiente
+let modalTrabajoId = null;  // ID del trabajo abierto en el modal (programar o detalle)
+let diasSelModal = [];      // Días seleccionados en el modal de programar (fechas ISO)
+let operariosSelModal = []; // Operarios seleccionados en el modal de programar
+
+// Nombres cortos y largos de los días (índice 0 = lunes, 6 = domingo)
+const DIAS_CORTO = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const DIAS_LARGO = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+
+// Lista de operarios — editar aquí hasta que exista el Módulo 5 (Configuración)
+const OPERARIOS  = ['Paco','Operario 2','Operario 3','Operario 4'];
+
+// Calcula el lunes de la semana actual desplazada por 'offset' semanas
+function getLunes(offset) {
+  const hoy = new Date();
+  const dow = hoy.getDay() === 0 ? 6 : hoy.getDay() - 1; // Convierte domingo(0) a 6, lunes(1) a 0
+  const lunes = new Date(hoy);
+  lunes.setDate(hoy.getDate() - dow + offset * 7);
+  lunes.setHours(0,0,0,0);
+  return lunes;
+}
+
+// Convierte un objeto Date a string 'YYYY-MM-DD' para comparar fechas
+function fechaISO(d) {
+  return d.toISOString().slice(0,10);
+}
+
+// Formatea el rango de la semana para mostrar en el título (ej: "26 may — 1 jun 2026")
+function formatoSemana(lunes) {
+  const dom = new Date(lunes); dom.setDate(lunes.getDate()+6);
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return lunes.getDate()+' '+meses[lunes.getMonth()]+' — '+dom.getDate()+' '+meses[dom.getMonth()]+' '+dom.getFullYear();
+}
+
+// Dibuja la vista completa de la semana: cabecera + 7 columnas + bolsa de pendientes
+function renderSemana() {
+  const lunes = getLunes(semanaOffset);
+  document.getElementById('semana-titulo').textContent = formatoSemana(lunes);
+
+  const trabajos = getTrab();
+  const hoyISO = fechaISO(new Date()); // Para marcar visualmente el día de hoy
+
+  // ── Grilla de 7 días ──
+  const grid = document.getElementById('semana-grid');
+  grid.innerHTML = '';
+
+  for(let i=0; i<7; i++) {
+    const dia = new Date(lunes); dia.setDate(lunes.getDate()+i);
+    const iso = fechaISO(dia);
+    const esHoy = iso === hoyISO;
+    // Trabajos asignados a este día que no estén realizados
+    const trabajosDia = trabajos.filter(t => t.diasProgramados && t.diasProgramados.includes(iso) && t.estado !== 'Realizado');
+
+    // Crea la columna del día con cabecera y contenedor de píldoras
+    const col = document.createElement('div');
+    col.className = 'dia-col';
+    col.innerHTML = '<div class="dia-header"><div class="dia-nombre">'+DIAS_CORTO[i]+'</div><div class="dia-num'+(esHoy?' hoy':'')+'">'+dia.getDate()+'</div></div><div class="dia-trabajos" id="dia-'+iso+'"></div>';
+    grid.appendChild(col);
+
+    const cont = col.querySelector('.dia-trabajos');
+    const visibles = trabajosDia.slice(0,3); // Muestra máximo 3 píldoras por día
+    visibles.forEach(t => {
+      const pill = document.createElement('div');
+      const urg = (t.urgencia||'').toLowerCase();
+      // Color de la píldora según urgencia
+      pill.className = 'dia-trabajo-pill' + (urg==='urgente'?' urgente':urg==='alta'?' alta':'');
+      pill.textContent = (t.cliente||'Sin nombre');
+      pill.onclick = () => abrirDetalle(t.id); // Toca la píldora → abre detalle
+      cont.appendChild(pill);
+    });
+    // Si hay más de 3 trabajos en el día, muestra "+N más"
+    if(trabajosDia.length > 3) {
+      const mas = document.createElement('div');
+      mas.className = 'dia-mas';
+      mas.textContent = '+' + (trabajosDia.length-3) + ' más';
+      cont.appendChild(mas);
+    }
+  }
+
+  // ── Bolsa de pendientes ──
+  // Trabajos que no están realizados y no tienen días asignados todavía
+  const pendientes = trabajos.filter(t => t.estado !== 'Realizado' && (!t.diasProgramados || t.diasProgramados.length === 0));
+  document.getElementById('bolsa-count').textContent = pendientes.length;
+  const bolsa = document.getElementById('bolsa-trabajos');
+  if(pendientes.length === 0) {
+    bolsa.innerHTML = '<div class="empty-state">No hay trabajos pendientes de programar</div>';
+    return;
+  }
+  bolsa.innerHTML = '';
+  pendientes.forEach(t => {
+    const urg = (t.urgencia||'').toLowerCase();
+    const div = document.createElement('div');
+    div.className = 'bolsa-trabajo' + (urg==='urgente'?' urgente':urg==='alta'?' alta':'');
+    // Muestra tipo, maquinaria y horas como chips informativos
+    div.innerHTML = '<div class="bolsa-info"><div class="bolsa-cliente">'+(t.cliente||'Sin cliente')+'</div><div class="bolsa-dir">'+(t.direccion||'Sin dirección')+'</div><div class="bolsa-meta">'
+      + (t.tipos||[]).map(x=>'<span class="bolsa-chip">'+x+'</span>').join('')
+      + (t.maquinarias||[]).map(x=>'<span class="bolsa-chip">⚙ '+x+'</span>').join('')
+      + (t.horas?'<span class="bolsa-chip">⏱ '+t.horas+'h</span>':'')
+      + '</div></div><div class="bolsa-btn">+</div>';
+    div.onclick = () => abrirModalProgramar(t.id); // Toca la fila → abre modal para programar
+    bolsa.appendChild(div);
+  });
+}
+
+// Navega entre semanas: dir=-1 anterior, dir=0 hoy, dir=1 siguiente
+function cambiarSemana(dir) {
+  if(dir === 0) semanaOffset = 0; // Botón "Hoy" vuelve a la semana actual
+  else semanaOffset += dir;
+  renderSemana();
+}
+
+// ════════════════════════════════════════════════════════
+// MODAL PROGRAMAR — Asigna un trabajo a uno o varios días y operarios
+// ════════════════════════════════════════════════════════
+function abrirModalProgramar(id) {
+  modalTrabajoId = id;
+  diasSelModal = [];      // Reinicia selección de días
+  operariosSelModal = []; // Reinicia selección de operarios
+  const t = getTrab().find(x=>x.id===id);
+  if(!t) return;
+
+  // Rellena el título y subtítulo del modal con los datos del trabajo
+  document.getElementById('mprog-titulo').textContent = t.cliente || 'Sin cliente';
+  document.getElementById('mprog-sub').textContent = (t.direccion||'') + (t.horas ? ' · ' + t.horas + 'h previstas' : '');
+
+  // Crea los 7 botones de día correspondientes a la semana visible
+  const lunes = getLunes(semanaOffset);
+  const diasSel = document.getElementById('dias-selector');
+  diasSel.innerHTML = '';
+  for(let i=0; i<7; i++) {
+    const dia = new Date(lunes); dia.setDate(lunes.getDate()+i);
+    const iso = fechaISO(dia);
+    const btn = document.createElement('button');
+    btn.className = 'dia-btn';
+    btn.innerHTML = '<div>'+DIAS_CORTO[i]+'</div><div style="font-size:13px;margin-top:2px">'+dia.getDate()+'</div>';
+    btn.onclick = () => toggleDiaModal(iso, btn); // Toca el día → seleccionar/deseleccionar
+    diasSel.appendChild(btn);
+  }
+
+  // Crea los chips de operarios (selección múltiple)
+  const opWrap = document.getElementById('operarios-wrap');
+  opWrap.innerHTML = '';
+  OPERARIOS.forEach(op => {
+    const chip = document.createElement('div');
+    chip.className = 'op-chip';
+    chip.textContent = op;
+    chip.onclick = () => {
+      chip.classList.toggle('selected');
+      // Añade o quita el operario del array de seleccionados
+      if(operariosSelModal.includes(op)) operariosSelModal=operariosSelModal.filter(x=>x!==op);
+      else operariosSelModal.push(op);
+    };
+    opWrap.appendChild(chip);
+  });
+
+  document.getElementById('modal-programar').classList.add('show');
+}
+
+// Marca o desmarca un día en el modal de programar
+function toggleDiaModal(iso, btn) {
+  btn.classList.toggle('sel');
+  if(diasSelModal.includes(iso)) diasSelModal = diasSelModal.filter(x=>x!==iso);
+  else diasSelModal.push(iso);
+}
+
+// Confirma la programación: guarda días y operarios en el trabajo y cambia estado a Programado
+function confirmarProgramar() {
+  if(diasSelModal.length === 0) { showToast('Selecciona al menos un día'); return; }
+  const trabajos = getTrab();
+  const t = trabajos.find(x=>x.id===modalTrabajoId);
+  if(!t) return;
+  t.diasProgramados = diasSelModal;   // Array de fechas ISO asignadas
+  t.operarios = operariosSelModal;    // Array de nombres de operarios
+  t.estado = 'Programado';
+  saveTrab(trabajos);
+  cerrarModal('modal-programar');
+  renderSemana();
+  showToast('✓ Trabajo programado');
+}
+
+// ════════════════════════════════════════════════════════
+// MODAL DETALLE — Muestra los datos completos de un trabajo programado
+// Desde aquí se puede marcar como Realizado o quitar de la semana
+// ════════════════════════════════════════════════════════
+function abrirDetalle(id) {
+  modalTrabajoId = id;
+  const t = getTrab().find(x=>x.id===id);
+  if(!t) return;
+  document.getElementById('mdet-titulo').textContent = t.cliente || 'Sin cliente';
+  // Construye la lista de campos a mostrar
+  const campos = [
+    ['Dirección', t.direccion||'—'],
+    ['Trabajo', (t.tipos||[]).join(', ')||'—'],
+    ['Maquinaria', (t.maquinarias||[]).join(', ')||'—'],
+    ['Horas previstas', t.horas ? t.horas+'h' : '—'],
+    ['Operarios', (t.operarios||[]).join(', ')||'—'],
+    // Convierte las fechas ISO a nombres de día legibles (ej: "Lunes 26")
+    ['Días asignados', (t.diasProgramados||[]).map(d=>{ const f=new Date(d+'T12:00'); return DIAS_LARGO[f.getDay()===0?6:f.getDay()-1]+' '+f.getDate(); }).join(', ')||'—'],
+    ['Urgencia', t.urgencia||'Normal'],
+    ['Notas', t.notas||'—'],
+    ['Estado', t.estado||'—'],
+  ];
+  document.getElementById('mdet-campos').innerHTML = campos.map(([k,v])=>
+    '<div class="detail-field"><span class="detail-key">'+k+'</span><span class="detail-val">'+v+'</span></div>'
+  ).join('');
+  document.getElementById('modal-detalle').classList.add('show');
+}
+
+// Marca el trabajo como Realizado y lo elimina del calendario
+function realizarDesdeDetalle() {
+  const trabajos = getTrab();
+  const t = trabajos.find(x=>x.id===modalTrabajoId);
+  if(!t) return;
+  const nombre = (t.cliente||'Sin cliente') + ' — ' + (t.direccion||'Sin dirección');
+  if(!confirm('¿Marcar como REALIZADO?\n' + nombre + '\n\nEsta acción no se puede deshacer.')) return;
+  t.estado = 'Realizado';
+  t.diasProgramados = []; // Sale del calendario automáticamente
+  saveTrab(trabajos);
+  cerrarModal('modal-detalle');
+  renderSemana();
+  showToast('✓ Trabajo realizado');
+}
+
+// Quita el trabajo de la semana sin marcarlo como realizado (vuelve a la bolsa)
+function desprogramarDesdeDetalle() {
+  const trabajos = getTrab();
+  const t = trabajos.find(x=>x.id===modalTrabajoId);
+  if(!t) return;
+  if(!confirm('¿Quitar este trabajo de la semana?\n' + (t.cliente||'Sin cliente'))) return;
+  t.diasProgramados = []; // Limpia los días asignados
+  t.operarios = [];       // Limpia los operarios asignados
+  t.estado = 'Aceptado';  // Vuelve al estado anterior a Programado
+  saveTrab(trabajos);
+  cerrarModal('modal-detalle');
+  renderSemana();
+  showToast('↩ Trabajo desprogramado');
+}
+
+// Cierra cualquier modal ocultando su overlay
+function cerrarModal(id) {
+  document.getElementById(id).classList.remove('show');
+  modalTrabajoId = null;
+}
+
+// ════════════════════════════════════════════════════════
+// INIT — Se ejecuta al cargar la página
+// ════════════════════════════════════════════════════════
+buildChips();       // Construye los chips de tipo y maquinaria
+updateProgress();   // Dibuja la barra de progreso del formulario
+renderListado();    // Carga el listado inicial
 </script>
 </body>
 </html>
