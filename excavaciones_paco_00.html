@@ -177,12 +177,26 @@
   .mc-niv { background: #2A1000; color: #FF8844; }
   .mc-man { background: #2A2A28; color: #AAAAAA; }
 
-  /* NAVEGACIÓN MENSUAL */
-  .mes-nav { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
-  .mes-btn { padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text2); font-size: 11px; cursor: pointer; font-family: 'Courier New', monospace; letter-spacing: 0.04em; transition: all 0.15s; }
-  .mes-btn:active { opacity: 0.8; }
-  .mes-btn.activo { background: var(--accent); color: #1C1C1C; border-color: var(--accent); font-weight: bold; }
-  .semana-subheader { font-size: 10px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  /* ── NUEVA NAVEGACIÓN SEMANA/MES ── */
+  .nav-mes-row { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 4px; scrollbar-width: none; }
+  .nav-mes-row::-webkit-scrollbar { display: none; }
+  .mes-pill { flex-shrink: 0; padding: 7px 14px; border: 1px solid var(--border); border-radius: 20px; background: var(--card); color: var(--text2); font-size: 12px; cursor: pointer; font-family: 'Courier New', monospace; letter-spacing: 0.04em; transition: all 0.15s; white-space: nowrap; }
+  .mes-pill:active { opacity: 0.8; }
+  .mes-pill.activo { background: var(--accent); color: #1C1C1C; border-color: var(--accent); font-weight: bold; }
+
+  .nav-semanas-row { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; scrollbar-width: none; align-items: center; }
+  .nav-semanas-row::-webkit-scrollbar { display: none; }
+  .semana-pill { flex-shrink: 0; padding: 6px 11px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text3); font-size: 11px; cursor: pointer; font-family: 'Courier New', monospace; transition: all 0.15s; text-align: center; }
+  .semana-pill:active { opacity: 0.8; }
+  .semana-pill.activa { background: #332B00; color: var(--text); border-color: var(--accent); }
+  .semana-pill.hoy-semana { border-color: var(--accent2); color: var(--accent2); }
+  .btn-hoy { flex-shrink: 0; padding: 6px 14px; border: 1px solid var(--accent2); border-radius: var(--radius-sm); background: #2A1F00; color: var(--accent2); font-size: 12px; cursor: pointer; font-family: 'Courier New', monospace; margin-left: 4px; }
+  .btn-hoy:active { opacity: 0.8; }
+
+  .semana-titulo-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .nav-flecha { width: 40px; height: 40px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .nav-flecha:active { background: var(--accent); color: #1C1C1C; }
+  .semana-titulo-txt { flex: 1; text-align: center; font-size: 13px; color: var(--text); font-family: 'Courier New', monospace; letter-spacing: 0.03em; }
 
   /* Píldoras del calendario — texto ajustado */
   .dia-trabajo-pill { font-size: 9px; padding: 3px 5px; border-radius: 4px; background: #332B00; color: #FFD100; border: 1px solid rgba(255,209,0,0.3); cursor: pointer; overflow: hidden; line-height: 1.3; }
@@ -274,18 +288,18 @@
 ════════════════════════════════════════ -->
 <div class="view" id="view-semana">
 
-  <div class="semana-header">
-    <div class="semana-titulo" id="semana-titulo">Semana actual</div>
-    <div class="semana-nav">
-      <button onclick="cambiarSemana(-1)">◀</button>
-      <button onclick="cambiarSemana(0)">Hoy</button>
-      <button onclick="cambiarSemana(1)">▶</button>
-    </div>
-  </div>
+  <!-- Fila 1: selector de mes -->
+  <div class="nav-mes-row" id="nav-mes-row"></div>
 
-  <!-- Navegación mensual rápida: saltar a la semana que empiece en el mes seleccionado -->
-  <div class="semana-subheader">Saltar a semana del mes</div>
-  <div class="mes-nav" id="mes-nav"></div>
+  <!-- Fila 2: semanas del mes seleccionado + botón Hoy -->
+  <div class="nav-semanas-row" id="nav-semanas-row"></div>
+
+  <!-- Título de la semana visible -->
+  <div class="semana-titulo-bar">
+    <button class="nav-flecha" onclick="cambiarSemana(-1)">&#8592;</button>
+    <span id="semana-titulo" class="semana-titulo-txt">Semana actual</span>
+    <button class="nav-flecha" onclick="cambiarSemana(1)">&#8594;</button>
+  </div>
 
   <div class="semana-grid" id="semana-grid"></div>
 
@@ -1229,7 +1243,7 @@ function formatoSemana(lunes) {
 function renderSemana() {
   const lunes = getLunes(semanaOffset);
   document.getElementById('semana-titulo').textContent = formatoSemana(lunes);
-  buildMesNav(); // Actualiza la barra de meses marcando el activo
+  buildNavMes(); // Actualiza la barra de meses marcando el activo
 
   const trabajos = getTrab();
   const hoyISO = fechaISO(new Date()); // Para marcar visualmente el día de hoy
@@ -1302,55 +1316,124 @@ function renderSemana() {
 
 // Navega entre semanas: dir=-1 anterior, dir=0 hoy, dir=1 siguiente
 function cambiarSemana(dir) {
-  if(dir === 0) semanaOffset = 0; // Botón "Hoy" vuelve a la semana actual
+  if(dir === 0) semanaOffset = 0;
   else semanaOffset += dir;
   renderSemana();
 }
 
 // ════════════════════════════════════════════════════════
-// NAVEGACIÓN MENSUAL — Muestra botones para saltar a la semana de inicio de cada mes
-// Genera los próximos 6 meses desde hoy para poder planificar
+// NAVEGACIÓN DOS FILAS
+// Fila 1: píldoras de mes (12 meses desde el actual)
+// Fila 2: semanas del mes activo + botón Hoy
 // ════════════════════════════════════════════════════════
-function buildMesNav() {
+
+const MESES_CORTO = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+// Mes actualmente seleccionado en la barra (año y mes)
+let mesNavSelAnyo = new Date().getFullYear();
+let mesNavSelMes  = new Date().getMonth();
+
+function buildNavMes() {
   const hoy = new Date();
-  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const nav = document.getElementById('mes-nav');
-  if(!nav) return;
-  nav.innerHTML = '';
-  // Genera botones para los próximos 6 meses (actual + 5 siguientes)
-  for(let m=0; m<6; m++) {
-    const fecha = new Date(hoy.getFullYear(), hoy.getMonth()+m, 1);
-    const btn = document.createElement('button');
-    btn.className = 'mes-btn';
-    const label = meses[fecha.getMonth()] + (fecha.getFullYear()!==hoy.getFullYear()?' '+fecha.getFullYear().toString().slice(2):'');
-    btn.textContent = label;
-    // Al pulsar: calcula el offset de semanas desde hoy hasta la primera semana de ese mes
-    btn.onclick = () => {
+  const rowMes = document.getElementById('nav-mes-row');
+  if(!rowMes) return;
+
+  // Detecta mes/año de la semana visible para marcar el activo
+  const lunesVisible = getLunes(semanaOffset);
+  const mesVisible = lunesVisible.getMonth();
+  const anyoVisible = lunesVisible.getFullYear();
+
+  rowMes.innerHTML = '';
+  // 12 meses desde el actual
+  for(let m = 0; m < 12; m++) {
+    const fecha = new Date(hoy.getFullYear(), hoy.getMonth() + m, 1);
+    const pill = document.createElement('button');
+    pill.className = 'mes-pill';
+    const label = MESES_CORTO[fecha.getMonth()] + (fecha.getFullYear() !== hoy.getFullYear() ? ' ' + fecha.getFullYear().toString().slice(2) : '');
+    pill.textContent = label;
+    const esActivo = fecha.getMonth() === mesVisible && fecha.getFullYear() === anyoVisible;
+    if(esActivo) { pill.classList.add('activo'); mesNavSelAnyo = fecha.getFullYear(); mesNavSelMes = fecha.getMonth(); }
+    pill.onclick = () => {
+      mesNavSelAnyo = fecha.getFullYear();
+      mesNavSelMes  = fecha.getMonth();
+      // Al tocar un mes: salta a la primera semana que contenga días de ese mes
       const primerLunes = getPrimerLunesMes(fecha);
-      const hoyLunes = getLunes(0);
-      const diffMs = primerLunes - hoyLunes;
-      const diffSemanas = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
-      semanaOffset = diffSemanas;
+      const hoyLunes    = getLunes(0);
+      semanaOffset = Math.round((primerLunes - hoyLunes) / (7*24*60*60*1000));
       renderSemana();
     };
-    nav.appendChild(btn);
+    rowMes.appendChild(pill);
   }
-  // Marca el mes activo (el mes del lunes visible)
+
+  // Fila 2: semanas del mes seleccionado
+  buildNavSemanas(mesNavSelAnyo, mesNavSelMes);
+}
+
+function buildNavSemanas(anyo, mes) {
+  const rowSem = document.getElementById('nav-semanas-row');
+  if(!rowSem) return;
+  rowSem.innerHTML = '';
+
+  // Botón Hoy siempre visible al inicio
+  const btnHoy = document.createElement('button');
+  btnHoy.className = 'btn-hoy';
+  btnHoy.textContent = 'Hoy';
+  btnHoy.onclick = () => { semanaOffset = 0; renderSemana(); };
+  rowSem.appendChild(btnHoy);
+
+  // Calcula todas las semanas (lunes) que tienen días en este mes
+  const semanas = semanasDelMes(anyo, mes);
   const lunesVisible = getLunes(semanaOffset);
-  const mesActivo = lunesVisible.getMonth();
-  const anyoActivo = lunesVisible.getFullYear();
-  nav.querySelectorAll('.mes-btn').forEach((btn, i) => {
-    const fecha = new Date(hoy.getFullYear(), hoy.getMonth()+i, 1);
-    btn.classList.toggle('activo', fecha.getMonth()===mesActivo && fecha.getFullYear()===anyoActivo);
+  const isoVisible   = fechaISO(lunesVisible);
+  const hoyLunes     = getLunes(0);
+
+  semanas.forEach(lunes => {
+    const dom = new Date(lunes); dom.setDate(lunes.getDate() + 6);
+    const pill = document.createElement('button');
+    pill.className = 'semana-pill';
+    // Etiqueta: "26-1 jun" (lunes día - domingo día mes)
+    const diaL = lunes.getDate();
+    const diaD = dom.getDate();
+    const mesD = MESES_CORTO[dom.getMonth()];
+    pill.textContent = diaL + '–' + diaD + ' ' + mesD;
+
+    const isoLunes = fechaISO(lunes);
+    if(isoLunes === isoVisible) pill.classList.add('activa');
+    if(isoLunes === fechaISO(hoyLunes)) pill.classList.add('hoy-semana');
+
+    pill.onclick = () => {
+      semanaOffset = Math.round((lunes - hoyLunes) / (7*24*60*60*1000));
+      renderSemana();
+    };
+    rowSem.appendChild(pill);
   });
 }
 
-// Devuelve el primer lunes del mes de la fecha dada
+// Devuelve array de fechas Date (lunes) de todas las semanas que tienen días en un mes dado
+function semanasDelMes(anyo, mes) {
+  const semanas = [];
+  // Primer día del mes
+  const primer = new Date(anyo, mes, 1);
+  // Último día del mes
+  const ultimo = new Date(anyo, mes + 1, 0);
+  // Lunes de la semana del primer día
+  let lunes = new Date(primer);
+  const dow = lunes.getDay() === 0 ? 6 : lunes.getDay() - 1;
+  lunes.setDate(lunes.getDate() - dow);
+  lunes.setHours(0,0,0,0);
+  // Avanza semana a semana mientras el lunes esté antes del fin del mes
+  while(lunes <= ultimo) {
+    semanas.push(new Date(lunes));
+    lunes.setDate(lunes.getDate() + 7);
+  }
+  return semanas;
+}
+
+// Devuelve el primer lunes del mes dado (o el lunes de la semana que contiene el día 1)
 function getPrimerLunesMes(fecha) {
   const d = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
-  // Si el día 1 no es lunes, avanza hasta el primer lunes
   const dow = d.getDay() === 0 ? 6 : d.getDay() - 1;
-  if(dow !== 0) d.setDate(d.getDate() + (7 - dow));
+  d.setDate(d.getDate() - dow);
   d.setHours(0,0,0,0);
   return d;
 }
