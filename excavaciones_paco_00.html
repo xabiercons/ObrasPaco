@@ -255,6 +255,12 @@
   .modal-cancel { flex: 1; padding: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text2); font-size: 14px; cursor: pointer; font-family: Georgia, serif; }
   .modal-confirm { flex: 2; padding: 13px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-family: Georgia, serif; font-weight: bold; }
 
+  /* Navegación semana dentro del modal programar */
+  .modal-semana-nav { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+  .modal-sem-flecha { width: 38px; height: 38px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .modal-sem-flecha:active { background: var(--accent); color: #1C1C1C; }
+  .modal-sem-label { flex: 1; text-align: center; font-size: 12px; color: var(--text2); font-family: 'Courier New', monospace; }
+
   /* Detail modal */
   .detail-field { padding: 9px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
   .detail-field:last-child { border-bottom: none; }
@@ -316,7 +322,12 @@
   <div class="modal-sheet">
     <div class="modal-title" id="mprog-titulo">Programar trabajo</div>
     <div class="modal-sub" id="mprog-sub"></div>
-    <div class="modal-label">Día de la semana</div>
+    <div class="modal-label">Día</div>
+    <div class="modal-semana-nav">
+      <button class="modal-sem-flecha" onclick="modalCambiarSemana(-1)">&#8592;</button>
+      <span class="modal-sem-label" id="modal-sem-titulo"></span>
+      <button class="modal-sem-flecha" onclick="modalCambiarSemana(1)">&#8594;</button>
+    </div>
     <div class="dias-selector" id="dias-selector"></div>
     <div class="modal-label">Operarios</div>
     <div class="operarios-wrap" id="operarios-wrap"></div>
@@ -1438,35 +1449,24 @@ function getPrimerLunesMes(fecha) {
   return d;
 }
 
+let modalSemanaOffset = 0; // Offset de semana dentro del modal (independiente del calendario)
+
 // ════════════════════════════════════════════════════════
 // MODAL PROGRAMAR — Asigna un trabajo a uno o varios días y operarios
+// Tiene su propia navegación de semana independiente del calendario
 // ════════════════════════════════════════════════════════
 function abrirModalProgramar(id) {
   modalTrabajoId = id;
-  diasSelModal = [];      // Reinicia selección de días
-  operariosSelModal = []; // Reinicia selección de operarios
+  diasSelModal = [];
+  operariosSelModal = [];
+  modalSemanaOffset = semanaOffset; // Arranca en la semana que estás viendo
   const t = getTrab().find(x=>x.id===id);
   if(!t) return;
 
-  // Rellena el título y subtítulo del modal con los datos del trabajo
   document.getElementById('mprog-titulo').textContent = t.cliente || 'Sin cliente';
   document.getElementById('mprog-sub').textContent = (t.direccion||'') + (t.horas ? ' · ' + t.horas + 'h previstas' : '');
 
-  // Crea los 7 botones de día correspondientes a la semana visible
-  const lunes = getLunes(semanaOffset);
-  const diasSel = document.getElementById('dias-selector');
-  diasSel.innerHTML = '';
-  for(let i=0; i<7; i++) {
-    const dia = new Date(lunes); dia.setDate(lunes.getDate()+i);
-    const iso = fechaISO(dia);
-    const btn = document.createElement('button');
-    btn.className = 'dia-btn';
-    btn.innerHTML = '<div>'+DIAS_CORTO[i]+'</div><div style="font-size:13px;margin-top:2px">'+dia.getDate()+'</div>';
-    btn.onclick = () => toggleDiaModal(iso, btn); // Toca el día → seleccionar/deseleccionar
-    diasSel.appendChild(btn);
-  }
-
-  // Crea los chips de operarios (selección múltiple)
+  // Construye los chips de operarios
   const opWrap = document.getElementById('operarios-wrap');
   opWrap.innerHTML = '';
   OPERARIOS.forEach(op => {
@@ -1475,14 +1475,42 @@ function abrirModalProgramar(id) {
     chip.textContent = op;
     chip.onclick = () => {
       chip.classList.toggle('selected');
-      // Añade o quita el operario del array de seleccionados
-      if(operariosSelModal.includes(op)) operariosSelModal=operariosSelModal.filter(x=>x!==op);
+      if(operariosSelModal.includes(op)) operariosSelModal = operariosSelModal.filter(x=>x!==op);
       else operariosSelModal.push(op);
     };
     opWrap.appendChild(chip);
   });
 
+  renderDiasModal(); // Dibuja los 7 días de la semana inicial
   document.getElementById('modal-programar').classList.add('show');
+}
+
+// Dibuja los 7 botones de día correspondientes a la semana del modal
+function renderDiasModal() {
+  const lunes = getLunes(modalSemanaOffset);
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const dom = new Date(lunes); dom.setDate(lunes.getDate()+6);
+  // Título de la semana: "26 may — 1 jun"
+  document.getElementById('modal-sem-titulo').textContent =
+    lunes.getDate()+' '+meses[lunes.getMonth()]+' — '+dom.getDate()+' '+meses[dom.getMonth()];
+
+  const diasSel = document.getElementById('dias-selector');
+  diasSel.innerHTML = '';
+  for(let i=0; i<7; i++) {
+    const dia = new Date(lunes); dia.setDate(lunes.getDate()+i);
+    const iso = fechaISO(dia);
+    const btn = document.createElement('button');
+    btn.className = 'dia-btn' + (diasSelModal.includes(iso) ? ' sel' : '');
+    btn.innerHTML = '<div>'+DIAS_CORTO[i]+'</div><div style="font-size:13px;margin-top:2px">'+dia.getDate()+'</div>';
+    btn.onclick = () => toggleDiaModal(iso, btn);
+    diasSel.appendChild(btn);
+  }
+}
+
+// Cambia la semana visible dentro del modal y redibuja los días
+function modalCambiarSemana(dir) {
+  modalSemanaOffset += dir;
+  renderDiasModal();
 }
 
 // Marca o desmarca un día en el modal de programar
