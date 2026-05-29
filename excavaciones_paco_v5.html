@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Excavaciones Paco v5</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #1C1C1C;
+    --card: #272727;
+    --text: #FFD100;
+    --text2: #C9A800;
+    --text3: #7A6600;
+    --accent: #FFD100;
+    --accent-light: #332B00;
+    --accent2: #FFA500;
+    --accent2-light: #2A1F00;
+    --border: rgba(255,209,0,0.18);
+    --danger: #FF4444;
+    --danger-light: #3A0000;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: var(--accent); color: #1C1C1C; padding: 16px 20px 14px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+  .header-icon { font-size: 22px; }
+  .header h1 { font-size: 17px; font-weight: normal; letter-spacing: 0.02em; flex: 1; }
+  .header-sub { font-size: 11px; opacity: 0.7; font-family: 'Courier New', monospace; }
+
+  /* NAV TABS */
+  .nav { display: flex; background: #1C1C1C; border-bottom: 1px solid var(--border); }
+  .nav-tab { flex: 1; padding: 12px 4px; text-align: center; font-size: 12px; color: #7A6600; cursor: pointer; border: none; background: none; font-family: 'Courier New', monospace; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; } .nav { background: #222; }
+
+  /* VIEWS */
+  .view { display: none; padding: 16px; }
+  .view.active { display: block; }
+
+  /* PROGRESS BAR */
+  .progress-wrap { margin-bottom: 20px; }
+  .progress-steps { display: flex; gap: 4px; margin-bottom: 6px; }
+  .progress-step { flex: 1; height: 4px; background: var(--border); border-radius: 2px; transition: background 0.3s; }
+  .progress-step.done { background: var(--accent); }
+  .progress-step.active { background: var(--accent2); }
+  .progress-label { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* STEP CARD */
+  .step-card { background: #272727; border-radius: var(--radius); border: 1px solid rgba(255,209,0,0.18); padding: 20px; margin-bottom: 12px; }
+  .step-number { font-size: 10px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .step-title { font-size: 20px; color: var(--text); margin-bottom: 4px; font-weight: normal; }
+  .step-hint { font-size: 13px; color: var(--text2); margin-bottom: 18px; }
+
+  /* VOICE BUTTON */
+  .voice-btn { width: 100%; padding: 16px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: Georgia, serif; margin-bottom: 10px; transition: opacity 0.2s; }
+  .voice-btn:active { opacity: 0.85; transform: scale(0.99); }
+  .voice-btn.listening { background: var(--danger); animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.8} }
+  .voice-result { background: #332B00; border: 1px solid #FFD100; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 14px; color: #FFD100; margin-bottom: 10px; min-height: 40px; font-style: italic; display: none; }
+  .voice-result.show { display: block; }
+  .divider { text-align: center; font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; margin: 8px 0; letter-spacing: 0.1em; }
+
+  /* INPUTS */
+  input[type=text], input[type=number], textarea, select {
+    width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 15px; color: var(--text); background: #1C1C1C; font-family: Georgia, serif; color: #FFD100;
+    outline: none; transition: border-color 0.2s;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { min-height: 80px; resize: none; }
+
+  /* SELECTOR CHIPS */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .chip-opt { padding: 9px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; background: var(--card); color: var(--text2); transition: all 0.15s; font-family: Georgia, serif; }
+  .chip-opt.selected { background: var(--accent); color: #1C1C1C; border-color: var(--accent); }
+  .chip-opt:active { transform: scale(0.97); }
+
+  /* MAPA LEAFLET */
+  .map-btn { width: 100%; padding: 14px; background: var(--accent2-light); color: var(--accent2); border: 1px solid var(--accent2); border-radius: var(--radius-sm); font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: Georgia, serif; margin-bottom: 10px; }
+  .map-wrap { display: none; margin-bottom: 10px; border-radius: var(--radius-sm); overflow: hidden; border: 2px solid var(--accent2); }
+  .map-wrap.show { display: block; }
+  #map-picker { height: 280px; width: 100%; }
+  .map-hint { font-size: 12px; color: var(--text3); font-family: 'Courier New', monospace; text-align: center; padding: 6px; background: #1C1C1C; }
+  .map-accept { width: 100%; padding: 13px; background: var(--accent); color: #1C1C1C; border: none; font-size: 15px; cursor: pointer; font-family: Georgia, serif; font-weight: bold; }
+  .gps-result { background: #2A1F00; border: 1px solid #FFA500; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: #FFA500; margin-bottom: 10px; display: none; }
+  .gps-result.show { display: block; }
+
+  /* STEPPER */
+  .stepper { display: flex; align-items: center; gap: 0; margin-bottom: 10px; }
+  .step-btn { width: 48px; height: 48px; border: 1px solid var(--border); background: #2E2E2E; font-size: 22px; cursor: pointer; color: var(--text); display: flex; align-items: center; justify-content: center; }
+  .step-btn:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+  .step-btn:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+  .step-val { flex: 1; text-align: center; font-size: 24px; border: 1px solid var(--border); border-left: none; border-right: none; padding: 10px; background: #222; }
+
+  /* URGENCY */
+  .urgency-opts { display: flex; gap: 8px; margin-bottom: 12px; }
+  .urg-opt { flex: 1; padding: 12px 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); text-align: center; font-size: 13px; cursor: pointer; background: var(--card); color: var(--text2); transition: all 0.15s; }
+  .urg-opt.sel-normal { background: #332B00; color: #FFD100; border-color: #FFD100; }
+  .urg-opt.sel-alta { background: #2A1800; color: #FFA500; border-color: #FFA500; }
+  .urg-opt.sel-urgente { background: #3A0000; color: #FF4444; border-color: #FF4444; }
+
+  /* NAV BUTTONS */
+  .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-back { flex: 1; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text2); font-size: 15px; cursor: pointer; font-family: Georgia, serif; }
+  .btn-next { flex: 2; padding: 14px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 15px; cursor: pointer; font-family: Georgia, serif; }
+  .btn-next:active { opacity: 0.85; }
+  .btn-next:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* RESUMEN */
+  .resumen-field { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+  .resumen-field:last-child { border-bottom: none; }
+  .resumen-key { font-size: 12px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.05em; min-width: 90px; padding-top: 2px; }
+  .resumen-val { font-size: 15px; color: var(--text); text-align: right; }
+  .btn-guardar { width: 100%; padding: 16px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 17px; cursor: pointer; font-family: Georgia, serif; margin-top: 16px; letter-spacing: 0.02em; }
+  .btn-guardar:active { opacity: 0.85; }
+
+  /* LISTADO */
+  .listado-filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .listado-filters select { flex: 1; min-width: 120px; font-size: 13px; padding: 8px 10px; }
+  .listado-filters input { flex: 2; min-width: 140px; font-size: 13px; padding: 8px 10px; }
+  .listado-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .ltab { flex: 1; padding: 8px 4px; text-align: center; font-size: 12px; color: var(--text2); cursor: pointer; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.04em; }
+  .ltab.active { background: var(--accent); color: #1C1C1C; border-color: var(--accent); }
+  .maq-group-header { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; padding: 12px 0 6px; display: flex; align-items: center; gap: 8px; }
+  .maq-pill { display: inline-block; font-size: 11px; padding: 2px 10px; border-radius: 20px; font-weight: bold; }
+  .trabajo-card { background: #272727; border: 1px solid rgba(255,209,0,0.18); border-left: 3px solid #FFD100; border-radius: var(--radius); padding: 14px; margin-bottom: 8px; }
+  .tc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .tc-titulo { font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+  .tc-dir { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .tc-notas { font-size: 12px; color: var(--text3); margin-top: 6px; padding: 6px 8px; background: #1C1C1C; border-radius: 6px; border-left: 2px solid var(--border); font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
+  .tc-notas.expandido { display: block; -webkit-line-clamp: unset; }
+  .tc-notas-label { font-size: 10px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 6px; }
+  .status-pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; white-space: nowrap; font-family: 'Courier New', monospace; }
+  .sp-borrador { background: #2A2A2A; color: #888; }
+  .sp-presupuestar { background: #2A2000; color: #FFB800; }
+  .sp-presupuestado { background: #001040; color: #6699FF; }
+  .sp-aceptado { background: #332B00; color: #FFD100; }
+  .sp-programado { background: #1A0040; color: #BB88FF; }
+  .sp-realizado { background: #003310; color: #44CC77; }
+  .tc-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .tc-chip { font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); border-radius: 20px; color: var(--text2); }
+  .tc-actions { display: flex; gap: 6px; margin-top: 10px; }
+  .tc-btn { font-size: 12px; padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text2); cursor: pointer; font-family: Georgia, serif; }
+  .tc-btn.realizado { background: var(--accent); color: #1C1C1C; border-color: var(--accent); }
+  .tc-btn.realizado:active { opacity: 0.85; }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 14px; }
+
+  /* STATS */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .stat-box { background: #2E2E2E; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; }
+  .stat-n { font-size: 22px; color: var(--text); }
+  .stat-l { font-size: 10px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+
+  /* BACKUP PANEL */
+  .backup-panel { background: #272727; border: 1px solid rgba(255,209,0,0.18); border-left: 3px solid #FFA500; border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+  .backup-title { font-size: 11px; color: #FFA500; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+  .backup-row { display: flex; gap: 8px; }
+  .btn-export { flex: 1; padding: 13px 8px; background: #332B00; color: #FFD100; border: 1px solid #FFD100; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: Georgia, serif; text-align: center; }
+  .btn-export:active { opacity: 0.8; }
+  .btn-import { flex: 1; padding: 13px 8px; background: #2A1F00; color: #FFA500; border: 1px solid #FFA500; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: Georgia, serif; text-align: center; }
+  .btn-import:active { opacity: 0.8; }
+  .backup-info { font-size: 11px; color: #7A6600; margin-top: 8px; text-align: center; font-family: 'Courier New', monospace; }
+  #import-file { display: none; }
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #1C1C1C; padding: 12px 24px; border-radius: 24px; font-size: 14px; font-family: Georgia, serif; z-index: 999; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .toast.show { opacity: 1; }
+
+  /* MAQ COLORS */
+  .mc-jcb { background: #003322; color: #00CC88; }
+  .mc-volvo { background: #1A1040; color: #9988FF; }
+  .mc-camion { background: #332200; color: #FFB84D; }
+  .mc-niv { background: #2A1000; color: #FF8844; }
+  .mc-man { background: #2A2A28; color: #AAAAAA; }
+
+  /* NAVEGACIÓN MENSUAL */
+  .mes-nav { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+  .mes-btn { padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text2); font-size: 11px; cursor: pointer; font-family: 'Courier New', monospace; letter-spacing: 0.04em; transition: all 0.15s; }
+  .mes-btn:active { opacity: 0.8; }
+  .mes-btn.activo { background: var(--accent); color: #1C1C1C; border-color: var(--accent); font-weight: bold; }
+  .semana-subheader { font-size: 10px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+
+  /* Píldoras del calendario — texto ajustado */
+  .dia-trabajo-pill { font-size: 9px; padding: 3px 5px; border-radius: 4px; background: #332B00; color: #FFD100; border: 1px solid rgba(255,209,0,0.3); cursor: pointer; overflow: hidden; line-height: 1.3; }
+  .dia-trabajo-pill .pill-cliente { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; font-weight: bold; }
+  .dia-trabajo-pill .pill-tipo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; opacity: 0.75; font-size: 8px; margin-top: 1px; }
+  .dia-trabajo-pill:active { opacity: 0.8; }
+  .dia-trabajo-pill.urgente { background: #3A0000; color: #FF6666; border-color: rgba(255,100,100,0.4); }
+  .dia-trabajo-pill.alta { background: #2A1800; color: #FFA500; border-color: rgba(255,165,0,0.4); }
+  .semana-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .semana-titulo { font-size: 15px; color: var(--text); font-family: 'Courier New', monospace; letter-spacing: 0.04em; }
+  .semana-nav { display: flex; gap: 6px; }
+  .semana-nav button { padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text2); font-size: 14px; cursor: pointer; }
+  .semana-nav button:active { opacity: 0.8; }
+
+  .semana-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 16px; }
+  .dia-col { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); min-height: 120px; display: flex; flex-direction: column; }
+  .dia-header { padding: 6px 4px 4px; text-align: center; border-bottom: 1px solid var(--border); }
+  .dia-nombre { font-size: 9px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+  .dia-num { font-size: 15px; color: var(--text); line-height: 1.2; }
+  .dia-num.hoy { color: #1C1C1C; background: var(--accent); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 13px; }
+  .dia-trabajos { flex: 1; padding: 4px 3px; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+  .dia-trabajo-pill { font-size: 9px; padding: 3px 5px; border-radius: 4px; background: #332B00; color: #FFD100; border: 1px solid rgba(255,209,0,0.3); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+  .dia-trabajo-pill:active { opacity: 0.8; }
+  .dia-trabajo-pill.urgente { background: #3A0000; color: #FF6666; border-color: rgba(255,100,100,0.4); }
+  .dia-trabajo-pill.alta { background: #2A1800; color: #FFA500; border-color: rgba(255,165,0,0.4); }
+  .dia-mas { font-size: 9px; color: var(--text3); text-align: center; font-family: 'Courier New', monospace; padding: 2px; }
+
+  .bolsa-header { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+  .bolsa-count { background: var(--accent); color: #1C1C1C; border-radius: 20px; padding: 1px 8px; font-size: 10px; }
+  .bolsa-trabajo { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: border-color 0.15s; }
+  .bolsa-trabajo:active { opacity: 0.85; }
+  .bolsa-trabajo.urgente { border-left-color: #FF4444; }
+  .bolsa-trabajo.alta { border-left-color: #FFA500; }
+  .bolsa-info { flex: 1; min-width: 0; }
+  .bolsa-cliente { font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bolsa-dir { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .bolsa-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+  .bolsa-chip { font-size: 10px; padding: 1px 7px; border: 1px solid var(--border); border-radius: 20px; color: var(--text2); white-space: nowrap; }
+  .bolsa-btn { font-size: 20px; color: var(--accent); flex-shrink: 0; }
+
+  /* Modal programar */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal-sheet { background: #272727; border-radius: 18px 18px 0 0; width: 100%; max-width: 480px; padding: 20px 20px 32px; border-top: 2px solid var(--accent); max-height: 85vh; overflow-y: auto; }
+  .modal-title { font-size: 16px; color: var(--text); margin-bottom: 4px; }
+  .modal-sub { font-size: 12px; color: var(--text2); margin-bottom: 18px; }
+  .modal-label { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; margin-top: 14px; }
+  .dias-selector { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 4px; }
+  .dia-btn { padding: 8px 4px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text2); font-size: 11px; text-align: center; cursor: pointer; font-family: 'Courier New', monospace; }
+  .dia-btn.sel { background: var(--accent); color: #1C1C1C; border-color: var(--accent); font-weight: bold; }
+  .dia-btn:active { opacity: 0.8; }
+  .operarios-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+  .op-chip { padding: 8px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; background: var(--card); color: var(--text2); transition: all 0.15s; }
+  .op-chip.selected { background: var(--accent); color: #1C1C1C; border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-cancel { flex: 1; padding: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text2); font-size: 14px; cursor: pointer; font-family: Georgia, serif; }
+  .modal-confirm { flex: 2; padding: 13px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-family: Georgia, serif; font-weight: bold; }
+
+  /* Detail modal */
+  .detail-field { padding: 9px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .detail-field:last-child { border-bottom: none; }
+  .detail-key { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.05em; min-width: 80px; padding-top: 2px; }
+  .detail-val { font-size: 14px; color: var(--text); text-align: right; }
+  .btn-realizado-modal { width: 100%; padding: 15px; background: #003310; color: #44CC77; border: 1px solid #44CC77; border-radius: var(--radius-sm); font-size: 15px; cursor: pointer; font-family: Georgia, serif; margin-top: 14px; }
+  .btn-realizado-modal:active { opacity: 0.85; }
+  .btn-desprogramar { width: 100%; padding: 12px; background: none; color: var(--danger); border: 1px solid var(--danger); border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; font-family: Georgia, serif; margin-top: 8px; }
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-icon" style="font-size:28px;font-weight:bold;color:#FFD100;">EP</span>
+  <div>
+    <h1>Excavaciones Paco</h1>
+    <div class="header-sub" style="color:#1C1C1C;opacity:0.6">GESTIÓN DE OBRAS · v5.0</div>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="nav-tab active" onclick="showView('captura')">+ Nuevo</button>
+  <button class="nav-tab" onclick="showView('listado')">Listado</button>
+  <button class="nav-tab" onclick="showView('semana')">Semana</button>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     VISTA: SEMANA
+════════════════════════════════════════ -->
+<div class="view" id="view-semana">
+
+  <div class="semana-header">
+    <div class="semana-titulo" id="semana-titulo">Semana actual</div>
+    <div class="semana-nav">
+      <button onclick="cambiarSemana(-1)">◀</button>
+      <button onclick="cambiarSemana(0)">Hoy</button>
+      <button onclick="cambiarSemana(1)">▶</button>
+    </div>
+  </div>
+
+  <!-- Navegación mensual rápida: saltar a la semana que empiece en el mes seleccionado -->
+  <div class="semana-subheader">Saltar a semana del mes</div>
+  <div class="mes-nav" id="mes-nav"></div>
+
+  <div class="semana-grid" id="semana-grid"></div>
+
+  <div class="bolsa-header">
+    <span>Pendientes de programar</span>
+    <span class="bolsa-count" id="bolsa-count">0</span>
+  </div>
+  <div id="bolsa-trabajos"></div>
+
+</div>
+
+<!-- Modal: programar trabajo -->
+<div class="modal-overlay" id="modal-programar">
+  <div class="modal-sheet">
+    <div class="modal-title" id="mprog-titulo">Programar trabajo</div>
+    <div class="modal-sub" id="mprog-sub"></div>
+    <div class="modal-label">Día de la semana</div>
+    <div class="dias-selector" id="dias-selector"></div>
+    <div class="modal-label">Operarios</div>
+    <div class="operarios-wrap" id="operarios-wrap"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="cerrarModal('modal-programar')">Cancelar</button>
+      <button class="modal-confirm" onclick="confirmarProgramar()">Programar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: detalle trabajo programado -->
+<div class="modal-overlay" id="modal-detalle">
+  <div class="modal-sheet">
+    <div class="modal-title" id="mdet-titulo">Detalle</div>
+    <div id="mdet-campos"></div>
+    <button class="btn-realizado-modal" onclick="realizarDesdeDetalle()">✓ Marcar como Realizado</button>
+    <button class="btn-desprogramar" onclick="desprogramarDesdeDetalle()">↩ Quitar de la semana</button>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="modal-cancel" style="flex:1" onclick="cerrarModal('modal-detalle')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     VISTA: CAPTURA
+════════════════════════════════════════ -->
+<div class="view active" id="view-captura">
+
+  <div class="progress-wrap">
+    <div class="progress-steps" id="prog-steps"></div>
+    <div class="progress-label" id="prog-label">Paso 1 de 7</div>
+  </div>
+
+  <!-- PASO 1: CLIENTE -->
+  <div class="step-card" id="step-1">
+    <div class="step-number">Paso 1 / 7</div>
+    <div class="step-title">Cliente</div>
+    <div class="step-hint">Di el nombre del cliente o escríbelo</div>
+    <button class="voice-btn" id="vbtn-1" onclick="startVoice('cliente', 'vbtn-1', 'vres-1')">🎤 Hablar</button>
+    <div class="voice-result" id="vres-1"></div>
+    <div class="divider">— o escribe —</div>
+    <input type="text" id="f-cliente" placeholder="Nombre del cliente…" oninput="syncField('cliente', this.value)">
+    <div class="btn-row">
+      <button class="btn-next" onclick="nextStep(1)" id="next-1">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PASO 2: UBICACIÓN -->
+  <div class="step-card" id="step-2" style="display:none">
+    <div class="step-number">Paso 2 / 7</div>
+    <div class="step-title">Ubicación</div>
+    <div class="step-hint">Pulsa el botón para abrir el mapa con tu posición GPS</div>
+
+    <button class="map-btn" id="btn-abrirmapa" onclick="abrirMapaGPS()">📍 Localizar en el mapa</button>
+
+    <div class="map-wrap" id="map-wrap">
+      <div id="map-picker"></div>
+      <div class="map-hint">Arrastra el marcador para ajustar la posición exacta</div>
+      <button class="map-accept" onclick="aceptarMapa()">✓ Aceptar esta ubicación</button>
+    </div>
+
+    <div class="gps-result" id="gps-result"></div>
+
+    <button class="voice-btn" id="vbtn-2" onclick="startVoice('direccion', 'vbtn-2', 'vres-2')">🎤 Hablar dirección</button>
+    <div class="voice-result" id="vres-2"></div>
+    <div class="divider">— o escribe manualmente —</div>
+    <input type="text" id="f-direccion" placeholder="Rúa, lugar, número…" oninput="syncField('direccion', this.value)">
+    <input type="text" id="f-zona" placeholder="Zona (Milladoiro, Conxo…)" style="margin-top:8px" oninput="syncField('zona', this.value)">
+    <div class="btn-row">
+      <button class="btn-back" onclick="prevStep(2)">← Atrás</button>
+      <button class="btn-next" onclick="nextStep(2)" id="next-2">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PASO 3: TIPO DE TRABAJO -->
+  <div class="step-card" id="step-3" style="display:none">
+    <div class="step-number">Paso 3 / 7</div>
+    <div class="step-title">Tipo de trabajo</div>
+    <div class="step-hint">¿Qué hay que hacer?</div>
+    <button class="voice-btn" id="vbtn-3" onclick="startVoice('tipo', 'vbtn-3', 'vres-3')">🎤 Hablar</button>
+    <div class="voice-result" id="vres-3"></div>
+    <div class="chips" id="chips-tipo"></div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="prevStep(3)">← Atrás</button>
+      <button class="btn-next" onclick="nextStep(3)" id="next-3">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PASO 4: MAQUINARIA -->
+  <div class="step-card" id="step-4" style="display:none">
+    <div class="step-number">Paso 4 / 7</div>
+    <div class="step-title">Maquinaria</div>
+    <div class="step-hint">¿Qué máquina se necesita?</div>
+    <button class="voice-btn" id="vbtn-4" onclick="startVoice('maquinaria', 'vbtn-4', 'vres-4')">🎤 Hablar</button>
+    <div class="voice-result" id="vres-4"></div>
+    <div class="chips" id="chips-maq"></div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="prevStep(4)">← Atrás</button>
+      <button class="btn-next" onclick="nextStep(4)" id="next-4">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PASO 5: HORAS -->
+  <div class="step-card" id="step-5" style="display:none">
+    <div class="step-number">Paso 5 / 7</div>
+    <div class="step-title">Horas previstas</div>
+    <div class="step-hint">¿Cuántas horas calculas?</div>
+    <button class="voice-btn" id="vbtn-5" onclick="startVoice('horas', 'vbtn-5', 'vres-5')">🎤 Hablar</button>
+    <div class="voice-result" id="vres-5"></div>
+    <div class="stepper">
+      <button class="step-btn" onclick="changeHoras(-1)">−</button>
+      <div class="step-val" id="horas-display">4</div>
+      <button class="step-btn" onclick="changeHoras(1)">+</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="prevStep(5)">← Atrás</button>
+      <button class="btn-next" onclick="nextStep(5)" id="next-5">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PASO 6: URGENCIA + NOTAS -->
+  <div class="step-card" id="step-6" style="display:none">
+    <div class="step-number">Paso 6 / 7</div>
+    <div class="step-title">Urgencia y notas</div>
+    <div class="step-hint">¿Con qué prioridad? ¿Algo más a tener en cuenta?</div>
+    <div class="urgency-opts">
+      <div class="urg-opt sel-normal" id="urg-normal" onclick="setUrgencia('Normal')">🟢 Normal</div>
+      <div class="urg-opt" id="urg-alta" onclick="setUrgencia('Alta')">🟡 Alta</div>
+      <div class="urg-opt" id="urg-urgente" onclick="setUrgencia('Urgente')">🔴 Urgente</div>
+    </div>
+    <button class="voice-btn" id="vbtn-6" onclick="startVoice('notas', 'vbtn-6', 'vres-6')">🎤 Dictar notas</button>
+    <div class="voice-result" id="vres-6"></div>
+    <textarea id="f-notas" placeholder="Notas adicionales…" oninput="syncField('notas', this.value)"></textarea>
+    <div class="btn-row">
+      <button class="btn-back" onclick="prevStep(6)">← Atrás</button>
+      <button class="btn-next" onclick="nextStep(6)" id="next-6">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PASO 7: RESUMEN -->
+  <div class="step-card" id="step-7" style="display:none">
+    <div class="step-number">Paso 7 / 7</div>
+    <div class="step-title">Revisa y guarda</div>
+    <div style="margin-top:12px" id="resumen-content"></div>
+    <div class="btn-row" style="margin-top:0">
+      <button class="btn-back" onclick="prevStep(7)">← Corregir</button>
+    </div>
+    <button class="btn-guardar" onclick="guardarTrabajo()">✓ Guardar trabajo</button>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════
+     VISTA: LISTADO
+════════════════════════════════════════ -->
+<div class="view" id="view-listado">
+  <div class="backup-panel">
+    <div class="backup-title">⚙ Copia de seguridad</div>
+    <div class="backup-row">
+      <button class="btn-export" onclick="exportarJSON()">⬇ Exportar datos</button>
+      <button class="btn-import" onclick="document.getElementById('import-file').click()">⬆ Importar datos</button>
+    </div>
+    <div class="backup-info" id="backup-info">Exporta para guardar en Drive, WhatsApp o email</div>
+    <input type="file" id="import-file" accept=".json" onchange="importarJSON(this)">
+  </div>
+  <div class="stats-row" id="stats-row"></div>
+  <div class="listado-filters">
+    <select id="l-zona" onchange="renderListado()">
+      <option value="">Todas las zonas</option>
+    </select>
+    <select id="l-maq" onchange="renderListado()">
+      <option value="">Toda la maquinaria</option>
+    </select>
+    <input type="text" id="l-dir" placeholder="Dirección / cliente…" oninput="renderListado()">
+  </div>
+  <div class="listado-tabs">
+    <div class="ltab active" id="ltab-pendientes" onclick="setLTab('pendientes')">Pendientes</div>
+    <div class="ltab" id="ltab-programados" onclick="setLTab('programados')">Programados</div>
+    <div class="ltab" id="ltab-realizados" onclick="setLTab('realizados')">Realizados</div>
+  </div>
+  <div id="listado-content"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+// ════════════════════════════════════════════════════════
+// CONFIG — Listas editables manualmente hasta que exista el Módulo 5
+// Para añadir maquinaria o tipos, editar estos arrays.
+// Los sinónimos permiten que la voz reconozca palabras alternativas.
+// ════════════════════════════════════════════════════════
+const CONFIG = {
+  // Tipos de trabajo disponibles (chips en el paso 3)
+  tipos: ['Excavación','Picado','Carga escombro','Zanjas','Nivelación','Limpieza solar'],
+  // Maquinaria disponible (chips en el paso 4)
+  maquinaria: ['Minipala JCB','Volvo giratorio','Camión contenedor','Niveladora','Manual'],
+  // Palabras que la voz reconoce como equivalentes a cada valor
+  sinonimos: {
+    'Minipala JCB': ['mini','jcb','pala pequeña','minipala'],
+    'Volvo giratorio': ['volvo','retro','giratorio','excavadora'],
+    'Camión contenedor': ['camión','contenedor','volquete'],
+    'Niveladora': ['niveladora','motoniveladora'],
+    'Excavación': ['excavar','excavación','abrir','cimientos'],
+    'Picado': ['picar','picado','romper','demoler'],
+    'Carga escombro': ['escombro','retirar','carga','llevar'],
+  }
+};
+
+// ════════════════════════════════════════════════════════
+// ESTADO GLOBAL — Variables que guardan los datos mientras la app está abierta
+// ════════════════════════════════════════════════════════
+
+// Datos del formulario en curso (se resetean al guardar)
+let form = { cliente:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
+// Paso actual del formulario de 7 pasos (1-7)
+let stepActual = 1;
+// Pestaña activa en el listado: 'pendientes', 'programados' o 'realizados'
+let ltabActual = 'pendientes';
+// Instancia del reconocedor de voz (Web Speech API)
+let recognition = null;
+// Indica si el micrófono está activo en este momento
+let listening = false;
+
+// ════════════════════════════════════════════════════════
+// ALMACENAMIENTO — Lee y escribe en localStorage del navegador
+// Los datos sobreviven a cerrar Chrome y reinicios del móvil.
+// ════════════════════════════════════════════════════════
+
+// Devuelve el array de trabajos guardado, o array vacío si no hay nada
+function getTrab() { try { return JSON.parse(localStorage.getItem('excavaciones_trabajos')||'[]'); } catch(e){ return []; } }
+// Guarda el array de trabajos en localStorage
+function saveTrab(arr) { localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr)); }
+
+// ════════════════════════════════════════════════════════
+// BARRA DE PROGRESO — Los 7 segmentos de la parte superior del formulario
+// ════════════════════════════════════════════════════════
+function updateProgress() {
+  const total = 7;
+  let html = '';
+  for(let i=1;i<=total;i++) {
+    // 'done' = completado, 'active' = actual, '' = pendiente
+    let cls = i < stepActual ? 'done' : i === stepActual ? 'active' : '';
+    html += `<div class="progress-step ${cls}"></div>`;
+  }
+  document.getElementById('prog-steps').innerHTML = html;
+  document.getElementById('prog-label').textContent = `Paso ${stepActual} de ${total}`;
+}
+
+// ════════════════════════════════════════════════════════
+// NAVEGACIÓN DEL FORMULARIO — Avanzar y retroceder entre los 7 pasos
+// ════════════════════════════════════════════════════════
+
+// Muestra el paso n y oculta el resto. Si es el paso 7, construye el resumen.
+function showStep(n) {
+  for(let i=1;i<=7;i++) {
+    const el = document.getElementById('step-'+i);
+    if(el) el.style.display = i===n ? 'block' : 'none';
+  }
+  stepActual = n;
+  updateProgress();
+  if(n===7) buildResumen();
+}
+
+// Valida el paso actual antes de avanzar. Si falta algo, muestra aviso.
+function nextStep(current) {
+  if(current===1 && !form.cliente.trim()) { showToast('Indica el nombre del cliente'); return; }
+  if(current===2 && !form.direccion.trim()) { showToast('Indica la dirección o usa el GPS'); return; }
+  if(current===3 && (!form.tipos || form.tipos.length===0)) { showToast('Selecciona al menos un tipo de trabajo'); return; }
+  if(current===4 && (!form.maquinarias || form.maquinarias.length===0)) { showToast('Selecciona al menos una máquina'); return; }
+  showStep(current+1);
+}
+// Vuelve al paso anterior sin validar
+function prevStep(current) { showStep(current-1); }
+
+// ════════════════════════════════════════════════════════
+// CHIPS DE SELECCIÓN MÚLTIPLE — Botones táctiles para tipo y maquinaria
+// ════════════════════════════════════════════════════════
+
+// Construye los chips de tipo de trabajo y maquinaria a partir de CONFIG
+function buildChips() {
+  const ct = document.getElementById('chips-tipo');
+  ct.innerHTML = CONFIG.tipos.map(t =>
+    `<div class="chip-opt ${(form.tipos||[]).includes(t)?'selected':''}" onclick="selectChipMulti('tipos','${t}',this)">${t}</div>`
+  ).join('');
+  const cm = document.getElementById('chips-maq');
+  cm.innerHTML = CONFIG.maquinaria.map(m =>
+    `<div class="chip-opt ${(form.maquinarias||[]).includes(m)?'selected':''}" onclick="selectChipMulti('maquinarias','${m}',this)">${m}</div>`
+  ).join('');
+}
+
+// Añade o quita un valor del array correspondiente en el formulario
+function selectChipMulti(field, val, el) {
+  if(!form[field]) form[field] = [];
+  const idx = form[field].indexOf(val);
+  if(idx === -1) { form[field].push(val); el.classList.add('selected'); }   // Añadir
+  else { form[field].splice(idx, 1); el.classList.remove('selected'); }     // Quitar
+}
+
+// ════════════════════════════════════════════════════════
+// URGENCIA — Selector visual Normal / Alta / Urgente
+// ════════════════════════════════════════════════════════
+function setUrgencia(val) {
+  form.urgencia = val;
+  // Quita la clase activa de los tres botones y la pone solo en el seleccionado
+  ['normal','alta','urgente'].forEach(u => {
+    const el = document.getElementById('urg-'+u);
+    el.className = 'urg-opt';
+    if(val.toLowerCase()===u) el.classList.add('sel-'+u);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// HORAS — Stepper +/- para las horas previstas del trabajo
+// ════════════════════════════════════════════════════════
+function changeHoras(delta) {
+  // Mínimo 1h, máximo 99h
+  form.horas = Math.max(1, Math.min(99, form.horas+delta));
+  document.getElementById('horas-display').textContent = form.horas;
+}
+
+// Sincroniza un campo de texto con el objeto form al escribir
+function syncField(field, val) { form[field] = val; }
+
+// ════════════════════════════════════════════════════════
+// MAPA LEAFLET + GPS — Paso 2 del formulario
+// Usa la librería Leaflet con tiles de OpenStreetMap (gratuito).
+// El GPS requiere HTTPS — funciona desde GitHub Pages, no desde file://
+// ════════════════════════════════════════════════════════
+
+let mapaLeaflet = null;                    // Instancia del mapa Leaflet (se crea una sola vez)
+let marcador = null;                       // Marcador arrastrable sobre el mapa
+let coordsTemp = { lat: null, lng: null }; // Coordenadas seleccionadas antes de aceptar
+
+// Inicializa el mapa (o lo recentra si ya existe) en las coordenadas dadas
+function inicializarMapa(lat, lng, zoom) {
+  const wrap = document.getElementById('map-wrap');
+  wrap.classList.add('show'); // Muestra el contenedor del mapa
+
+  if (!mapaLeaflet) {
+    // Primera vez: crea el mapa con tiles de OpenStreetMap
+    mapaLeaflet = L.map('map-picker').setView([lat, lng], zoom);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19
+    }).addTo(mapaLeaflet);
+  } else {
+    // Ya existía: solo recentra
+    mapaLeaflet.setView([lat, lng], zoom);
+  }
+
+  // Fuerza redibujado (necesario cuando el contenedor estaba oculto)
+  setTimeout(() => mapaLeaflet.invalidateSize(), 200);
+}
+
+// Coloca o mueve el marcador en el mapa. El marcador es arrastrable.
+function ponerMarcador(lat, lng) {
+  if (marcador) {
+    marcador.setLatLng([lat, lng]); // Ya existe: moverlo
+  } else {
+    // Crear marcador arrastrable por primera vez
+    marcador = L.marker([lat, lng], { draggable: true }).addTo(mapaLeaflet);
+    // Al terminar de arrastrar, actualiza las coordenadas temporales
+    marcador.on('dragend', () => {
+      const p = marcador.getLatLng();
+      coordsTemp = { lat: p.lat.toFixed(6), lng: p.lng.toFixed(6) };
+    });
+  }
+  // Guarda las coordenadas actuales (con 6 decimales de precisión)
+  coordsTemp = { lat: typeof lat === 'number' ? lat.toFixed(6) : lat, lng: typeof lng === 'number' ? lng.toFixed(6) : lng };
+}
+
+// Activa el modo "toca para marcar" cuando el GPS no está disponible
+function activarClickMapa() {
+  mapaLeaflet.off('click'); // Elimina listeners anteriores para evitar duplicados
+  mapaLeaflet.on('click', e => {
+    ponerMarcador(e.latlng.lat, e.latlng.lng);
+  });
+}
+
+// Botón principal del paso 2: pide GPS y abre el mapa cuando hay respuesta
+function abrirMapaGPS() {
+  const btn = document.getElementById('btn-abrirmapa');
+  btn.textContent = '⏳ Obteniendo posición GPS…';
+  btn.disabled = true;
+
+  if (!navigator.geolocation) {
+    // El navegador no soporta GPS en absoluto
+    inicializarMapa(42.8782, -8.5448, 13); // Centro: Santiago de Compostela
+    activarClickMapa();
+    btn.textContent = '📍 GPS no disponible — toca el mapa para marcar';
+    btn.disabled = false;
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      // GPS OK: abre el mapa ya centrado en la posición real del móvil
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      inicializarMapa(lat, lng, 17); // Zoom 17 = nivel de calle
+      ponerMarcador(lat, lng);
+      btn.textContent = '✓ GPS capturado — arrastra el marcador si hay desvío';
+      btn.disabled = false;
+    },
+    err => {
+      // GPS bloqueado (file://, sin permiso, sin cobertura, timeout)
+      // Abre el mapa en Santiago para que el usuario marque manualmente
+      inicializarMapa(42.8782, -8.5448, 13);
+      activarClickMapa();
+      btn.textContent = '📍 GPS no disponible — toca el mapa para marcar';
+      btn.disabled = false;
+    },
+    { timeout: 8000, enableHighAccuracy: true } // Espera máximo 8 segundos
+  );
+}
+
+// Botón "Aceptar ubicación": guarda las coordenadas y busca la dirección
+function aceptarMapa() {
+  if (!coordsTemp.lat) {
+    showToast('Marca un punto en el mapa primero');
+    return;
+  }
+  form.lat = coordsTemp.lat;
+  form.lng = coordsTemp.lng;
+
+  const res = document.getElementById('gps-result');
+  res.className = 'gps-result show';
+  res.textContent = `⏳ Buscando dirección…`;
+
+  // Geocodificación inversa: convierte coordenadas en dirección legible
+  // Usa Nominatim de OpenStreetMap (gratuito, sin clave de API)
+  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${form.lat}&lon=${form.lng}&format=json&accept-language=es`)
+    .then(r => r.json())
+    .then(d => {
+      const addr = d.address || {};
+      // Construye la dirección con calle y número si están disponibles
+      const partes = [addr.road, addr.house_number].filter(Boolean);
+      const dir = partes.join(' ') || d.display_name?.split(',')[0] || '';
+      // Determina la zona (barrio, pueblo, ciudad...)
+      const zona = addr.suburb || addr.neighbourhood || addr.town || addr.village || addr.city_district || addr.city || '';
+      if (dir) { form.direccion = dir; document.getElementById('f-direccion').value = dir; }
+      if (zona) { form.zona = zona; document.getElementById('f-zona').value = zona; }
+      res.textContent = `📍 ${dir || form.lat+', '+form.lng}${zona ? ' · '+zona : ''}`;
+      document.getElementById('map-wrap').classList.remove('show'); // Oculta el mapa
+      document.getElementById('btn-abrirmapa').textContent = '✓ Ubicación en mapa — toca para cambiar';
+      showToast('✓ Ubicación guardada');
+    })
+    .catch(() => {
+      // Sin internet o fallo de Nominatim: guarda solo las coordenadas
+      res.textContent = `📍 ${form.lat}, ${form.lng}`;
+      document.getElementById('map-wrap').classList.remove('show');
+      document.getElementById('btn-abrirmapa').textContent = '✓ Ubicación guardada';
+      showToast('✓ Coordenadas guardadas');
+    });
+}
+
+// ════════════════════════════════════════════════════════
+// VOZ — Reconocimiento de voz con Web Speech API
+// Requiere HTTPS (GitHub Pages). No funciona desde file://
+// El micrófono permanece activo hasta que el usuario lo para.
+// ════════════════════════════════════════════════════════
+
+// Arranca el micrófono para el campo indicado.
+// field: qué campo rellena ('cliente', 'tipo', 'maquinaria', 'notas'...)
+// btnId: ID del botón que cambia de texto al activarse
+// resId: ID del div donde se muestra la transcripción
+function startVoice(field, btnId, resId) {
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Reconocimiento de voz no disponible. Usa Chrome en Android.');
+    return;
+  }
+  // Si ya está escuchando, parar al tocar de nuevo
+  if(listening) { listening = false; if(recognition) recognition.stop(); return; }
+
+  const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new Rec();
+  recognition.lang = 'es-ES';
+  recognition.continuous = true;      // No para solo al hacer pausa
+  recognition.interimResults = false; // Solo resultados finales (más precisos)
+
+  const btn = document.getElementById(btnId);
+  const res = document.getElementById(resId);
+  btn.textContent = '⏹ Escuchando… (toca para parar)';
+  btn.classList.add('listening'); // Pone el botón en rojo animado
+  listening = true;
+
+  let textoAcumulado = ''; // Acumula todo lo dictado en esta sesión
+
+  // Se ejecuta cada vez que el API reconoce un fragmento de texto
+  recognition.onresult = e => {
+    let nuevo = '';
+    for(let i = e.resultIndex; i < e.results.length; i++) {
+      if(e.results[i].isFinal) nuevo += e.results[i][0].transcript + ' ';
+    }
+    if(nuevo.trim()) {
+      textoAcumulado = (textoAcumulado + ' ' + nuevo).trim();
+      res.className = 'voice-result show';
+      res.textContent = '"' + textoAcumulado + '"'; // Muestra en pantalla
+      processVoice(field, textoAcumulado);           // Procesa el texto
+    }
+  };
+
+  // Error: si es 'no-speech' (silencio) se ignora; cualquier otro error para el micro
+  recognition.onerror = e => {
+    if(e.error !== 'no-speech') { listening = false; resetVoiceBtn(btn, field); }
+  };
+
+  // Al terminar (pausa larga, error, etc.): si seguimos en modo escucha, reinicia
+  recognition.onend = () => {
+    if(listening) {
+      try { recognition.start(); } catch(err) { listening = false; resetVoiceBtn(btn, field); }
+    } else {
+      resetVoiceBtn(btn, field); // Restaura el botón a su estado normal
+    }
+  };
+
+  recognition.start();
+}
+
+// Restaura el botón del micrófono a su texto y estilo original
+function resetVoiceBtn(btn, field) {
+  listening = false;
+  const labels = { cliente:'🎤 Hablar', direccion:'🎤 Hablar dirección', tipo:'🎤 Hablar', maquinaria:'🎤 Hablar', horas:'🎤 Hablar', notas:'🎤 Dictar notas' };
+  btn.textContent = labels[field] || '🎤 Hablar';
+  btn.classList.remove('listening');
+}
+
+// Interpreta el texto dictado y lo aplica al campo correcto del formulario
+function processVoice(field, texto) {
+  const t = texto.toLowerCase();
+  if(field==='cliente') {
+    form.cliente = texto;
+    document.getElementById('f-cliente').value = texto;
+  } else if(field==='direccion') {
+    form.direccion = texto;
+    document.getElementById('f-direccion').value = texto;
+  } else if(field==='tipo') {
+    matchSinonimo('tipos', t, 'chips-tipo'); // Busca coincidencia en la lista de tipos
+  } else if(field==='maquinaria') {
+    matchSinonimo('maquinarias', t, 'chips-maq'); // Busca coincidencia en maquinaria
+  } else if(field==='horas') {
+    const nums = t.match(/\d+/); // Extrae el primer número del texto
+    if(nums) { form.horas = parseInt(nums[0]); document.getElementById('horas-display').textContent = form.horas; }
+  } else if(field==='notas') {
+    form.notas = texto;
+    document.getElementById('f-notas').value = texto;
+    // Detecta urgencia en las notas automáticamente
+    if(t.includes('urgent')) setUrgencia('Urgente');
+    else if(t.includes('alta')) setUrgencia('Alta');
+  }
+}
+
+// Busca en CONFIG.sinonimos si el texto dictado corresponde a algún valor de la lista
+function matchSinonimo(field, texto, chipsId) {
+  const lista = field==='tipos' ? CONFIG.tipos : CONFIG.maquinaria;
+  let matched = null;
+  for(const val of lista) {
+    const sins = CONFIG.sinonimos[val] || [];
+    // Comprueba si el texto contiene algún sinónimo o el propio nombre del valor
+    if(sins.some(s=>texto.includes(s)) || texto.includes(val.toLowerCase())) {
+      matched = val; break;
+    }
+  }
+  if(matched) {
+    if(!form[field]) form[field] = [];
+    if(!form[field].includes(matched)) form[field].push(matched); // Añade si no estaba
+    // Actualiza visualmente los chips en pantalla
+    document.querySelectorAll(`#${chipsId} .chip-opt`).forEach(c=>{
+      c.classList.toggle('selected', form[field].includes(c.textContent));
+    });
+    showToast('✓ Detectado: '+matched);
+  } else {
+    showToast('No reconocido. Selecciona manualmente.');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// RESUMEN — Paso 7: muestra todos los datos del formulario para revisión
+// ════════════════════════════════════════════════════════
+function buildResumen() {
+  const campos = [
+    ['Cliente', form.cliente || '—'],
+    ['Dirección', form.direccion || '—'],
+    ['Zona', form.zona || '—'],
+    ['GPS', form.lat ? `${form.lat}, ${form.lng}` : 'No capturado'],
+    ['Tipo', (form.tipos&&form.tipos.length) ? form.tipos.join(', ') : '—'],
+    ['Maquinaria', (form.maquinarias&&form.maquinarias.length) ? form.maquinarias.join(', ') : '—'],
+    ['Horas', form.horas + 'h'],
+    ['Urgencia', form.urgencia],
+    ['Notas', form.notas || '—'],
+  ];
+  document.getElementById('resumen-content').innerHTML = campos.map(([k,v])=>
+    `<div class="resumen-field"><span class="resumen-key">${k}</span><span class="resumen-val">${v}</span></div>`
+  ).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// GUARDAR TRABAJO — Crea el objeto trabajo y lo añade al array en localStorage
+// ════════════════════════════════════════════════════════
+function guardarTrabajo() {
+  const trabajos = getTrab();
+  const nuevo = {
+    id: Date.now(),   // ID único basado en timestamp (milisegundos)
+    ...form,          // Copia todos los campos del formulario
+    tipo: (form.tipos||[]).join(', '),         // Guarda también como texto plano para filtros
+    maquinaria: (form.maquinarias||[]).join(', '),
+    estado: 'Pendiente presupuestar',          // Estado inicial siempre
+    fecha: new Date().toISOString().slice(0,10),
+    fechaCreacion: new Date().toISOString()
+  };
+  trabajos.unshift(nuevo); // Añade al principio (más reciente primero)
+  saveTrab(trabajos);
+  showToast('✓ Trabajo guardado');
+  resetForm();
+  setTimeout(()=>{ showView('listado'); }, 800); // Navega al listado tras 0.8s
+}
+
+// Limpia el formulario y lo vuelve al estado inicial (paso 1, valores vacíos)
+function resetForm() {
+  form = { cliente:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
+  ['f-cliente','f-direccion','f-zona','f-notas'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['vres-1','vres-2','vres-3','vres-4','vres-5','vres-6'].forEach(id=>{ const el=document.getElementById(id); if(el){el.className='voice-result';el.textContent='';} });
+  document.getElementById('horas-display').textContent = '4';
+  setUrgencia('Normal');
+  document.getElementById('gps-result').className = 'gps-result';
+  document.getElementById('map-wrap').classList.remove('show');
+  const btnMapa = document.getElementById('btn-abrirmapa');
+  btnMapa.textContent = '📍 Localizar en el mapa';
+  btnMapa.disabled = false;
+  coordsTemp = { lat: null, lng: null };
+  if(marcador && mapaLeaflet) { mapaLeaflet.removeLayer(marcador); marcador = null; } // Limpia el marcador del mapa
+  showStep(1);
+  buildChips(); // Reconstruye los chips sin ninguno seleccionado
+}
+
+// ════════════════════════════════════════════════════════
+// LISTADO — Vista de trabajos con filtros y pestañas
+// ════════════════════════════════════════════════════════
+
+// Cambia entre las pestañas Pendientes / Programados / Realizados
+function setLTab(tab) {
+  ltabActual = tab;
+  ['pendientes','programados','realizados'].forEach(t=>{
+    document.getElementById('ltab-'+t).classList.toggle('active', t===tab);
+  });
+  renderListado();
+}
+
+// Rellena los desplegables de zona y maquinaria con los valores reales de los trabajos
+function buildFiltros() {
+  const trabajos = getTrab();
+  // Zonas únicas extraídas de los trabajos existentes, ordenadas alfabéticamente
+  const zonas = [...new Set(trabajos.map(t=>t.zona).filter(Boolean))].sort();
+  const lz = document.getElementById('l-zona');
+  const cur = lz.value; // Guarda el filtro actual para no perderlo al redibujar
+  lz.innerHTML = '<option value="">Todas las zonas</option>' + zonas.map(z=>`<option value="${z}">${z}</option>`).join('');
+  lz.value = cur;
+  // Maquinaria única extraída de los trabajos existentes
+  const maqs = [...new Set(trabajos.map(t=>t.maquinaria).filter(Boolean))].sort();
+  const lm = document.getElementById('l-maq');
+  const curm = lm.value;
+  lm.innerHTML = '<option value="">Toda la maquinaria</option>' + maqs.map(m=>`<option value="${m}">${m}</option>`).join('');
+  lm.value = curm;
+}
+
+// Qué estados corresponden a cada pestaña del listado
+const ESTADOS_PENDIENTES = ['Pendiente presupuestar','Presupuestado','Aceptado'];
+const ESTADOS_PROGRAMADOS = ['Programado','En curso'];
+const ESTADOS_REALIZADOS = ['Realizado'];
+
+// Dibuja el listado completo: stats, filtros y tarjetas de trabajos
+function renderListado() {
+  buildFiltros();
+  const trabajos = getTrab();
+  const zona = document.getElementById('l-zona').value;
+  const maq = document.getElementById('l-maq').value;
+  const dir = document.getElementById('l-dir').value.trim().toLowerCase();
+
+  // Estadísticas resumen en la parte superior
+  const activos = trabajos.filter(t=>!ESTADOS_REALIZADOS.includes(t.estado));
+  const horasTotal = activos.reduce((a,b)=>a+(b.horas||0),0);
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-box"><div class="stat-n">${trabajos.length}</div><div class="stat-l">Total</div></div>
+    <div class="stat-box"><div class="stat-n">${activos.length}</div><div class="stat-l">Activos</div></div>
+    <div class="stat-box"><div class="stat-n">${horasTotal}h</div><div class="stat-l">H. previstas</div></div>
+    <div class="stat-box"><div class="stat-n">${trabajos.filter(t=>ESTADOS_REALIZADOS.includes(t.estado)).length}</div><div class="stat-l">Hechos</div></div>
+  `;
+
+  // Filtra por pestaña activa + filtros de zona, maquinaria y búsqueda de texto
+  let lista = trabajos.filter(t=>{
+    const enTab = ltabActual==='pendientes' ? ESTADOS_PENDIENTES.includes(t.estado)
+                : ltabActual==='programados' ? ESTADOS_PROGRAMADOS.includes(t.estado)
+                : ESTADOS_REALIZADOS.includes(t.estado);
+    if(!enTab) return false;
+    if(zona && t.zona!==zona) return false;
+    if(maq && t.maquinaria!==maq) return false;
+    if(dir && !(
+      (t.direccion||'').toLowerCase().includes(dir)||
+      (t.zona||'').toLowerCase().includes(dir)||
+      (t.cliente||'').toLowerCase().includes(dir)||
+      (t.tipo||'').toLowerCase().includes(dir)
+    )) return false;
+    return true;
+  });
+
+  if(lista.length===0) {
+    document.getElementById('listado-content').innerHTML='<div class="empty-state">Sin trabajos en esta vista</div>';
+    return;
+  }
+
+  // Agrupa los trabajos por maquinaria para mostrarlos con cabecera de grupo
+  const grupos = {};
+  lista.forEach(t=>{ if(!grupos[t.maquinaria]) grupos[t.maquinaria]=[]; grupos[t.maquinaria].push(t); });
+
+  // Color de la píldora de maquinaria según el tipo
+  const MAQ_CLS = {'Minipala JCB':'mc-jcb','Volvo giratorio':'mc-volvo','Camión contenedor':'mc-camion','Niveladora':'mc-niv','Manual':'mc-man'};
+  // Color de la píldora de estado
+  const STATUS_CLS = {'Pendiente presupuestar':'sp-presupuestar','Presupuestado':'sp-presupuestado','Aceptado':'sp-aceptado','Programado':'sp-programado','En curso':'sp-programado','Realizado':'sp-realizado','Borrador':'sp-borrador'};
+  // Siguiente estado en el flujo (para el botón de avance)
+  const NEXT_ESTADO = {'Pendiente presupuestar':'Presupuestado','Presupuestado':'Aceptado','Aceptado':'Programado','Programado':'En curso','En curso':'Realizado'};
+
+  let html='';
+  Object.keys(grupos).sort().forEach(maq=>{
+    const cls = MAQ_CLS[maq]||'mc-man';
+    const totalH = grupos[maq].reduce((a,b)=>a+(b.horas||0),0);
+    // Cabecera del grupo con nombre de máquina, número de trabajos y horas totales
+    html+=`<div class="maq-group-header"><span class="maq-pill ${cls}">${maq}</span> ${grupos[maq].length} trabajo${grupos[maq].length>1?'s':''} · ${totalH}h</div>`;
+    grupos[maq].forEach(t=>{
+      const scls = STATUS_CLS[t.estado]||'sp-borrador';
+      const next = NEXT_ESTADO[t.estado];
+      // Extrae el cliente real: primera frase hasta guión o coma, máx 40 chars
+      const clienteCorto = (t.cliente||'Sin cliente').split(/[—\-,]/)[0].trim().slice(0,40);
+      // Tipos como texto corto
+      const tiposCorto = (t.tipos&&t.tipos.length) ? t.tipos.join(', ') : (t.tipo||'Sin tipo');
+      // Notas o texto completo del cliente si hay diferencia
+      const hayNotas = t.notas && t.notas.trim().length > 0;
+      const clienteEsLargo = (t.cliente||'').length > 40;
+      const notasHtml = (hayNotas || clienteEsLargo) ? `
+        <div class="tc-notas-label">📝 Notas</div>
+        <div class="tc-notas" onclick="this.classList.toggle('expandido')">${t.notas || t.cliente || ''}</div>` : '';
+      html+=`<div class="trabajo-card" id="tc-${t.id}">
+        <div class="tc-top">
+          <div style="min-width:0;flex:1">
+            <div class="tc-titulo">${clienteCorto} — ${tiposCorto}</div>
+            <div class="tc-dir">📍 ${t.direccion||'Sin dirección'}${t.zona?' · '+t.zona:''}</div>
+          </div>
+          <span class="status-pill ${scls}">${t.estado}</span>
+        </div>
+        ${notasHtml}
+        <div class="tc-meta" style="margin-top:8px">
+          <span class="tc-chip">⏱ ${t.horas||0}h</span>
+          <span class="tc-chip">${t.urgencia||'Normal'}</span>
+          <span class="tc-chip">${t.fecha||''}</span>
+        </div>
+        <div class="tc-actions">
+          ${next?`<button class="tc-btn" onclick="cambiarEstado(${t.id},'${next}')">→ ${next}</button>`:''}
+          ${t.estado!=='Realizado'?`<button class="tc-btn realizado" onclick="cambiarEstado(${t.id},'Realizado')">✓ Realizado</button>`:''}
+          <button class="tc-btn" onclick="eliminar(${t.id})" style="margin-left:auto;color:var(--danger)">Borrar</button>
+        </div>
+      </div>`;
+    });
+  });
+  document.getElementById('listado-content').innerHTML=html;
+}
+
+// Cambia el estado de un trabajo con confirmación previa
+// Para 'Realizado' avisa que no se puede deshacer
+function cambiarEstado(id, nuevoEstado) {
+  const trabajos = getTrab();
+  const t = trabajos.find(x=>x.id===id);
+  if(!t) return;
+  const nombre = (t.cliente||'Sin cliente') + ' — ' + (t.direccion||'Sin dirección');
+  let msg;
+  if(nuevoEstado === 'Realizado') {
+    msg = '¿Marcar como REALIZADO?\n' + nombre + '\n\nEsta acción no se puede deshacer.';
+  } else {
+    msg = '¿Cambiar a "' + nuevoEstado + '"?\n' + nombre;
+  }
+  if(!confirm(msg)) return;
+  t.estado = nuevoEstado;
+  saveTrab(trabajos);
+  renderListado();
+  showToast('→ ' + nuevoEstado);
+}
+
+// Elimina un trabajo permanentemente (con confirmación)
+function eliminar(id) {
+  if(!confirm('¿Eliminar este trabajo?')) return;
+  saveTrab(getTrab().filter(t=>t.id!==id));
+  renderListado();
+}
+
+// ════════════════════════════════════════════════════════
+// NAVEGACIÓN ENTRE VISTAS — Cambia entre Nuevo / Listado / Semana
+// ════════════════════════════════════════════════════════
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  const idx = name==='captura'?0:name==='listado'?1:2; // Índice del tab activo
+  document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+  if(name==='listado') renderListado(); // Refresca el listado al entrar
+  if(name==='semana') renderSemana();   // Refresca la semana al entrar
+}
+
+// ════════════════════════════════════════════════════════
+// TOAST — Mensaje emergente breve en la parte inferior
+// ════════════════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200); // Desaparece a los 2.2 segundos
+}
+
+// ════════════════════════════════════════════════════════
+// BACKUP — Exportar e importar datos en formato JSON
+// Exportar: descarga un archivo con fecha en el nombre (va a la carpeta Descargas)
+// Importar: fusiona con los datos existentes sin duplicar (detecta por ID)
+// ════════════════════════════════════════════════════════
+
+function exportarJSON() {
+  const trabajos = getTrab();
+  if(trabajos.length === 0) { showToast('No hay trabajos para exportar'); return; }
+  const fecha = new Date().toISOString().slice(0,10);
+  const nombre = 'excavaciones_paco_' + fecha + '.json';
+  // Envuelve los trabajos en un objeto con metadatos para identificar el archivo
+  const datos = JSON.stringify({
+    exportado: new Date().toISOString(),
+    version: '1.0',
+    empresa: 'Excavaciones Paco',
+    total: trabajos.length,
+    trabajos: trabajos
+  }, null, 2);
+  // Crea un enlace de descarga temporal y lo pulsa automáticamente
+  const blob = new Blob([datos], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  a.click();
+  URL.revokeObjectURL(url); // Libera la memoria del enlace temporal
+  document.getElementById('backup-info').textContent = '✓ Exportado: ' + nombre + ' (' + trabajos.length + ' trabajos)';
+  showToast('✓ Datos exportados');
+}
+
+function importarJSON(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const datos = JSON.parse(e.target.result);
+      // Acepta tanto el formato envuelto {trabajos:[]} como un array directo []
+      const trabajos = Array.isArray(datos) ? datos : (datos.trabajos || []);
+      if(!trabajos.length) { showToast('El archivo está vacío o no es válido'); return; }
+      const actuales = getTrab();
+      // Detecta duplicados por ID: solo añade los que no existen ya
+      const idsActuales = new Set(actuales.map(t => t.id));
+      const nuevos = trabajos.filter(t => !idsActuales.has(t.id));
+      const fusionados = [...actuales, ...nuevos];
+      // Ordena por fecha de creación descendente (más reciente primero)
+      fusionados.sort((a,b) => (b.fechaCreacion||'').localeCompare(a.fechaCreacion||''));
+      saveTrab(fusionados);
+      renderListado();
+      const msg = nuevos.length > 0
+        ? '✓ ' + nuevos.length + ' trabajos importados (' + actuales.length + ' ya existían)'
+        : 'Todos los trabajos ya estaban en el sistema';
+      document.getElementById('backup-info').textContent = msg;
+      showToast(msg);
+    } catch(err) {
+      showToast('Error: archivo JSON no válido');
+    }
+    input.value = ''; // Limpia el input para que se pueda volver a usar
+  };
+  reader.readAsText(file);
+}
+
+
+// ════════════════════════════════════════════════════════
+// MÓDULO 3 — PROGRAMACIÓN SEMANAL
+// Vista de 7 columnas (lun-dom) con los trabajos asignados a cada día.
+// Debajo: bolsa de trabajos pendientes de programar.
+// Al tocar un trabajo de la bolsa → modal para asignar día(s) y operario(s).
+// Al tocar un trabajo en el calendario → modal de detalle con opción de realizarlo.
+// ════════════════════════════════════════════════════════
+
+let semanaOffset = 0;       // 0 = semana actual, -1 = semana anterior, +1 = siguiente
+let modalTrabajoId = null;  // ID del trabajo abierto en el modal (programar o detalle)
+let diasSelModal = [];      // Días seleccionados en el modal de programar (fechas ISO)
+let operariosSelModal = []; // Operarios seleccionados en el modal de programar
+
+// Nombres cortos y largos de los días (índice 0 = lunes, 6 = domingo)
+const DIAS_CORTO = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const DIAS_LARGO = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+
+// Lista de operarios — editar aquí hasta que exista el Módulo 5 (Configuración)
+const OPERARIOS  = ['Paco','Operario 2','Operario 3','Operario 4'];
+
+// Calcula el lunes de la semana actual desplazada por 'offset' semanas
+function getLunes(offset) {
+  const hoy = new Date();
+  const dow = hoy.getDay() === 0 ? 6 : hoy.getDay() - 1; // Convierte domingo(0) a 6, lunes(1) a 0
+  const lunes = new Date(hoy);
+  lunes.setDate(hoy.getDate() - dow + offset * 7);
+  lunes.setHours(0,0,0,0);
+  return lunes;
+}
+
+// Convierte un objeto Date a string 'YYYY-MM-DD' para comparar fechas
+function fechaISO(d) {
+  return d.toISOString().slice(0,10);
+}
+
+// Formatea el rango de la semana para mostrar en el título (ej: "26 may — 1 jun 2026")
+function formatoSemana(lunes) {
+  const dom = new Date(lunes); dom.setDate(lunes.getDate()+6);
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return lunes.getDate()+' '+meses[lunes.getMonth()]+' — '+dom.getDate()+' '+meses[dom.getMonth()]+' '+dom.getFullYear();
+}
+
+// Dibuja la vista completa de la semana: cabecera + 7 columnas + bolsa de pendientes
+function renderSemana() {
+  const lunes = getLunes(semanaOffset);
+  document.getElementById('semana-titulo').textContent = formatoSemana(lunes);
+  buildMesNav(); // Actualiza la barra de meses marcando el activo
+
+  const trabajos = getTrab();
+  const hoyISO = fechaISO(new Date()); // Para marcar visualmente el día de hoy
+
+  // ── Grilla de 7 días ──
+  const grid = document.getElementById('semana-grid');
+  grid.innerHTML = '';
+
+  for(let i=0; i<7; i++) {
+    const dia = new Date(lunes); dia.setDate(lunes.getDate()+i);
+    const iso = fechaISO(dia);
+    const esHoy = iso === hoyISO;
+    // Trabajos asignados a este día que no estén realizados
+    const trabajosDia = trabajos.filter(t => t.diasProgramados && t.diasProgramados.includes(iso) && t.estado !== 'Realizado');
+
+    // Crea la columna del día con cabecera y contenedor de píldoras
+    const col = document.createElement('div');
+    col.className = 'dia-col';
+    col.innerHTML = '<div class="dia-header"><div class="dia-nombre">'+DIAS_CORTO[i]+'</div><div class="dia-num'+(esHoy?' hoy':'')+'">'+dia.getDate()+'</div></div><div class="dia-trabajos" id="dia-'+iso+'"></div>';
+    grid.appendChild(col);
+
+    const cont = col.querySelector('.dia-trabajos');
+    const visibles = trabajosDia.slice(0,3); // Muestra máximo 3 píldoras por día
+    visibles.forEach(t => {
+      const pill = document.createElement('div');
+      const urg = (t.urgencia||'').toLowerCase();
+      // Color de la píldora según urgencia
+      pill.className = 'dia-trabajo-pill' + (urg==='urgente'?' urgente':urg==='alta'?' alta':'');
+      // Cliente corto (primera parte antes de guión/coma, máx 15 chars)
+      const clienteCorto = (t.cliente||'Sin nombre').split(/[—\-,]/)[0].trim().slice(0,15);
+      // Tipo corto (primera tipo o abreviatura)
+      const tipoCorto = (t.tipos&&t.tipos.length) ? t.tipos[0].slice(0,12) : (t.tipo||'').split(',')[0].trim().slice(0,12);
+      pill.innerHTML = '<span class="pill-cliente">'+clienteCorto+'</span>'+(tipoCorto?'<span class="pill-tipo">'+tipoCorto+'</span>':'');
+      pill.onclick = () => abrirDetalle(t.id); // Toca la píldora → abre detalle
+      cont.appendChild(pill);
+    });
+    // Si hay más de 3 trabajos en el día, muestra "+N más"
+    if(trabajosDia.length > 3) {
+      const mas = document.createElement('div');
+      mas.className = 'dia-mas';
+      mas.textContent = '+' + (trabajosDia.length-3) + ' más';
+      cont.appendChild(mas);
+    }
+  }
+
+  // ── Bolsa de pendientes ──
+  // Trabajos que no están realizados y no tienen días asignados todavía
+  const pendientes = trabajos.filter(t => t.estado !== 'Realizado' && (!t.diasProgramados || t.diasProgramados.length === 0));
+  document.getElementById('bolsa-count').textContent = pendientes.length;
+  const bolsa = document.getElementById('bolsa-trabajos');
+  if(pendientes.length === 0) {
+    bolsa.innerHTML = '<div class="empty-state">No hay trabajos pendientes de programar</div>';
+    return;
+  }
+  bolsa.innerHTML = '';
+  pendientes.forEach(t => {
+    const urg = (t.urgencia||'').toLowerCase();
+    const div = document.createElement('div');
+    div.className = 'bolsa-trabajo' + (urg==='urgente'?' urgente':urg==='alta'?' alta':'');
+    // Muestra tipo, maquinaria y horas como chips informativos
+    div.innerHTML = '<div class="bolsa-info"><div class="bolsa-cliente">'+(t.cliente||'Sin cliente')+'</div><div class="bolsa-dir">'+(t.direccion||'Sin dirección')+'</div><div class="bolsa-meta">'
+      + (t.tipos||[]).map(x=>'<span class="bolsa-chip">'+x+'</span>').join('')
+      + (t.maquinarias||[]).map(x=>'<span class="bolsa-chip">⚙ '+x+'</span>').join('')
+      + (t.horas?'<span class="bolsa-chip">⏱ '+t.horas+'h</span>':'')
+      + '</div></div><div class="bolsa-btn">+</div>';
+    div.onclick = () => abrirModalProgramar(t.id); // Toca la fila → abre modal para programar
+    bolsa.appendChild(div);
+  });
+}
+
+// Navega entre semanas: dir=-1 anterior, dir=0 hoy, dir=1 siguiente
+function cambiarSemana(dir) {
+  if(dir === 0) semanaOffset = 0; // Botón "Hoy" vuelve a la semana actual
+  else semanaOffset += dir;
+  renderSemana();
+}
+
+// ════════════════════════════════════════════════════════
+// NAVEGACIÓN MENSUAL — Muestra botones para saltar a la semana de inicio de cada mes
+// Genera los próximos 6 meses desde hoy para poder planificar
+// ════════════════════════════════════════════════════════
+function buildMesNav() {
+  const hoy = new Date();
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const nav = document.getElementById('mes-nav');
+  if(!nav) return;
+  nav.innerHTML = '';
+  // Genera botones para los próximos 6 meses (actual + 5 siguientes)
+  for(let m=0; m<6; m++) {
+    const fecha = new Date(hoy.getFullYear(), hoy.getMonth()+m, 1);
+    const btn = document.createElement('button');
+    btn.className = 'mes-btn';
+    const label = meses[fecha.getMonth()] + (fecha.getFullYear()!==hoy.getFullYear()?' '+fecha.getFullYear().toString().slice(2):'');
+    btn.textContent = label;
+    // Al pulsar: calcula el offset de semanas desde hoy hasta la primera semana de ese mes
+    btn.onclick = () => {
+      const primerLunes = getPrimerLunesMes(fecha);
+      const hoyLunes = getLunes(0);
+      const diffMs = primerLunes - hoyLunes;
+      const diffSemanas = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
+      semanaOffset = diffSemanas;
+      renderSemana();
+    };
+    nav.appendChild(btn);
+  }
+  // Marca el mes activo (el mes del lunes visible)
+  const lunesVisible = getLunes(semanaOffset);
+  const mesActivo = lunesVisible.getMonth();
+  const anyoActivo = lunesVisible.getFullYear();
+  nav.querySelectorAll('.mes-btn').forEach((btn, i) => {
+    const fecha = new Date(hoy.getFullYear(), hoy.getMonth()+i, 1);
+    btn.classList.toggle('activo', fecha.getMonth()===mesActivo && fecha.getFullYear()===anyoActivo);
+  });
+}
+
+// Devuelve el primer lunes del mes de la fecha dada
+function getPrimerLunesMes(fecha) {
+  const d = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
+  // Si el día 1 no es lunes, avanza hasta el primer lunes
+  const dow = d.getDay() === 0 ? 6 : d.getDay() - 1;
+  if(dow !== 0) d.setDate(d.getDate() + (7 - dow));
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+// ════════════════════════════════════════════════════════
+// MODAL PROGRAMAR — Asigna un trabajo a uno o varios días y operarios
+// ════════════════════════════════════════════════════════
+function abrirModalProgramar(id) {
+  modalTrabajoId = id;
+  diasSelModal = [];      // Reinicia selección de días
+  operariosSelModal = []; // Reinicia selección de operarios
+  const t = getTrab().find(x=>x.id===id);
+  if(!t) return;
+
+  // Rellena el título y subtítulo del modal con los datos del trabajo
+  document.getElementById('mprog-titulo').textContent = t.cliente || 'Sin cliente';
+  document.getElementById('mprog-sub').textContent = (t.direccion||'') + (t.horas ? ' · ' + t.horas + 'h previstas' : '');
+
+  // Crea los 7 botones de día correspondientes a la semana visible
+  const lunes = getLunes(semanaOffset);
+  const diasSel = document.getElementById('dias-selector');
+  diasSel.innerHTML = '';
+  for(let i=0; i<7; i++) {
+    const dia = new Date(lunes); dia.setDate(lunes.getDate()+i);
+    const iso = fechaISO(dia);
+    const btn = document.createElement('button');
+    btn.className = 'dia-btn';
+    btn.innerHTML = '<div>'+DIAS_CORTO[i]+'</div><div style="font-size:13px;margin-top:2px">'+dia.getDate()+'</div>';
+    btn.onclick = () => toggleDiaModal(iso, btn); // Toca el día → seleccionar/deseleccionar
+    diasSel.appendChild(btn);
+  }
+
+  // Crea los chips de operarios (selección múltiple)
+  const opWrap = document.getElementById('operarios-wrap');
+  opWrap.innerHTML = '';
+  OPERARIOS.forEach(op => {
+    const chip = document.createElement('div');
+    chip.className = 'op-chip';
+    chip.textContent = op;
+    chip.onclick = () => {
+      chip.classList.toggle('selected');
+      // Añade o quita el operario del array de seleccionados
+      if(operariosSelModal.includes(op)) operariosSelModal=operariosSelModal.filter(x=>x!==op);
+      else operariosSelModal.push(op);
+    };
+    opWrap.appendChild(chip);
+  });
+
+  document.getElementById('modal-programar').classList.add('show');
+}
+
+// Marca o desmarca un día en el modal de programar
+function toggleDiaModal(iso, btn) {
+  btn.classList.toggle('sel');
+  if(diasSelModal.includes(iso)) diasSelModal = diasSelModal.filter(x=>x!==iso);
+  else diasSelModal.push(iso);
+}
+
+// Confirma la programación: guarda días y operarios en el trabajo y cambia estado a Programado
+function confirmarProgramar() {
+  if(diasSelModal.length === 0) { showToast('Selecciona al menos un día'); return; }
+  const trabajos = getTrab();
+  const t = trabajos.find(x=>x.id===modalTrabajoId);
+  if(!t) return;
+  t.diasProgramados = diasSelModal;   // Array de fechas ISO asignadas
+  t.operarios = operariosSelModal;    // Array de nombres de operarios
+  t.estado = 'Programado';
+  saveTrab(trabajos);
+  cerrarModal('modal-programar');
+  renderSemana();
+  showToast('✓ Trabajo programado');
+}
+
+// ════════════════════════════════════════════════════════
+// MODAL DETALLE — Muestra los datos completos de un trabajo programado
+// Desde aquí se puede marcar como Realizado o quitar de la semana
+// ════════════════════════════════════════════════════════
+function abrirDetalle(id) {
+  modalTrabajoId = id;
+  const t = getTrab().find(x=>x.id===id);
+  if(!t) return;
+  document.getElementById('mdet-titulo').textContent = t.cliente || 'Sin cliente';
+  // Construye la lista de campos a mostrar
+  const campos = [
+    ['Dirección', t.direccion||'—'],
+    ['Trabajo', (t.tipos||[]).join(', ')||'—'],
+    ['Maquinaria', (t.maquinarias||[]).join(', ')||'—'],
+    ['Horas previstas', t.horas ? t.horas+'h' : '—'],
+    ['Operarios', (t.operarios||[]).join(', ')||'—'],
+    // Convierte las fechas ISO a nombres de día legibles (ej: "Lunes 26")
+    ['Días asignados', (t.diasProgramados||[]).map(d=>{ const f=new Date(d+'T12:00'); return DIAS_LARGO[f.getDay()===0?6:f.getDay()-1]+' '+f.getDate(); }).join(', ')||'—'],
+    ['Urgencia', t.urgencia||'Normal'],
+    ['Notas', t.notas||'—'],
+    ['Estado', t.estado||'—'],
+  ];
+  document.getElementById('mdet-campos').innerHTML = campos.map(([k,v])=>
+    '<div class="detail-field"><span class="detail-key">'+k+'</span><span class="detail-val">'+v+'</span></div>'
+  ).join('');
+  document.getElementById('modal-detalle').classList.add('show');
+}
+
+// Marca el trabajo como Realizado y lo elimina del calendario
+function realizarDesdeDetalle() {
+  const trabajos = getTrab();
+  const t = trabajos.find(x=>x.id===modalTrabajoId);
+  if(!t) return;
+  const nombre = (t.cliente||'Sin cliente') + ' — ' + (t.direccion||'Sin dirección');
+  if(!confirm('¿Marcar como REALIZADO?\n' + nombre + '\n\nEsta acción no se puede deshacer.')) return;
+  t.estado = 'Realizado';
+  t.diasProgramados = []; // Sale del calendario automáticamente
+  saveTrab(trabajos);
+  cerrarModal('modal-detalle');
+  renderSemana();
+  showToast('✓ Trabajo realizado');
+}
+
+// Quita el trabajo de la semana sin marcarlo como realizado (vuelve a la bolsa)
+function desprogramarDesdeDetalle() {
+  const trabajos = getTrab();
+  const t = trabajos.find(x=>x.id===modalTrabajoId);
+  if(!t) return;
+  if(!confirm('¿Quitar este trabajo de la semana?\n' + (t.cliente||'Sin cliente'))) return;
+  t.diasProgramados = []; // Limpia los días asignados
+  t.operarios = [];       // Limpia los operarios asignados
+  t.estado = 'Aceptado';  // Vuelve al estado anterior a Programado
+  saveTrab(trabajos);
+  cerrarModal('modal-detalle');
+  renderSemana();
+  showToast('↩ Trabajo desprogramado');
+}
+
+// Cierra cualquier modal ocultando su overlay
+function cerrarModal(id) {
+  document.getElementById(id).classList.remove('show');
+  modalTrabajoId = null;
+}
+
+// ════════════════════════════════════════════════════════
+// INIT — Se ejecuta al cargar la página
+// ════════════════════════════════════════════════════════
+buildChips();       // Construye los chips de tipo y maquinaria
+updateProgress();   // Dibuja la barra de progreso del formulario
+renderListado();    // Carga el listado inicial
+</script>
+</body>
+</html>
