@@ -329,6 +329,8 @@
 .cfg-sin-btn { background: #2a4a2a; color: #8fc98f; border: 1px solid #3a5a3a; border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
 .cfg-btn-reset { background: #3a1a1a; color: #ff8888; border: 1px solid #553333; border-radius: 8px; padding: 9px 16px; font-size: 13px; cursor: pointer; width: 100%; }
 .cfg-btn-reset:hover { background: #4a1a1a; }
+.cfg-chip-archivado { opacity: 0.55; border-style: dashed; }
+.cfg-badge-arch { font-size: 10px; color: #888; background: #2a2a2a; border-radius: 10px; padding: 1px 6px; margin-left: 4px; }
 </style>
 </head>
 <body>
@@ -669,20 +671,36 @@ const CONFIG_DEFAULT = {
   }
 };
 
-const OPERARIOS_DEFAULT = ['Paco','Operario 2','Operario 3','Operario 4'];
+const OPERARIOS_DEFAULT = [
+  {nombre:'Paco', activo:true},
+  {nombre:'Operario 2', activo:true},
+  {nombre:'Operario 3', activo:true},
+  {nombre:'Operario 4', activo:true}
+];
 
 function getCfg() {
   try { return JSON.parse(localStorage.getItem('cfg_listas')) || structuredClone(CONFIG_DEFAULT); } catch(e){ return structuredClone(CONFIG_DEFAULT); }
 }
 function saveCfg(c) { localStorage.setItem('cfg_listas', JSON.stringify(c)); }
 function getOperariosCfg() {
-  try { const r = JSON.parse(localStorage.getItem('cfg_operarios')); return Array.isArray(r) ? r : [...OPERARIOS_DEFAULT]; } catch(e){ return [...OPERARIOS_DEFAULT]; }
+  try {
+    const r = JSON.parse(localStorage.getItem('cfg_operarios'));
+    if (!Array.isArray(r)) return OPERARIOS_DEFAULT.map(o=>({...o}));
+    // Migración: si el array guardado es de strings (versión anterior), convertir a objetos
+    if (r.length > 0 && typeof r[0] === 'string') return r.map(n=>({nombre:n, activo:true}));
+    return r;
+  } catch(e){ return OPERARIOS_DEFAULT.map(o=>({...o})); }
 }
 function saveOperariosCfg(arr) { localStorage.setItem('cfg_operarios', JSON.stringify(arr)); }
 
+// Nombres de operarios activos (para asignar en modal programar)
+function getOperariosActivos() { return getOperariosCfg().filter(o=>o.activo).map(o=>o.nombre); }
+// Todos los nombres (activos + archivados, para la vista Hoy)
+function getOperariosTodos() { return getOperariosCfg().map(o=>o.nombre); }
+
 // CONFIG y OPERARIOS — variables vivas, se recargan al guardar cambios
 let CONFIG = getCfg();
-let OPERARIOS = getOperariosCfg();
+let OPERARIOS = getOperariosActivos(); // Solo activos — para asignación en modal
 
 // ════════════════════════════════════════════════════════
 // ESTADO GLOBAL — Variables que guardan los datos mientras la app está abierta
@@ -1773,10 +1791,20 @@ function renderOperario() {
   // Selector de operario
   const sel = document.getElementById('op-selector');
   sel.innerHTML = '';
-  OPERARIOS.forEach(op => {
+  // Mostrar todos los operarios que tienen al menos 1 trabajo programado,
+  // más los activos aunque no tengan trabajos. Los archivados sin trabajos no aparecen.
+  const trabajosAll = getTrab();
+  const conTrabajo = new Set(trabajosAll.flatMap(t => t.operarios || []));
+  const opCfg = getOperariosCfg();
+  const opVisibles = opCfg.filter(o => o.activo || conTrabajo.has(o.nombre)).map(o => o.nombre);
+  // Si el opSeleccionado ya no aparece, resetear al primero visible
+  if (!opVisibles.includes(opSeleccionado)) opSeleccionado = opVisibles[0] || '';
+  opVisibles.forEach(op => {
+    const esActivo = opCfg.find(o=>o.nombre===op)?.activo !== false;
     const btn = document.createElement('button');
     btn.className = 'op-sel-btn' + (op === opSeleccionado ? ' activo' : '');
-    btn.textContent = op;
+    btn.textContent = esActivo ? op : op + ' 📦';
+    btn.title = esActivo ? '' : 'Operario archivado — trabajos históricos';
     btn.onclick = () => { opSeleccionado = op; renderOperario(); };
     sel.appendChild(btn);
   });
@@ -1884,14 +1912,30 @@ renderListado();    // Carga el listado inicial
 // ════════════════════════════════════════════════════════
 
 function renderConfig() {
-  renderCfgList('operarios', getOperariosCfg(), 'cfg-operarios');
+  renderCfgOperarios(getOperariosCfg(), 'cfg-operarios');
   const c = getCfg();
   renderCfgList('tipos', c.tipos, 'cfg-tipos');
   renderCfgList('maquinaria', c.maquinaria, 'cfg-maquinaria');
   renderCfgSinonimos(c);
 }
 
-// Renderiza una lista editable de chips (operarios, tipos o maquinaria)
+// Renderiza operarios con toggle Archivar/Reactivar (nunca se borran)
+function renderCfgOperarios(ops, containerId) {
+  const wrap = document.getElementById(containerId);
+  wrap.innerHTML = '';
+  if (ops.length === 0) { wrap.innerHTML = '<span style="color:#555;font-size:12px">Sin operarios</span>'; return; }
+  ops.forEach((op, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'cfg-chip' + (op.activo ? '' : ' cfg-chip-archivado');
+    const badge = op.activo ? '' : ' <span class="cfg-badge-arch">archivado</span>';
+    const btnLabel = op.activo ? '📦' : '♻';
+    const btnTitle = op.activo ? 'Archivar (deja de aparecer en nuevas asignaciones)' : 'Reactivar';
+    chip.innerHTML = `<span>${op.nombre}${badge}</span><button class="cfg-chip-del" onclick="cfgToggleOperario(${i})" title="${btnTitle}">${btnLabel}</button>`;
+    wrap.appendChild(chip);
+  });
+}
+
+// Renderiza una lista editable de chips (tipos o maquinaria)
 function renderCfgList(key, items, containerId) {
   const wrap = document.getElementById(containerId);
   wrap.innerHTML = '';
@@ -1955,10 +1999,10 @@ function cfgAdd(key) {
 
   if (key === 'operarios') {
     const arr = getOperariosCfg();
-    if (arr.includes(val)) { showToast('Ya existe'); return; }
-    arr.push(val);
+    if (arr.some(o => o.nombre === val)) { showToast('Ya existe'); return; }
+    arr.push({nombre: val, activo: true});
     saveOperariosCfg(arr);
-    OPERARIOS = arr;
+    OPERARIOS = getOperariosActivos();
   } else {
     const c = getCfg();
     if (c[key].includes(val)) { showToast('Ya existe'); return; }
@@ -1973,17 +2017,28 @@ function cfgAdd(key) {
   showToast('✓ Añadido');
 }
 
-// Elimina un ítem de operarios, tipos o maquinaria
+// Archiva o reactiva un operario (nunca se borra — sus trabajos quedan intactos)
+function cfgToggleOperario(idx) {
+  const arr = getOperariosCfg();
+  const op = arr[idx];
+  if (!op) return;
+  // Evitar archivar si es el único activo
+  if (op.activo && arr.filter(o=>o.activo).length <= 1) {
+    showToast('Debe haber al menos 1 operario activo'); return;
+  }
+  op.activo = !op.activo;
+  saveOperariosCfg(arr);
+  OPERARIOS = getOperariosActivos();
+  // Si el opSeleccionado fue archivado, cambiar al primero activo
+  if (!OPERARIOS.includes(opSeleccionado)) opSeleccionado = OPERARIOS[0] || '';
+  renderConfig();
+  showToast(op.activo ? '♻ Reactivado' : '📦 Archivado');
+}
+
+// Elimina un ítem de tipos o maquinaria
 function cfgDel(key, idx) {
-  if (key === 'operarios') {
-    const arr = getOperariosCfg();
-    if (arr.length <= 1) { showToast('Debe haber al menos 1 operario'); return; }
-    arr.splice(idx, 1);
-    saveOperariosCfg(arr);
-    OPERARIOS = arr;
-    // Si el operario activo fue eliminado, resetear al primero
-    if (!OPERARIOS.includes(opSeleccionado)) opSeleccionado = OPERARIOS[0];
-  } else {
+  if (key === 'operarios') return; // Los operarios se gestionan con cfgToggleOperario
+  else {
     const c = getCfg();
     const nombre = c[key][idx];
     c[key].splice(idx, 1);
@@ -2050,8 +2105,8 @@ function cfgReset() {
   localStorage.removeItem('cfg_listas');
   localStorage.removeItem('cfg_operarios');
   CONFIG = getCfg();
-  OPERARIOS = getOperariosCfg();
-  opSeleccionado = OPERARIOS[0];
+  OPERARIOS = getOperariosActivos();
+  opSeleccionado = OPERARIOS[0] || '';
   buildChips();
   renderConfig();
   showToast('✓ Configuración restaurada');
