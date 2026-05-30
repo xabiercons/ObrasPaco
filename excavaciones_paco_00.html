@@ -295,6 +295,40 @@
   .op-dia-header:first-child { margin-top: 0; }
   .op-vacio-icon { font-size: 40px; display: block; margin-bottom: 12px; }
 
+
+/* ═══════════ MÓDULO 5 — CONFIGURACIÓN ═══════════ */
+.cfg-wrap { padding: 16px; max-width: 600px; margin: 0 auto; }
+.cfg-title { font-size: 18px; font-weight: bold; color: var(--accent); margin-bottom: 4px; }
+.cfg-info { font-size: 12px; color: #888; margin-bottom: 16px; }
+.cfg-section { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+.cfg-danger-section { border-color: #553333; }
+.cfg-section-title { font-size: 13px; font-weight: bold; color: #ccc; margin-bottom: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
+.cfg-items { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; min-height: 10px; }
+.cfg-chip { display: flex; align-items: center; gap: 6px; background: #2a2a2a; border: 1px solid #444; border-radius: 20px; padding: 5px 10px; font-size: 13px; color: #ddd; }
+.cfg-chip-del { background: none; border: none; color: #888; cursor: pointer; font-size: 16px; line-height: 1; padding: 0; }
+.cfg-chip-del:hover { color: #ff6b6b; }
+.cfg-add-row { display: flex; gap: 8px; }
+.cfg-input { flex: 1; background: #111; border: 1px solid #444; border-radius: 8px; padding: 8px 12px; color: #fff; font-size: 14px; font-family: 'Courier New', monospace; }
+.cfg-input:focus { outline: none; border-color: var(--accent); }
+.cfg-btn-add { background: var(--accent); color: #111; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap; }
+.cfg-btn-add:hover { opacity: 0.85; }
+.cfg-sin-info { font-size: 12px; color: #777; margin-bottom: 10px; }
+.cfg-sin-item { background: #111; border: 1px solid #333; border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+.cfg-sin-header { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; cursor: pointer; }
+.cfg-sin-name { font-size: 13px; font-weight: bold; color: #ddd; }
+.cfg-sin-count { font-size: 11px; color: #666; }
+.cfg-sin-arrow { font-size: 12px; color: #666; transition: transform 0.2s; }
+.cfg-sin-arrow.open { transform: rotate(180deg); }
+.cfg-sin-body { display: none; padding: 0 12px 12px; border-top: 1px solid #222; }
+.cfg-sin-body.open { display: block; }
+.cfg-sin-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 8px; }
+.cfg-sin-chip { display: flex; align-items: center; gap: 4px; background: #1e2a1e; border: 1px solid #3a5a3a; border-radius: 20px; padding: 4px 9px; font-size: 12px; color: #8fc98f; }
+.cfg-sin-add-row { display: flex; gap: 6px; }
+.cfg-sin-input { flex: 1; background: #111; border: 1px solid #444; border-radius: 6px; padding: 6px 10px; color: #fff; font-size: 13px; font-family: 'Courier New', monospace; }
+.cfg-sin-input:focus { outline: none; border-color: #3a5a3a; }
+.cfg-sin-btn { background: #2a4a2a; color: #8fc98f; border: 1px solid #3a5a3a; border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
+.cfg-btn-reset { background: #3a1a1a; color: #ff8888; border: 1px solid #553333; border-radius: 8px; padding: 9px 16px; font-size: 13px; cursor: pointer; width: 100%; }
+.cfg-btn-reset:hover { background: #4a1a1a; }
 </style>
 </head>
 <body>
@@ -312,6 +346,7 @@
   <button class="nav-tab" onclick="showView('listado')">Listado</button>
   <button class="nav-tab" onclick="showView('semana')">Semana</button>
   <button class="nav-tab" onclick="showView('operario')">Hoy</button>
+  <button class="nav-tab" onclick="showView('config')">⚙</button>
 </div>
 
 
@@ -557,21 +592,72 @@
   <div id="listado-content"></div>
 </div>
 
+<!-- ═══════════════════════════════════════
+     VISTA: CONFIGURACIÓN (Módulo 5)
+════════════════════════════════════════ -->
+<div class="view" id="view-config">
+  <div class="cfg-wrap">
+    <div class="cfg-title">⚙ Configuración</div>
+    <div class="cfg-info">Los cambios se guardan automáticamente y se aplican de inmediato.</div>
+
+    <!-- OPERARIOS -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">👷 Operarios</div>
+      <div class="cfg-items" id="cfg-operarios"></div>
+      <div class="cfg-add-row">
+        <input class="cfg-input" id="inp-operario" type="text" placeholder="Nuevo operario…" maxlength="40">
+        <button class="cfg-btn-add" onclick="cfgAdd('operarios')">+ Añadir</button>
+      </div>
+    </div>
+
+    <!-- TIPOS DE TRABAJO -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">🔨 Tipos de trabajo</div>
+      <div class="cfg-items" id="cfg-tipos"></div>
+      <div class="cfg-add-row">
+        <input class="cfg-input" id="inp-tipo" type="text" placeholder="Nuevo tipo…" maxlength="40">
+        <button class="cfg-btn-add" onclick="cfgAdd('tipos')">+ Añadir</button>
+      </div>
+    </div>
+
+    <!-- MAQUINARIA -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">🚜 Maquinaria</div>
+      <div class="cfg-items" id="cfg-maquinaria"></div>
+      <div class="cfg-add-row">
+        <input class="cfg-input" id="inp-maquinaria" type="text" placeholder="Nueva máquina…" maxlength="40">
+        <button class="cfg-btn-add" onclick="cfgAdd('maquinaria')">+ Añadir</button>
+      </div>
+    </div>
+
+    <!-- SINÓNIMOS DE VOZ -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">🎤 Sinónimos de voz</div>
+      <div class="cfg-sin-info">Palabras que el micrófono reconoce como cada tipo o máquina.</div>
+      <div id="cfg-sinonimos"></div>
+    </div>
+
+    <!-- RESETEAR CONFIG -->
+    <div class="cfg-section cfg-danger-section">
+      <div class="cfg-section-title">⚠ Restaurar configuración</div>
+      <button class="cfg-btn-reset" onclick="cfgReset()">Restaurar listas por defecto</button>
+      <div class="cfg-info" style="margin-top:6px">No borra los trabajos guardados.</div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 
 // ════════════════════════════════════════════════════════
-// CONFIG — Listas editables manualmente hasta que exista el Módulo 5
-// Para añadir maquinaria o tipos, editar estos arrays.
-// Los sinónimos permiten que la voz reconozca palabras alternativas.
+// CONFIG — Listas editables desde el Módulo 5 (⚙ Configuración)
+// Se guardan en localStorage. Si no hay datos guardados, usa los valores por defecto.
 // ════════════════════════════════════════════════════════
-const CONFIG = {
-  // Tipos de trabajo disponibles (chips en el paso 3)
+
+const CONFIG_DEFAULT = {
   tipos: ['Excavación','Picado','Carga escombro','Zanjas','Nivelación','Limpieza solar'],
-  // Maquinaria disponible (chips en el paso 4)
   maquinaria: ['Minipala JCB','Volvo giratorio','Camión contenedor','Niveladora','Manual'],
-  // Palabras que la voz reconoce como equivalentes a cada valor
   sinonimos: {
     'Minipala JCB': ['mini','jcb','pala pequeña','minipala'],
     'Volvo giratorio': ['volvo','retro','giratorio','excavadora'],
@@ -582,6 +668,21 @@ const CONFIG = {
     'Carga escombro': ['escombro','retirar','carga','llevar'],
   }
 };
+
+const OPERARIOS_DEFAULT = ['Paco','Operario 2','Operario 3','Operario 4'];
+
+function getCfg() {
+  try { return JSON.parse(localStorage.getItem('cfg_listas')) || structuredClone(CONFIG_DEFAULT); } catch(e){ return structuredClone(CONFIG_DEFAULT); }
+}
+function saveCfg(c) { localStorage.setItem('cfg_listas', JSON.stringify(c)); }
+function getOperariosCfg() {
+  try { const r = JSON.parse(localStorage.getItem('cfg_operarios')); return Array.isArray(r) ? r : [...OPERARIOS_DEFAULT]; } catch(e){ return [...OPERARIOS_DEFAULT]; }
+}
+function saveOperariosCfg(arr) { localStorage.setItem('cfg_operarios', JSON.stringify(arr)); }
+
+// CONFIG y OPERARIOS — variables vivas, se recargan al guardar cambios
+let CONFIG = getCfg();
+let OPERARIOS = getOperariosCfg();
 
 // ════════════════════════════════════════════════════════
 // ESTADO GLOBAL — Variables que guardan los datos mientras la app está abierta
@@ -1174,11 +1275,12 @@ function showView(name) {
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
-  const idx = name==='captura'?0:name==='listado'?1:name==='semana'?2:3;
+  const idx = name==='captura'?0:name==='listado'?1:name==='semana'?2:name==='operario'?3:4;
   document.querySelectorAll('.nav-tab')[idx].classList.add('active');
   if(name==='listado') renderListado();
   if(name==='semana') renderSemana();
-  if(name==='operario') renderOperario(); // Refresca la vista operario al entrar
+  if(name==='operario') renderOperario();
+  if(name==='config') renderConfig();
 }
 
 // ════════════════════════════════════════════════════════
@@ -1272,8 +1374,7 @@ let operariosSelModal = []; // Operarios seleccionados en el modal de programar
 const DIAS_CORTO = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const DIAS_LARGO = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 
-// Lista de operarios — editar aquí hasta que exista el Módulo 5 (Configuración)
-const OPERARIOS  = ['Paco','Operario 2','Operario 3','Operario 4'];
+// OPERARIOS viene de CONFIG (declarado arriba junto a CONFIG)
 
 // Calcula el lunes de la semana actual desplazada por 'offset' semanas
 function getLunes(offset) {
@@ -1775,6 +1876,186 @@ function opMarcarRealizado(id) {
 buildChips();       // Construye los chips de tipo y maquinaria
 updateProgress();   // Dibuja la barra de progreso del formulario
 renderListado();    // Carga el listado inicial
+
+// ════════════════════════════════════════════════════════
+// MÓDULO 5 — CONFIGURACIÓN
+// Permite editar operarios, tipos, maquinaria y sinónimos de voz desde la app.
+// Guarda en localStorage y recarga CONFIG y OPERARIOS al instante.
+// ════════════════════════════════════════════════════════
+
+function renderConfig() {
+  renderCfgList('operarios', getOperariosCfg(), 'cfg-operarios');
+  const c = getCfg();
+  renderCfgList('tipos', c.tipos, 'cfg-tipos');
+  renderCfgList('maquinaria', c.maquinaria, 'cfg-maquinaria');
+  renderCfgSinonimos(c);
+}
+
+// Renderiza una lista editable de chips (operarios, tipos o maquinaria)
+function renderCfgList(key, items, containerId) {
+  const wrap = document.getElementById(containerId);
+  wrap.innerHTML = '';
+  items.forEach((item, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'cfg-chip';
+    chip.innerHTML = `<span>${item}</span><button class="cfg-chip-del" onclick="cfgDel('${key}',${i})" title="Eliminar">✕</button>`;
+    wrap.appendChild(chip);
+  });
+  if (items.length === 0) {
+    wrap.innerHTML = '<span style="color:#555;font-size:12px">Sin elementos</span>';
+  }
+}
+
+// Renderiza el acordeón de sinónimos
+function renderCfgSinonimos(c) {
+  const wrap = document.getElementById('cfg-sinonimos');
+  wrap.innerHTML = '';
+  const allItems = [...c.tipos, ...c.maquinaria];
+  allItems.forEach(item => {
+    const sins = c.sinonimos[item] || [];
+    const div = document.createElement('div');
+    div.className = 'cfg-sin-item';
+    div.innerHTML = `
+      <div class="cfg-sin-header" onclick="toggleSinItem(this)">
+        <span class="cfg-sin-name">${item}</span>
+        <span class="cfg-sin-count">${sins.length} sinónimo${sins.length!==1?'s':''}</span>
+        <span class="cfg-sin-arrow">▼</span>
+      </div>
+      <div class="cfg-sin-body">
+        <div class="cfg-sin-chips" id="sin-chips-${esc(item)}">
+          ${sins.map((s,i)=>`<span class="cfg-sin-chip">${s}<button class="cfg-chip-del" onclick="cfgDelSin('${esc(item)}','${esc(s)}')" style="font-size:13px">✕</button></span>`).join('')}
+          ${sins.length===0?'<span style="color:#555;font-size:12px">Sin sinónimos</span>':''}
+        </div>
+        <div class="cfg-sin-add-row">
+          <input class="cfg-sin-input" id="sin-inp-${esc(item)}" type="text" placeholder="Añadir sinónimo…" maxlength="30"
+            onkeydown="if(event.key==='Enter')cfgAddSin('${esc(item)}')">
+          <button class="cfg-sin-btn" onclick="cfgAddSin('${esc(item)}')">+ Añadir</button>
+        </div>
+      </div>`;
+    wrap.appendChild(div);
+  });
+}
+
+// Escapa comillas simples para uso en atributos HTML onclick
+function esc(s) { return s.replace(/'/g,"\\'"); }
+
+function toggleSinItem(header) {
+  const body = header.nextElementSibling;
+  const arrow = header.querySelector('.cfg-sin-arrow');
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+
+// Añade un ítem a operarios, tipos o maquinaria
+function cfgAdd(key) {
+  const inputId = key==='operarios'?'inp-operario':key==='tipos'?'inp-tipo':'inp-maquinaria';
+  const inp = document.getElementById(inputId);
+  const val = inp.value.trim();
+  if (!val) { showToast('Escribe un nombre'); return; }
+
+  if (key === 'operarios') {
+    const arr = getOperariosCfg();
+    if (arr.includes(val)) { showToast('Ya existe'); return; }
+    arr.push(val);
+    saveOperariosCfg(arr);
+    OPERARIOS = arr;
+  } else {
+    const c = getCfg();
+    if (c[key].includes(val)) { showToast('Ya existe'); return; }
+    c[key].push(val);
+    if (!c.sinonimos[val]) c.sinonimos[val] = [];
+    saveCfg(c);
+    CONFIG = c;
+  }
+  inp.value = '';
+  buildChips(); // Reconstruye los chips del formulario de captura
+  renderConfig();
+  showToast('✓ Añadido');
+}
+
+// Elimina un ítem de operarios, tipos o maquinaria
+function cfgDel(key, idx) {
+  if (key === 'operarios') {
+    const arr = getOperariosCfg();
+    if (arr.length <= 1) { showToast('Debe haber al menos 1 operario'); return; }
+    arr.splice(idx, 1);
+    saveOperariosCfg(arr);
+    OPERARIOS = arr;
+    // Si el operario activo fue eliminado, resetear al primero
+    if (!OPERARIOS.includes(opSeleccionado)) opSeleccionado = OPERARIOS[0];
+  } else {
+    const c = getCfg();
+    const nombre = c[key][idx];
+    c[key].splice(idx, 1);
+    delete c.sinonimos[nombre];
+    saveCfg(c);
+    CONFIG = c;
+  }
+  buildChips();
+  renderConfig();
+  showToast('Eliminado');
+}
+
+// Añade un sinónimo a un ítem
+function cfgAddSin(item) {
+  const inp = document.getElementById('sin-inp-'+item);
+  const val = inp.value.trim().toLowerCase();
+  if (!val) return;
+  const c = getCfg();
+  if (!c.sinonimos[item]) c.sinonimos[item] = [];
+  if (c.sinonimos[item].includes(val)) { showToast('Ya existe'); return; }
+  c.sinonimos[item].push(val);
+  saveCfg(c);
+  CONFIG = c;
+  inp.value = '';
+  renderConfig();
+  // Reabrir el acordeón del ítem que se estaba editando
+  setTimeout(() => {
+    const items = document.querySelectorAll('.cfg-sin-item');
+    const allItems = [...c.tipos, ...c.maquinaria];
+    const i = allItems.indexOf(item);
+    if (i >= 0 && items[i]) {
+      const body = items[i].querySelector('.cfg-sin-body');
+      const arrow = items[i].querySelector('.cfg-sin-arrow');
+      if (body) { body.classList.add('open'); arrow.classList.add('open'); }
+    }
+  }, 10);
+  showToast('✓ Sinónimo añadido');
+}
+
+// Elimina un sinónimo
+function cfgDelSin(item, sin) {
+  const c = getCfg();
+  if (!c.sinonimos[item]) return;
+  c.sinonimos[item] = c.sinonimos[item].filter(s => s !== sin);
+  saveCfg(c);
+  CONFIG = c;
+  renderConfig();
+  // Reabrir el acordeón del ítem que se estaba editando
+  setTimeout(() => {
+    const items = document.querySelectorAll('.cfg-sin-item');
+    const allItems = [...c.tipos, ...c.maquinaria];
+    const i = allItems.indexOf(item);
+    if (i >= 0 && items[i]) {
+      const body = items[i].querySelector('.cfg-sin-body');
+      const arrow = items[i].querySelector('.cfg-sin-arrow');
+      if (body) { body.classList.add('open'); arrow.classList.add('open'); }
+    }
+  }, 10);
+}
+
+// Restaura las listas por defecto (no borra trabajos)
+function cfgReset() {
+  if (!confirm('¿Restaurar las listas de maquinaria, tipos y operarios a los valores originales? Los trabajos no se borran.')) return;
+  localStorage.removeItem('cfg_listas');
+  localStorage.removeItem('cfg_operarios');
+  CONFIG = getCfg();
+  OPERARIOS = getOperariosCfg();
+  opSeleccionado = OPERARIOS[0];
+  buildChips();
+  renderConfig();
+  showToast('✓ Configuración restaurada');
+}
 </script>
 </body>
 </html>
