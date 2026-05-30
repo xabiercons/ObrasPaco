@@ -290,7 +290,9 @@
   .op-notas { font-size: 12px; color: var(--text3); background: #1C1C1C; border-radius: 6px; padding: 8px 10px; border-left: 2px solid var(--border); font-style: italic; margin-bottom: 12px; }
   .btn-op-realizado { width: 100%; padding: 16px; background: #003310; color: #44CC77; border: 1px solid #44CC77; border-radius: var(--radius-sm); font-size: 16px; cursor: pointer; font-family: Georgia, serif; letter-spacing: 0.02em; }
   .btn-op-realizado:active { opacity: 0.85; }
-  .op-vacio { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 14px; line-height: 1.7; }
+  .op-dia-header { font-size: 12px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .op-dia-header.op-dia-hoy { color: var(--accent); border-bottom-color: var(--accent); }
+  .op-dia-header:first-child { margin-top: 0; }
   .op-vacio-icon { font-size: 40px; display: block; margin-bottom: 12px; }
 
 </style>
@@ -1656,18 +1658,18 @@ function cerrarModal(id) {
 
 let opSeleccionado = OPERARIOS[0]; // Operario activo en la vista (por defecto el primero)
 
-// Construye la vista completa del operario: fecha, selector, trabajos del día
+// Construye la vista completa del operario: fecha, selector, trabajos de los próximos 7 días
 function renderOperario() {
-  const hoy = new Date();
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
   const hoyISO = fechaISO(hoy);
 
-  // Muestra la fecha de hoy en formato legible
+  // Fecha de hoy en formato legible
   const diasNombre = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const mesesNombre = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   document.getElementById('op-fecha-txt').textContent =
     diasNombre[hoy.getDay()] + ', ' + hoy.getDate() + ' de ' + mesesNombre[hoy.getMonth()] + ' de ' + hoy.getFullYear();
 
-  // Construye los botones de selector de operario
+  // Selector de operario
   const sel = document.getElementById('op-selector');
   sel.innerHTML = '';
   OPERARIOS.forEach(op => {
@@ -1678,55 +1680,62 @@ function renderOperario() {
     sel.appendChild(btn);
   });
 
-  // Filtra los trabajos de hoy para el operario seleccionado.
-  // Si un trabajo no tiene operarios asignados se muestra para todos (no se pierde).
   const trabajos = getTrab();
-  const hoy_trabajos = trabajos.filter(t => {
-    if (t.estado !== 'Programado') return false;
-    // Comprueba que hoy esté entre los días asignados
-    if (!(t.diasProgramados || []).includes(hoyISO)) return false;
-    // Si no hay operarios asignados → visible para todos
-    if (!t.operarios || t.operarios.length === 0) return true;
-    // Si hay operarios asignados → solo para el seleccionado
-    return t.operarios.includes(opSeleccionado);
-  });
-
   const contenido = document.getElementById('op-contenido');
 
-  if (hoy_trabajos.length === 0) {
-    contenido.innerHTML = `
-      <div class="op-vacio">
-        <span class="op-vacio-icon">✓</span>
-        Sin trabajos programados hoy<br>para <strong>${opSeleccionado}</strong>
-      </div>`;
-    return;
+  // Genera los próximos 7 días (hoy + 6)
+  const dias = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(hoy); d.setDate(hoy.getDate() + i);
+    dias.push(fechaISO(d));
   }
 
-  // Agrupa los trabajos por maquinaria (igual que en el listado del encargado)
-  const grupos = {};
-  hoy_trabajos.forEach(t => {
-    const maquinas = (t.maquinarias && t.maquinarias.length) ? t.maquinarias : ['Sin maquinaria'];
-    maquinas.forEach(maq => {
-      if (!grupos[maq]) grupos[maq] = [];
-      // Evita duplicar el trabajo si tiene varias máquinas
-      if (!grupos[maq].find(x => x.id === t.id)) grupos[maq].push(t);
-    });
-  });
+  // Para cada día, recoge los trabajos del operario seleccionado (sin duplicar)
+  // Orden dentro de cada día: Urgente → Alta → Normal
+  const URGENCIA_ORDEN = { 'Urgente': 0, 'Alta': 1, 'Normal': 2 };
 
+  let hayAlgo = false;
   let html = '';
-  Object.keys(grupos).sort().forEach(maq => {
-    html += `<div class="op-maq-grupo">
-      <div class="op-maq-label">⚙ ${maq}</div>`;
-    grupos[maq].forEach(t => {
+
+  dias.forEach(iso => {
+    const d = new Date(iso + 'T12:00');
+    const esDiaCorto = iso === hoyISO ? 'Hoy' :
+      iso === fechaISO(new Date(hoy.getTime() + 86400000)) ? 'Mañana' :
+      DIAS_LARGO[d.getDay() === 0 ? 6 : d.getDay() - 1] + ' ' + d.getDate();
+
+    // Trabajos de este día para el operario — sin duplicados por ID
+    const vistos = new Set();
+    const del_dia = trabajos.filter(t => {
+      if (t.estado !== 'Programado') return false;
+      if (!(t.diasProgramados || []).includes(iso)) return false;
+      if (t.operarios && t.operarios.length > 0 && !t.operarios.includes(opSeleccionado)) return false;
+      if (vistos.has(t.id)) return false;
+      vistos.add(t.id);
+      return true;
+    }).sort((a, b) => {
+      const ua = URGENCIA_ORDEN[a.urgencia] ?? 2;
+      const ub = URGENCIA_ORDEN[b.urgencia] ?? 2;
+      return ua - ub;
+    });
+
+    if (del_dia.length === 0) return;
+    hayAlgo = true;
+
+    // Cabecera del día
+    html += `<div class="op-dia-header ${iso === hoyISO ? 'op-dia-hoy' : ''}">${esDiaCorto}</div>`;
+
+    del_dia.forEach(t => {
       const urg = (t.urgencia || 'Normal').toLowerCase();
       const clienteCorto = (t.cliente || 'Sin cliente').split(/[—\-,]/)[0].trim().slice(0, 40);
       const tiposCorto = (t.tipos && t.tipos.length) ? t.tipos.join(', ') : (t.tipo || '');
+      const maqCorto = (t.maquinarias && t.maquinarias.length) ? t.maquinarias.join(', ') : '';
       const hayNotas = t.notas && t.notas.trim().length > 0;
       html += `<div class="op-trabajo-card ${urg === 'urgente' ? 'urgente' : urg === 'alta' ? 'alta' : ''}">
         <div class="op-cliente">${clienteCorto}</div>
         <div class="op-dir">📍 ${t.direccion || 'Sin dirección'}${t.zona ? ' · ' + t.zona : ''}</div>
         <div class="op-chips">
           ${tiposCorto ? `<span class="op-chip-item">${tiposCorto}</span>` : ''}
+          ${maqCorto ? `<span class="op-chip-item">⚙ ${maqCorto}</span>` : ''}
           <span class="op-chip-item">⏱ ${t.horas || 0}h</span>
           ${urg !== 'normal' ? `<span class="op-chip-item" style="color:${urg==='urgente'?'#FF6666':'#FFA500'}">${t.urgencia}</span>` : ''}
         </div>
@@ -1734,8 +1743,16 @@ function renderOperario() {
         <button class="btn-op-realizado" onclick="opMarcarRealizado(${t.id})">✓ Marcar como realizado</button>
       </div>`;
     });
-    html += `</div>`;
   });
+
+  if (!hayAlgo) {
+    contenido.innerHTML = `
+      <div class="op-vacio">
+        <span class="op-vacio-icon">✓</span>
+        Sin trabajos programados esta semana<br>para <strong>${opSeleccionado}</strong>
+      </div>`;
+    return;
+  }
 
   contenido.innerHTML = html;
 }
