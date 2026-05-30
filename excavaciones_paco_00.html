@@ -1283,9 +1283,12 @@ function getLunes(offset) {
   return lunes;
 }
 
-// Convierte un objeto Date a string 'YYYY-MM-DD' para comparar fechas
+// Convierte un objeto Date a string 'YYYY-MM-DD' usando la hora LOCAL del dispositivo
+// (no UTC, para evitar desfase en España UTC+1/UTC+2)
 function fechaISO(d) {
-  return d.toISOString().slice(0,10);
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return d.getFullYear()+'-'+mm+'-'+dd;
 }
 
 // Formatea el rango de la semana para mostrar en el título (ej: "26 may — 1 jun 2026")
@@ -1675,13 +1678,18 @@ function renderOperario() {
     sel.appendChild(btn);
   });
 
-  // Filtra los trabajos de hoy para el operario seleccionado
+  // Filtra los trabajos de hoy para el operario seleccionado.
+  // Si un trabajo no tiene operarios asignados se muestra para todos (no se pierde).
   const trabajos = getTrab();
-  const hoy_trabajos = trabajos.filter(t =>
-    t.estado === 'Programado' &&
-    (t.diasProgramados || []).includes(hoyISO) &&
-    (t.operarios || []).includes(opSeleccionado)
-  );
+  const hoy_trabajos = trabajos.filter(t => {
+    if (t.estado !== 'Programado') return false;
+    // Comprueba que hoy esté entre los días asignados
+    if (!(t.diasProgramados || []).includes(hoyISO)) return false;
+    // Si no hay operarios asignados → visible para todos
+    if (!t.operarios || t.operarios.length === 0) return true;
+    // Si hay operarios asignados → solo para el seleccionado
+    return t.operarios.includes(opSeleccionado);
+  });
 
   const contenido = document.getElementById('op-contenido');
 
