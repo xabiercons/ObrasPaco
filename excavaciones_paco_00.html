@@ -303,8 +303,8 @@
 .cfg-section { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 14px; margin-bottom: 14px; }
 .cfg-danger-section { border-color: #553333; }
 .cfg-section-title { font-size: 13px; font-weight: bold; color: #ccc; margin-bottom: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
-.cfg-items { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; min-height: 10px; }
-.cfg-chip { display: flex; align-items: center; gap: 6px; background: #2a2a2a; border: 1px solid #444; border-radius: 20px; padding: 5px 10px; font-size: 13px; color: #ddd; }
+.cfg-items { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; min-height: 10px; }
+.cfg-chip { display: flex; align-items: center; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #ddd; margin-bottom: 4px; width: 100%; justify-content: space-between; }
 .cfg-chip-del { background: none; border: none; color: #888; cursor: pointer; font-size: 16px; line-height: 1; padding: 0; }
 .cfg-chip-del:hover { color: #ff6b6b; }
 .cfg-add-row { display: flex; gap: 8px; }
@@ -329,8 +329,13 @@
 .cfg-sin-btn { background: #2a4a2a; color: #8fc98f; border: 1px solid #3a5a3a; border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
 .cfg-btn-reset { background: #3a1a1a; color: #ff8888; border: 1px solid #553333; border-radius: 8px; padding: 9px 16px; font-size: 13px; cursor: pointer; width: 100%; }
 .cfg-btn-reset:hover { background: #4a1a1a; }
-.cfg-chip-archivado { opacity: 0.55; border-style: dashed; }
-.cfg-badge-arch { font-size: 10px; color: #888; background: #2a2a2a; border-radius: 10px; padding: 1px 6px; margin-left: 4px; }
+.cfg-chip-activo { border-color: #444; }
+.cfg-chip-baja { opacity: 0.5; background: #1a1a1a; border-color: #333; border-style: dashed; }
+.cfg-badge-baja { font-size: 11px; color: #666; margin-left: 6px; font-style: italic; }
+.cfg-btn-baja { background: none; border: 1px solid #555; border-radius: 6px; color: #888; cursor: pointer; font-size: 11px; padding: 2px 8px; margin-left: 6px; white-space: nowrap; }
+.cfg-btn-baja:hover { border-color: #888; color: #bbb; }
+.cfg-btn-alta { background: none; border: 1px solid #3a5a3a; border-radius: 6px; color: #6a9a6a; cursor: pointer; font-size: 11px; padding: 2px 8px; margin-left: 6px; white-space: nowrap; }
+.cfg-btn-alta:hover { border-color: #6a9a6a; color: #8fc98f; }
 </style>
 </head>
 <body>
@@ -1832,8 +1837,8 @@ function renderOperario() {
     const esActivo = opCfg.find(o=>o.nombre===op)?.activo !== false;
     const btn = document.createElement('button');
     btn.className = 'op-sel-btn' + (op === opSeleccionado ? ' activo' : '');
-    btn.textContent = esActivo ? op : op + ' 📦';
-    btn.title = esActivo ? '' : 'Operario archivado — trabajos históricos';
+    btn.textContent = esActivo ? op : op + ' (desactivado)';
+    btn.title = esActivo ? '' : 'Operario desactivado — trabajos históricos visibles';
     btn.onclick = () => { opSeleccionado = op; renderOperario(); };
     sel.appendChild(btn);
   });
@@ -1948,34 +1953,36 @@ function renderConfig() {
   renderCfgSinonimos(c);
 }
 
-// Renderiza operarios con toggle Archivar/Reactivar (nunca se borran)
+// Renderiza operarios con toggle Dar de baja/Dar de alta
 function renderCfgOperarios(ops, containerId) {
   const wrap = document.getElementById(containerId);
   wrap.innerHTML = '';
   if (ops.length === 0) { wrap.innerHTML = '<span style="color:#555;font-size:12px">Sin operarios</span>'; return; }
   ops.forEach((op, i) => {
     const chip = document.createElement('div');
-    chip.className = 'cfg-chip' + (op.activo ? '' : ' cfg-chip-archivado');
-    const badge = op.activo ? '' : ' <span class="cfg-badge-arch">archivado</span>';
-    const btnLabel = op.activo ? '📦' : '♻';
-    const btnTitle = op.activo ? 'Archivar (deja de aparecer en nuevas asignaciones)' : 'Reactivar';
-    chip.innerHTML = `<span>${op.nombre}${badge}</span><button class="cfg-chip-del" onclick="cfgToggleOperario(${i})" title="${btnTitle}">${btnLabel}</button>`;
+    chip.className = 'cfg-chip ' + (op.activo ? 'cfg-chip-activo' : 'cfg-chip-baja');
+    const badge = op.activo ? '' : '<span class="cfg-badge-baja">(desactivado)</span>';
+    const btn = op.activo
+      ? `<button class="cfg-btn-baja" onclick="cfgToggleOperario(${i})">Dar de baja</button>`
+      : `<button class="cfg-btn-alta" onclick="cfgToggleOperario(${i})">Dar de alta</button>`;
+    chip.innerHTML = `<span>${op.nombre}${badge}</span>${btn}`;
     wrap.appendChild(chip);
   });
 }
 
-// Renderiza tipos o maquinaria con toggle Archivar/Reactivar
+// Renderiza tipos o maquinaria con toggle Dar de baja/Dar de alta
 function renderCfgToggleList(key, items, containerId) {
   const wrap = document.getElementById(containerId);
   wrap.innerHTML = '';
   if (items.length === 0) { wrap.innerHTML = '<span style="color:#555;font-size:12px">Sin elementos</span>'; return; }
   items.forEach((item, i) => {
     const chip = document.createElement('div');
-    chip.className = 'cfg-chip' + (item.activo ? '' : ' cfg-chip-archivado');
-    const badge = item.activo ? '' : ' <span class="cfg-badge-arch">archivado</span>';
-    const btnLabel = item.activo ? '📦' : '♻';
-    const btnTitle = item.activo ? 'Archivar' : 'Reactivar';
-    chip.innerHTML = `<span>${item.nombre}${badge}</span><button class="cfg-chip-del" onclick="cfgToggleItem('${key}',${i})" title="${btnTitle}">${btnLabel}</button>`;
+    chip.className = 'cfg-chip ' + (item.activo ? 'cfg-chip-activo' : 'cfg-chip-baja');
+    const badge = item.activo ? '' : '<span class="cfg-badge-baja">(desactivado)</span>';
+    const btn = item.activo
+      ? `<button class="cfg-btn-baja" onclick="cfgToggleItem('${key}',${i})">Dar de baja</button>`
+      : `<button class="cfg-btn-alta" onclick="cfgToggleItem('${key}',${i})">Dar de alta</button>`;
+    chip.innerHTML = `<span>${item.nombre}${badge}</span>${btn}`;
     wrap.appendChild(chip);
   });
 }
@@ -2061,7 +2068,7 @@ function cfgToggleItem(key, idx) {
   CONFIG = c;
   buildChips();
   renderConfig();
-  showToast(item.activo ? '♻ Reactivado' : '📦 Archivado');
+  showToast(item.activo ? 'Dado de alta' : 'Dado de baja');
 }
 
 // Archiva o reactiva un operario (nunca se borra — sus trabajos quedan intactos)
@@ -2079,7 +2086,7 @@ function cfgToggleOperario(idx) {
   // Si el opSeleccionado fue archivado, cambiar al primero activo
   if (!OPERARIOS.includes(opSeleccionado)) opSeleccionado = OPERARIOS[0] || '';
   renderConfig();
-  showToast(op.activo ? '♻ Reactivado' : '📦 Archivado');
+  showToast(op.activo ? 'Dado de alta' : 'Dado de baja');
 }
 
 // cfgDel ya no se usa para tipos/maquinaria (ahora son cfgToggleItem/cfgToggleOperario)
