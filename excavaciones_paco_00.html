@@ -646,6 +646,25 @@
     <div class="ltab" id="ltab-programados" onclick="setLTab('programados')">Programados</div>
     <div class="ltab" id="ltab-realizados" onclick="setLTab('realizados')">Realizados</div>
   </div>
+
+  <!-- Informe por rango de fechas — solo visible en tab Realizados -->
+  <div id="informe-rango" style="display:none;padding:12px 16px;background:#1C1C1C;border-bottom:1px solid rgba(255,209,0,0.15)">
+    <div style="font-size:11px;color:#7A6600;font-family:'Courier New',monospace;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em">Informe por fechas</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:130px">
+        <span style="font-size:11px;color:#7A6600">Desde</span>
+        <input type="date" id="informe-desde" style="flex:1;padding:6px;background:#272727;border:1px solid rgba(255,209,0,0.3);border-radius:6px;color:#FFD100;font-size:13px" onchange="renderListado()">
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:130px">
+        <span style="font-size:11px;color:#7A6600">Hasta</span>
+        <input type="date" id="informe-hasta" style="flex:1;padding:6px;background:#272727;border:1px solid rgba(255,209,0,0.3);border-radius:6px;color:#FFD100;font-size:13px" onchange="renderListado()">
+      </div>
+      <button onclick="exportarInformeCSV()" style="padding:8px 14px;background:#FFD100;color:#1C1C1C;border:none;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;white-space:nowrap">↓ Exportar CSV</button>
+      <button onclick="limpiarRango()" style="padding:8px 10px;background:transparent;color:#7A6600;border:1px solid rgba(255,209,0,0.2);border-radius:6px;font-size:12px;cursor:pointer">✕</button>
+    </div>
+    <div id="informe-resumen" style="margin-top:8px;font-size:11px;color:#C9A800;font-family:'Courier New',monospace"></div>
+  </div>
+
   <div id="listado-content"></div>
 </div>
 
@@ -1403,6 +1422,8 @@ function setLTab(tab) {
   ['pendientes','programados','realizados'].forEach(t=>{
     document.getElementById('ltab-'+t).classList.toggle('active', t===tab);
   });
+  const informe = document.getElementById('informe-rango');
+  if(informe) informe.style.display = tab==='realizados' ? 'block' : 'none';
   renderListado();
 }
 
@@ -1460,12 +1481,35 @@ function renderListado() {
       (t.cliente||'').toLowerCase().includes(dir)||
       (t.tipo||'').toLowerCase().includes(dir)
     )) return false;
+    // Filtro de rango de fechas (solo en Realizados)
+    if(ltabActual==='realizados') {
+      const desde = document.getElementById('informe-desde')?.value;
+      const hasta = document.getElementById('informe-hasta')?.value;
+      const fechaT = t.fechaRealizado || t.fecha || '';
+      if(desde && fechaT < desde) return false;
+      if(hasta && fechaT > hasta) return false;
+    }
     return true;
   });
 
   if(lista.length===0) {
     document.getElementById('listado-content').innerHTML='<div class="empty-state">Sin trabajos en esta vista</div>';
+    // Limpiar resumen informe
+    const res = document.getElementById('informe-resumen');
+    if(res) res.textContent = '';
     return;
+  }
+
+  // Resumen del informe si estamos en Realizados con fechas
+  if(ltabActual==='realizados') {
+    const res = document.getElementById('informe-resumen');
+    if(res) {
+      const totalHorasReales = lista.reduce((acc,t)=>{
+        if(t.horasReales) Object.values(t.horasReales).forEach(h=>acc+=h);
+        return acc;
+      }, 0);
+      res.textContent = `${lista.length} trabajo${lista.length!==1?'s':''} · ${totalHorasReales}h reales registradas`;
+    }
   }
 
   // Agrupa los trabajos por maquinaria para mostrarlos con cabecera de grupo
@@ -1499,6 +1543,13 @@ function renderListado() {
       const notasHtml = (hayNotas || clienteEsLargo) ? `
         <div class="tc-notas-label">📝 Notas</div>
         <div class="tc-notas" onclick="this.classList.toggle('expandido')">${t.notas || t.cliente || ''}</div>` : '';
+      // Horas reales para trabajos Realizados
+      let horasRealesHtml = '';
+      if(t.estado==='Realizado' && t.horasReales) {
+        const lineas = Object.entries(t.horasReales).map(([m,h])=>`${m}: <strong>${h}h</strong>`).join(' · ');
+        horasRealesHtml = `<div style="margin-top:6px;font-size:12px;color:#44CC77;font-family:'Courier New',monospace">✓ Horas reales: ${lineas}</div>`;
+        if(t.notasCierre) horasRealesHtml += `<div style="font-size:11px;color:#7A6600;margin-top:2px">Cierre: ${t.notasCierre}</div>`;
+      }
       html+=`<div class="trabajo-card" id="tc-${t.id}">
         <div class="tc-top">
           <div style="min-width:0;flex:1">
@@ -1508,14 +1559,16 @@ function renderListado() {
           <span class="status-pill ${scls}">${t.estado}</span>
         </div>
         ${notasHtml}
+        ${horasRealesHtml}
         <div class="tc-meta" style="margin-top:8px">
-          <span class="tc-chip">⏱ ${t.horas||0}h</span>
+          <span class="tc-chip">⏱ ${t.horas||0}h prev.</span>
           <span class="tc-chip">${t.urgencia||'Normal'}</span>
-          <span class="tc-chip">${t.fecha||''}</span>
+          <span class="tc-chip">${t.fechaRealizado||t.fecha||''}</span>
         </div>
         <div class="tc-actions">
           ${next?`<button class="tc-btn" onclick="cambiarEstado(${t.id},'${next}')">→ ${next}</button>`:''}
           ${t.estado!=='Realizado'?`<button class="tc-btn realizado" onclick="cambiarEstado(${t.id},'Realizado')">✓ Realizado</button>`:''}
+          ${t.estado==='Realizado'?`<button class="tc-btn" onclick="exportarTrabajoCSV(${t.id})" style="color:#44CC77;border-color:#44CC77">↓ CSV</button>`:''}
           <button class="tc-btn" onclick="eliminar(${t.id})" style="margin-left:auto;color:var(--danger)">Borrar</button>
         </div>
       </div>`;
@@ -2152,7 +2205,71 @@ function cerrarModal(id) {
 }
 
 // ════════════════════════════════════════════════════════
-// MÓDULO 4 — VISTA OPERARIO
+// MÓDULO 6 — INFORME DE HORAS Y EXPORTACIÓN CSV
+// ════════════════════════════════════════════════════════
+
+// Limpia el rango de fechas del informe
+function limpiarRango() {
+  document.getElementById('informe-desde').value = '';
+  document.getElementById('informe-hasta').value = '';
+  renderListado();
+}
+
+// Convierte un array de trabajos a CSV y lo descarga
+function descargarCSV(trabajos, nombreArchivo) {
+  const filas = [];
+  // Cabecera
+  filas.push(['Cliente','Dirección','Zona','Tipo de trabajo','Maquinaria','Horas previstas','Horas reales','Fecha realización','Notas cierre'].join(';'));
+  trabajos.forEach(t => {
+    const horasReales = t.horasReales
+      ? Object.entries(t.horasReales).map(([m,h])=>`${m}: ${h}h`).join(' | ')
+      : '—';
+    filas.push([
+      t.cliente||'',
+      t.direccion||'',
+      t.zona||'',
+      (t.tipos||[]).join(', ')||t.tipo||'',
+      (t.maquinarias||[]).join(', ')||t.maquinaria||'',
+      t.horas||0,
+      horasReales,
+      t.fechaRealizado||t.fecha||'',
+      t.notasCierre||''
+    ].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';'));
+  });
+  const csv = '\uFEFF' + filas.join('\n'); // BOM para que Excel lo abra bien
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombreArchivo;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Exporta un trabajo individual como CSV
+function exportarTrabajoCSV(id) {
+  const t = getTrab().find(x=>String(x.id)===String(id));
+  if(!t) return;
+  const nombre = (t.cliente||'trabajo').replace(/[^a-zA-Z0-9áéíóúñ\s]/g,'').trim().slice(0,30);
+  descargarCSV([t], `${nombre}_${t.fechaRealizado||t.fecha||'sin-fecha'}.csv`);
+}
+
+// Exporta el informe del rango de fechas actual como CSV
+function exportarInformeCSV() {
+  const trabajos = getTrab().filter(t=>ESTADOS_REALIZADOS.includes(t.estado));
+  const desde = document.getElementById('informe-desde')?.value;
+  const hasta = document.getElementById('informe-hasta')?.value;
+  const filtrados = trabajos.filter(t=>{
+    const fecha = t.fechaRealizado||t.fecha||'';
+    if(desde && fecha < desde) return false;
+    if(hasta && fecha > hasta) return false;
+    return true;
+  });
+  if(filtrados.length===0) { showToast('Sin trabajos en ese rango'); return; }
+  const sufijo = desde||hasta ? `${desde||'inicio'}_${hasta||'hoy'}` : 'todos';
+  descargarCSV(filtrados, `informe_realizados_${sufijo}.csv`);
+  showToast(`✓ Exportados ${filtrados.length} trabajos`);
+}
 // Muestra los trabajos programados para hoy, agrupados por maquinaria.
 // Permite seleccionar operario y marcar trabajos como realizados.
 // Sin acceso a formularios ni configuración.
