@@ -504,7 +504,10 @@
     <button class="voice-btn" id="vbtn-1" onclick="startVoice('cliente', 'vbtn-1', 'vres-1')">🎤 Hablar</button>
     <div class="voice-result" id="vres-1"></div>
     <div class="divider">— o escribe —</div>
-    <input type="text" id="f-cliente" placeholder="Nombre del cliente…" oninput="syncField('cliente', this.value)">
+    <input type="text" id="f-cliente" placeholder="Nombre del cliente…" oninput="syncField('cliente', this.value); checkClienteDuplicado(this.value)">
+    <div id="aviso-cliente" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(255,209,0,0.1);border:1px solid rgba(255,209,0,0.4);border-radius:8px;font-size:12px;color:#C9A800;font-family:'Courier New',monospace">
+      ⚠ Ya existe un trabajo con este cliente. Considera añadir un apellido o lugar para distinguirlo.
+    </div>
     <div class="btn-row">
       <button class="btn-next" onclick="nextStep(1)" id="next-1">Siguiente →</button>
     </div>
@@ -907,7 +910,7 @@ async function updateTrab(t) {
   try {
     await supa.update('trabajos', row, 'id', t.id);
     if (_trabCache) {
-      const idx = _trabCache.findIndex(x => x.id === t.id);
+      const idx = _trabCache.findIndex(x => String(x.id) === String(t.id));
       if (idx >= 0) _trabCache[idx] = t;
     }
     localStorage.setItem('excavaciones_trabajos', JSON.stringify(_trabCache || []));
@@ -916,7 +919,7 @@ async function updateTrab(t) {
     console.warn('Error actualizando en Supabase:', e.message || e);
     setConexionStatus(false);
     const arr = getTrab();
-    const idx = arr.findIndex(x => x.id === t.id);
+    const idx = arr.findIndex(x => String(x.id) === String(t.id));
     if (idx >= 0) arr[idx] = t;
     localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr));
     _trabCache = arr;
@@ -1010,6 +1013,16 @@ function nextStep(current) {
 }
 // Vuelve al paso anterior sin validar
 function prevStep(current) { showStep(current-1); }
+
+// Comprueba si ya existe un cliente con ese nombre y muestra aviso
+function checkClienteDuplicado(valor) {
+  const aviso = document.getElementById('aviso-cliente');
+  if(!aviso) return;
+  const v = valor.trim().toLowerCase();
+  if(!v) { aviso.style.display = 'none'; return; }
+  const existe = getTrab().some(t => (t.cliente||'').trim().toLowerCase() === v);
+  aviso.style.display = existe ? 'block' : 'none';
+}
 
 // ════════════════════════════════════════════════════════
 // CHIPS DE SELECCIÓN MÚLTIPLE — Botones táctiles para tipo y maquinaria
@@ -1515,7 +1528,7 @@ function renderListado() {
 // Para 'Realizado' avisa que no se puede deshacer
 function cambiarEstado(id, nuevoEstado) {
   const trabajos = getTrab();
-  const t = trabajos.find(x=>x.id===id);
+  const t = trabajos.find(x=>String(x.id)===String(id));
   if(!t) return;
   if(nuevoEstado === 'Realizado') {
     // Abrir modal de horas reales en lugar de confirm nativo
@@ -1880,7 +1893,7 @@ function abrirModalProgramar(id) {
   diasSelModal = [];
   operariosSelModal = [];
   modalSemanaOffset = semanaOffset; // Arranca en la semana que estás viendo
-  const t = getTrab().find(x=>x.id===id);
+  const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
 
   document.getElementById('mprog-titulo').textContent = t.cliente || 'Sin cliente';
@@ -1944,7 +1957,7 @@ function toggleDiaModal(iso, btn) {
 async function confirmarProgramar() {
   if(diasSelModal.length === 0) { showToast('Selecciona al menos un día'); return; }
   const trabajos = getTrab();
-  const t = trabajos.find(x=>x.id===modalTrabajoId);
+  const t = trabajos.find(x=>String(x.id)===String(modalTrabajoId));
   if(!t) return;
   t.diasProgramados = diasSelModal;
   t.operarios = operariosSelModal;
@@ -1963,7 +1976,7 @@ async function confirmarProgramar() {
 // ════════════════════════════════════════════════════════
 function abrirDetalle(id) {
   modalTrabajoId = id;
-  const t = getTrab().find(x=>x.id===id);
+  const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
   document.getElementById('mdet-titulo').textContent = t.cliente || 'Sin cliente';
   const campos = [
@@ -2016,7 +2029,7 @@ function abrirModalRealizado() {
 
 // Abre el modal de horas reales para un trabajo concreto
 function abrirModalRealizadoPorId(id) {
-  const t = getTrab().find(x=>x.id===id);
+  const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
   modalTrabajoId = id;
   // Nombre del trabajo
@@ -2041,7 +2054,7 @@ function abrirModalRealizadoPorId(id) {
 // Confirma el trabajo como realizado guardando horas reales
 async function confirmarRealizado() {
   const trabajos = getTrab();
-  const t = trabajos.find(x=>x.id===modalTrabajoId);
+  const t = trabajos.find(x=>String(x.id)===String(modalTrabajoId));
   if(!t) return;
   // Recoger horas reales por máquina
   const maquinas = t.maquinarias && t.maquinarias.length ? t.maquinarias : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
@@ -2066,7 +2079,7 @@ async function confirmarRealizado() {
 
 // Abre modal para añadir jornada parcial
 function abrirModalJornada(id) {
-  const t = getTrab().find(x=>x.id===id);
+  const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
   modalTrabajoId = id;
   document.getElementById('mjor-nombre').textContent = (t.cliente||'Sin cliente') + ' — ' + (t.direccion||'Sin dirección');
@@ -2089,7 +2102,7 @@ function abrirModalJornada(id) {
 // Guarda jornada parcial en el trabajo
 async function confirmarJornada() {
   const trabajos = getTrab();
-  const t = trabajos.find(x=>x.id===modalTrabajoId);
+  const t = trabajos.find(x=>String(x.id)===String(modalTrabajoId));
   if(!t) return;
   const maquinas = t.maquinarias && t.maquinarias.length ? t.maquinarias : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
   const horas = {};
@@ -2115,7 +2128,7 @@ function realizarDesdeDetalle() {
 // Quita el trabajo de la semana sin marcarlo como realizado (vuelve a la bolsa)
 async function desprogramarDesdeDetalle() {
   const trabajos = getTrab();
-  const t = trabajos.find(x=>x.id===modalTrabajoId);
+  const t = trabajos.find(x=>String(x.id)===String(modalTrabajoId));
   if(!t) return;
   if(!confirm('¿Quitar este trabajo de la semana?\n' + (t.cliente||'Sin cliente'))) return;
   t.diasProgramados = [];
