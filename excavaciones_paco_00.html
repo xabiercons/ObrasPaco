@@ -2144,9 +2144,11 @@ async function desprogramarDesdeDetalle() {
 // Cierra cualquier modal ocultando su overlay
 function cerrarModal(id) {
   document.getElementById(id).classList.remove('show');
-  // Solo resetear si no hay otro modal abierto
-  const hayModalAbierto = document.querySelector('.modal-overlay.show');
-  if (!hayModalAbierto) modalTrabajoId = null;
+  // Solo resetear si no hay otro modal abierto (comprobar DESPUÉS de quitar show)
+  setTimeout(() => {
+    const hayModalAbierto = document.querySelector('.modal-overlay.show');
+    if (!hayModalAbierto) modalTrabajoId = null;
+  }, 50);
 }
 
 // ════════════════════════════════════════════════════════
