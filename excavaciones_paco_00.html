@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Excavaciones Paco v5</title>
+<title>Excavaciones Paco v6</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <style>
   :root {
     --bg: #1C1C1C;
@@ -342,10 +343,11 @@
 
 <div class="header">
   <span class="header-icon" style="font-size:28px;font-weight:bold;color:#FFD100;">EP</span>
-  <div>
+  <div style="flex:1">
     <h1>Excavaciones Paco</h1>
-    <div class="header-sub" style="color:#1C1C1C;opacity:0.6">GESTIÓN DE OBRAS · v5.4</div>
+    <div class="header-sub" style="color:#1C1C1C;opacity:0.6">GESTIÓN DE OBRAS · v6.0</div>
   </div>
+  <div id="conexion-status" style="font-size:10px;font-family:'Courier New',monospace;color:#1C1C1C;opacity:0.7;text-align:right;line-height:1.3">● Conectando...</div>
 </div>
 
 <div class="nav">
@@ -431,10 +433,55 @@
   <div class="modal-sheet">
     <div class="modal-title" id="mdet-titulo">Detalle</div>
     <div id="mdet-campos"></div>
-    <button class="btn-realizado-modal" onclick="realizarDesdeDetalle()">✓ Marcar como Realizado</button>
+    <button class="btn-realizado-modal" onclick="abrirModalRealizado()">✓ Marcar como Realizado</button>
     <button class="btn-desprogramar" onclick="desprogramarDesdeDetalle()">↩ Quitar de la semana</button>
     <div class="modal-actions" style="margin-top:12px">
       <button class="modal-cancel" style="flex:1" onclick="cerrarModal('modal-detalle')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: confirmar realizado + horas reales -->
+<div class="modal-overlay" id="modal-realizado">
+  <div class="modal-sheet">
+    <div class="modal-title">✓ Trabajo Realizado</div>
+    <div class="modal-sub" id="mreal-nombre"></div>
+
+    <div class="modal-label">Horas reales por máquina</div>
+    <div id="mreal-maquinas"></div>
+
+    <div class="modal-label" style="margin-top:16px">Notas de cierre (opcional)</div>
+    <textarea id="mreal-notas" placeholder="Incidencias, observaciones..." style="min-height:60px"></textarea>
+
+    <div style="background:#1C1C1C;border:1px solid rgba(255,209,0,0.2);border-radius:8px;padding:12px;margin-top:14px;font-size:12px;color:#7A6600;font-family:'Courier New',monospace">
+      Esta acción moverá el trabajo al historial de Realizados.
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="cerrarModal('modal-realizado')">Cancelar</button>
+      <button class="modal-confirm" onclick="confirmarRealizado()">Confirmar Realizado</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: añadir jornada parcial -->
+<div class="modal-overlay" id="modal-jornada">
+  <div class="modal-sheet">
+    <div class="modal-title">+ Jornada parcial</div>
+    <div class="modal-sub" id="mjor-nombre"></div>
+
+    <div class="modal-label">Fecha</div>
+    <input type="date" id="mjor-fecha" style="margin-bottom:8px">
+
+    <div class="modal-label">Horas trabajadas por máquina</div>
+    <div id="mjor-maquinas"></div>
+
+    <div class="modal-label" style="margin-top:12px">Notas</div>
+    <textarea id="mjor-notas" placeholder="Observaciones de la jornada..." style="min-height:50px"></textarea>
+
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="cerrarModal('modal-jornada')">Cancelar</button>
+      <button class="modal-confirm" onclick="confirmarJornada()">Guardar jornada</button>
     </div>
   </div>
 </div>
@@ -748,14 +795,180 @@ let recognition = null;
 let listening = false;
 
 // ════════════════════════════════════════════════════════
-// ALMACENAMIENTO — Lee y escribe en localStorage del navegador
-// Los datos sobreviven a cerrar Chrome y reinicios del móvil.
+// SUPABASE — Acceso directo via REST API (sin SDK)
+// ════════════════════════════════════════════════════════
+const SUPA_URL = 'https://wqcwicukenycsopnyvck.supabase.co';
+const SUPA_KEY = 'sb_publishable_bZqoK0K9f_f3Mv4A-Q2V9A_LPRqeIpa';
+const SUPA_HEADERS = {
+  'apikey': SUPA_KEY,
+  'Authorization': 'Bearer ' + SUPA_KEY,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=minimal'
+};
+
+// Wrapper fetch para Supabase REST
+const supa = {
+  async select(table, order) {
+    const url = `${SUPA_URL}/rest/v1/${table}?select=*${order ? '&order=' + order : ''}`;
+    const r = await fetch(url, { headers: { ...SUPA_HEADERS, 'Prefer': '' } });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  },
+  async insert(table, row) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+      method: 'POST', headers: SUPA_HEADERS, body: JSON.stringify(row)
+    });
+    if (!r.ok) throw new Error(await r.text());
+  },
+  async update(table, row, idField, idVal) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${idField}=eq.${idVal}`, {
+      method: 'PATCH', headers: SUPA_HEADERS, body: JSON.stringify(row)
+    });
+    if (!r.ok) throw new Error(await r.text());
+  },
+  async delete(table, idField, idVal) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${idField}=eq.${idVal}`, {
+      method: 'DELETE', headers: SUPA_HEADERS
+    });
+    if (!r.ok) throw new Error(await r.text());
+  }
+};
+
+// Caché local para evitar esperas en cada render
+let _trabCache = null;
+let _supaOnline = true; // Se pone false si hay error de red
+
+// Indicador de estado de conexión
+function setConexionStatus(ok, msg) {
+  _supaOnline = ok;
+  const el = document.getElementById('conexion-status');
+  if (!el) return;
+  el.textContent = ok ? '● Sincronizado' : '⚠ Sin conexión — datos locales';
+  el.style.color = ok ? '#44CC77' : '#FFA500';
+}
+
+// ════════════════════════════════════════════════════════
+// ALMACENAMIENTO — Lee y escribe en Supabase (con fallback a localStorage)
 // ════════════════════════════════════════════════════════
 
-// Devuelve el array de trabajos guardado, o array vacío si no hay nada
-function getTrab() { try { return JSON.parse(localStorage.getItem('excavaciones_trabajos')||'[]'); } catch(e){ return []; } }
-// Guarda el array de trabajos en localStorage
-function saveTrab(arr) { localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr)); }
+// Carga trabajos desde Supabase y actualiza caché
+async function loadTrab() {
+  try {
+    const data = await supa.select('trabajos', 'fecha_creacion.desc');
+    _trabCache = (data || []).map(row => {
+      try { row.tipos = JSON.parse(row.tipos || '[]'); } catch(e) { row.tipos = []; }
+      try { row.maquinarias = JSON.parse(row.maquinarias || '[]'); } catch(e) { row.maquinarias = []; }
+      try { row.diasProgramados = JSON.parse(row.dias_programados || '[]'); } catch(e) { row.diasProgramados = []; }
+      try { row.operarios = JSON.parse(row.operarios || '[]'); } catch(e) { row.operarios = []; }
+      try { row.jornadasParciales = JSON.parse(row.jornadas_parciales || '[]'); } catch(e) { row.jornadasParciales = []; }
+      try { row.horasReales = JSON.parse(row.horas_reales || 'null'); } catch(e) { row.horasReales = null; }
+      row.fechaCreacion = row.fecha_creacion;
+      row.maquinaria = row.maquinarias.join(', ');
+      row.tipo = row.tipos.join(', ');
+      return row;
+    });
+    localStorage.setItem('excavaciones_trabajos', JSON.stringify(_trabCache));
+    setConexionStatus(true);
+    return _trabCache;
+  } catch(e) {
+    console.warn('Supabase no disponible, usando localStorage:', e.message || e);
+    setConexionStatus(false);
+    try { _trabCache = JSON.parse(localStorage.getItem('excavaciones_trabajos') || '[]'); } catch(e2) { _trabCache = []; }
+    return _trabCache;
+  }
+}
+
+// Devuelve el array de trabajos desde caché (síncrono)
+function getTrab() {
+  if (_trabCache !== null) return _trabCache;
+  try { return JSON.parse(localStorage.getItem('excavaciones_trabajos') || '[]'); } catch(e) { return []; }
+}
+
+// Guarda un trabajo nuevo en Supabase
+async function addTrab(t) {
+  const row = trabajoToRow(t);
+  try {
+    await supa.insert('trabajos', row);
+    _trabCache = null;
+    setConexionStatus(true);
+  } catch(e) {
+    console.warn('Error guardando en Supabase:', e.message || e);
+    setConexionStatus(false);
+    const arr = getTrab();
+    arr.unshift(t);
+    localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr));
+    _trabCache = arr;
+  }
+}
+
+// Actualiza un trabajo existente en Supabase
+async function updateTrab(t) {
+  const row = trabajoToRow(t);
+  try {
+    await supa.update('trabajos', row, 'id', t.id);
+    if (_trabCache) {
+      const idx = _trabCache.findIndex(x => x.id === t.id);
+      if (idx >= 0) _trabCache[idx] = t;
+    }
+    localStorage.setItem('excavaciones_trabajos', JSON.stringify(_trabCache || []));
+    setConexionStatus(true);
+  } catch(e) {
+    console.warn('Error actualizando en Supabase:', e.message || e);
+    setConexionStatus(false);
+    const arr = getTrab();
+    const idx = arr.findIndex(x => x.id === t.id);
+    if (idx >= 0) arr[idx] = t;
+    localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr));
+    _trabCache = arr;
+  }
+}
+
+// Elimina un trabajo en Supabase
+async function deleteTrab(id) {
+  try {
+    await supa.delete('trabajos', 'id', id);
+    if (_trabCache) _trabCache = _trabCache.filter(x => x.id !== id);
+    localStorage.setItem('excavaciones_trabajos', JSON.stringify(_trabCache || []));
+    setConexionStatus(true);
+  } catch(e) {
+    console.warn('Error eliminando en Supabase:', e.message || e);
+    setConexionStatus(false);
+    const arr = getTrab().filter(x => x.id !== id);
+    localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr));
+    _trabCache = arr;
+  }
+}
+
+// Convierte objeto trabajo JS a fila Supabase (snake_case)
+function trabajoToRow(t) {
+  return {
+    id: t.id,
+    cliente: t.cliente || '',
+    direccion: t.direccion || '',
+    zona: t.zona || '',
+    lat: t.lat || null,
+    lng: t.lng || null,
+    tipos: JSON.stringify(t.tipos || []),
+    maquinarias: JSON.stringify(t.maquinarias || []),
+    horas: t.horas || 0,
+    urgencia: t.urgencia || 'Normal',
+    notas: t.notas || '',
+    estado: t.estado || 'Pendiente presupuestar',
+    fecha: t.fecha || new Date().toISOString().slice(0,10),
+    fecha_creacion: t.fechaCreacion || new Date().toISOString(),
+    dias_programados: JSON.stringify(t.diasProgramados || []),
+    operarios: JSON.stringify(t.operarios || []),
+    jornadas_parciales: JSON.stringify(t.jornadasParciales || []),
+    horas_reales: JSON.stringify(t.horasReales || null),
+    notas_cierre: t.notasCierre || ''
+  };
+}
+
+// saveTrab — compatibilidad: actualiza caché y localStorage (sin Supabase, para cambios en batch)
+function saveTrab(arr) {
+  _trabCache = arr;
+  localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr));
+}
 
 // ════════════════════════════════════════════════════════
 // BARRA DE PROGRESO — Los 7 segmentos de la parte superior del formulario
@@ -1124,24 +1337,29 @@ function buildResumen() {
 }
 
 // ════════════════════════════════════════════════════════
-// GUARDAR TRABAJO — Crea el objeto trabajo y lo añade al array en localStorage
+// GUARDAR TRABAJO — Crea el objeto trabajo y lo añade en Supabase
 // ════════════════════════════════════════════════════════
-function guardarTrabajo() {
-  const trabajos = getTrab();
+async function guardarTrabajo() {
   const nuevo = {
-    id: Date.now(),   // ID único basado en timestamp (milisegundos)
-    ...form,          // Copia todos los campos del formulario
-    tipo: (form.tipos||[]).join(', '),         // Guarda también como texto plano para filtros
+    id: Date.now(),
+    ...form,
+    tipo: (form.tipos||[]).join(', '),
     maquinaria: (form.maquinarias||[]).join(', '),
-    estado: 'Pendiente presupuestar',          // Estado inicial siempre
+    estado: 'Pendiente presupuestar',
     fecha: new Date().toISOString().slice(0,10),
-    fechaCreacion: new Date().toISOString()
+    fechaCreacion: new Date().toISOString(),
+    diasProgramados: [],
+    operarios: [],
+    jornadasParciales: [],
+    horasReales: null,
+    notasCierre: ''
   };
-  trabajos.unshift(nuevo); // Añade al principio (más reciente primero)
-  saveTrab(trabajos);
+  showToast('Guardando...');
+  await addTrab(nuevo);
+  await loadTrab();
   showToast('✓ Trabajo guardado');
   resetForm();
-  setTimeout(()=>{ showView('listado'); }, 800); // Navega al listado tras 0.8s
+  setTimeout(()=>{ showView('listado'); renderListado(); }, 800);
 }
 
 // Limpia el formulario y lo vuelve al estado inicial (paso 1, valores vacíos)
@@ -1299,24 +1517,23 @@ function cambiarEstado(id, nuevoEstado) {
   const trabajos = getTrab();
   const t = trabajos.find(x=>x.id===id);
   if(!t) return;
-  const nombre = (t.cliente||'Sin cliente') + ' — ' + (t.direccion||'Sin dirección');
-  let msg;
   if(nuevoEstado === 'Realizado') {
-    msg = '¿Marcar como REALIZADO?\n' + nombre + '\n\nEsta acción no se puede deshacer.';
-  } else {
-    msg = '¿Cambiar a "' + nuevoEstado + '"?\n' + nombre;
+    // Abrir modal de horas reales en lugar de confirm nativo
+    modalTrabajoId = id;
+    abrirModalRealizadoPorId(id);
+    return;
   }
-  if(!confirm(msg)) return;
+  const nombre = (t.cliente||'Sin cliente') + ' — ' + (t.direccion||'Sin dirección');
+  if(!confirm('¿Cambiar a "' + nuevoEstado + '"?\n' + nombre)) return;
   t.estado = nuevoEstado;
-  saveTrab(trabajos);
-  renderListado();
+  updateTrab(t).then(()=>{ renderListado(); });
   showToast('→ ' + nuevoEstado);
 }
 
 // Elimina un trabajo permanentemente (con confirmación)
-function eliminar(id) {
+async function eliminar(id) {
   if(!confirm('¿Eliminar este trabajo?')) return;
-  saveTrab(getTrab().filter(t=>t.id!==id));
+  await deleteTrab(id);
   renderListado();
 }
 
@@ -1724,16 +1941,18 @@ function toggleDiaModal(iso, btn) {
 }
 
 // Confirma la programación: guarda días y operarios en el trabajo y cambia estado a Programado
-function confirmarProgramar() {
+async function confirmarProgramar() {
   if(diasSelModal.length === 0) { showToast('Selecciona al menos un día'); return; }
   const trabajos = getTrab();
   const t = trabajos.find(x=>x.id===modalTrabajoId);
   if(!t) return;
-  t.diasProgramados = diasSelModal;   // Array de fechas ISO asignadas
-  t.operarios = operariosSelModal;    // Array de nombres de operarios
+  t.diasProgramados = diasSelModal;
+  t.operarios = operariosSelModal;
   t.estado = 'Programado';
-  saveTrab(trabajos);
   cerrarModal('modal-programar');
+  showToast('Guardando...');
+  await updateTrab(t);
+  await loadTrab();
   renderSemana();
   showToast('✓ Trabajo programado');
 }
@@ -1747,51 +1966,164 @@ function abrirDetalle(id) {
   const t = getTrab().find(x=>x.id===id);
   if(!t) return;
   document.getElementById('mdet-titulo').textContent = t.cliente || 'Sin cliente';
-  // Construye la lista de campos a mostrar
   const campos = [
     ['Dirección', t.direccion||'—'],
     ['Trabajo', (t.tipos||[]).join(', ')||'—'],
     ['Maquinaria', (t.maquinarias||[]).join(', ')||'—'],
     ['Horas previstas', t.horas ? t.horas+'h' : '—'],
     ['Operarios', (t.operarios||[]).join(', ')||'—'],
-    // Convierte las fechas ISO a nombres de día legibles (ej: "Lunes 26")
     ['Días asignados', (t.diasProgramados||[]).map(d=>{ const f=new Date(d+'T12:00'); return DIAS_LARGO[f.getDay()===0?6:f.getDay()-1]+' '+f.getDate(); }).join(', ')||'—'],
     ['Urgencia', t.urgencia||'Normal'],
     ['Notas', t.notas||'—'],
     ['Estado', t.estado||'—'],
   ];
+  // Horas reales si existe
+  let horasRealesHtml = '';
+  if(t.horasReales) {
+    const lineas = Object.entries(t.horasReales).map(([m,h])=>`${m}: ${h}h`).join(' · ');
+    horasRealesHtml = `<div class="detail-field"><span class="detail-key">Horas reales</span><span class="detail-val" style="color:#44CC77">${lineas}</span></div>`;
+  }
+  // Jornadas parciales si existen
+  let jornadasHtml = '';
+  if(t.jornadasParciales && t.jornadasParciales.length) {
+    const items = t.jornadasParciales.map(j=>{
+      const hs = Object.entries(j.horas||{}).map(([m,h])=>`${m}: ${h}h`).join(', ');
+      return `<div style="font-size:12px;color:#C9A800;margin-bottom:3px">${j.fecha} — ${hs}${j.notas?' · '+j.notas:''}</div>`;
+    }).join('');
+    jornadasHtml = `<div class="detail-field" style="flex-direction:column;align-items:flex-start"><span class="detail-key" style="margin-bottom:4px">Jornadas parciales</span>${items}</div>`;
+  }
   document.getElementById('mdet-campos').innerHTML = campos.map(([k,v])=>
     '<div class="detail-field"><span class="detail-key">'+k+'</span><span class="detail-val">'+v+'</span></div>'
-  ).join('');
+  ).join('') + horasRealesHtml + jornadasHtml;
+  // Botón jornada parcial solo si no está Realizado
+  const btnReal = document.querySelector('#modal-detalle .btn-realizado-modal');
+  const btnDesp = document.querySelector('#modal-detalle .btn-desprogramar');
+  if(t.estado === 'Realizado') {
+    btnReal.style.display = 'none';
+    btnDesp.style.display = 'none';
+  } else {
+    btnReal.style.display = '';
+    btnDesp.style.display = '';
+  }
   document.getElementById('modal-detalle').classList.add('show');
 }
 
-// Marca el trabajo como Realizado y lo elimina del calendario
-function realizarDesdeDetalle() {
+// Abre el modal de horas reales desde el botón del modal detalle
+function abrirModalRealizado() {
+  if(!modalTrabajoId) return;
+  abrirModalRealizadoPorId(modalTrabajoId);
+}
+
+// Abre el modal de horas reales para un trabajo concreto
+function abrirModalRealizadoPorId(id) {
+  const t = getTrab().find(x=>x.id===id);
+  if(!t) return;
+  modalTrabajoId = id;
+  // Nombre del trabajo
+  document.getElementById('mreal-nombre').textContent = (t.cliente||'Sin cliente') + ' — ' + (t.direccion||'Sin dirección');
+  // Construir campos de horas por máquina
+  const maquinas = t.maquinarias && t.maquinarias.length ? t.maquinarias : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
+  let html = '';
+  maquinas.forEach((m,i) => {
+    html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="flex:1;font-size:13px;color:#C9A800">${m}</span>
+      <input type="number" id="mreal-horas-${i}" min="0" max="24" step="0.5" value="${t.horas||4}"
+        style="width:80px;text-align:center;padding:8px;background:#1C1C1C;border:1px solid rgba(255,209,0,0.3);border-radius:8px;color:#FFD100;font-size:15px">
+      <span style="font-size:12px;color:#7A6600">h</span>
+    </div>`;
+  });
+  document.getElementById('mreal-maquinas').innerHTML = html;
+  document.getElementById('mreal-notas').value = '';
+  cerrarModal('modal-detalle');
+  document.getElementById('modal-realizado').classList.add('show');
+}
+
+// Confirma el trabajo como realizado guardando horas reales
+async function confirmarRealizado() {
   const trabajos = getTrab();
   const t = trabajos.find(x=>x.id===modalTrabajoId);
   if(!t) return;
-  const nombre = (t.cliente||'Sin cliente') + ' — ' + (t.direccion||'Sin dirección');
-  if(!confirm('¿Marcar como REALIZADO?\n' + nombre + '\n\nEsta acción no se puede deshacer.')) return;
+  // Recoger horas reales por máquina
+  const maquinas = t.maquinarias && t.maquinarias.length ? t.maquinarias : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
+  const horasReales = {};
+  maquinas.forEach((m,i) => {
+    const v = parseFloat(document.getElementById(`mreal-horas-${i}`).value) || 0;
+    horasReales[m] = v;
+  });
   t.estado = 'Realizado';
-  t.diasProgramados = []; // Sale del calendario automáticamente
-  saveTrab(trabajos);
-  cerrarModal('modal-detalle');
+  t.diasProgramados = [];
+  t.horasReales = horasReales;
+  t.notasCierre = document.getElementById('mreal-notas').value.trim();
+  t.fechaRealizado = new Date().toISOString().slice(0,10);
+  cerrarModal('modal-realizado');
+  showToast('Guardando...');
+  await updateTrab(t);
+  await loadTrab();
+  renderListado();
   renderSemana();
   showToast('✓ Trabajo realizado');
 }
 
+// Abre modal para añadir jornada parcial
+function abrirModalJornada(id) {
+  const t = getTrab().find(x=>x.id===id);
+  if(!t) return;
+  modalTrabajoId = id;
+  document.getElementById('mjor-nombre').textContent = (t.cliente||'Sin cliente') + ' — ' + (t.direccion||'Sin dirección');
+  document.getElementById('mjor-fecha').value = new Date().toISOString().slice(0,10);
+  const maquinas = t.maquinarias && t.maquinarias.length ? t.maquinarias : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
+  let html = '';
+  maquinas.forEach((m,i) => {
+    html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="flex:1;font-size:13px;color:#C9A800">${m}</span>
+      <input type="number" id="mjor-horas-${i}" min="0" max="24" step="0.5" value="4"
+        style="width:80px;text-align:center;padding:8px;background:#1C1C1C;border:1px solid rgba(255,209,0,0.3);border-radius:8px;color:#FFD100;font-size:15px">
+      <span style="font-size:12px;color:#7A6600">h</span>
+    </div>`;
+  });
+  document.getElementById('mjor-maquinas').innerHTML = html;
+  document.getElementById('mjor-notas').value = '';
+  document.getElementById('modal-jornada').classList.add('show');
+}
+
+// Guarda jornada parcial en el trabajo
+async function confirmarJornada() {
+  const trabajos = getTrab();
+  const t = trabajos.find(x=>x.id===modalTrabajoId);
+  if(!t) return;
+  const maquinas = t.maquinarias && t.maquinarias.length ? t.maquinarias : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
+  const horas = {};
+  maquinas.forEach((m,i) => { horas[m] = parseFloat(document.getElementById(`mjor-horas-${i}`).value)||0; });
+  if(!t.jornadasParciales) t.jornadasParciales = [];
+  t.jornadasParciales.push({
+    fecha: document.getElementById('mjor-fecha').value,
+    horas,
+    notas: document.getElementById('mjor-notas').value.trim()
+  });
+  cerrarModal('modal-jornada');
+  showToast('Guardando jornada...');
+  await updateTrab(t);
+  await loadTrab();
+  renderListado();
+  showToast('✓ Jornada registrada');
+}
+
+function realizarDesdeDetalle() {
+  abrirModalRealizado();
+}
+
 // Quita el trabajo de la semana sin marcarlo como realizado (vuelve a la bolsa)
-function desprogramarDesdeDetalle() {
+async function desprogramarDesdeDetalle() {
   const trabajos = getTrab();
   const t = trabajos.find(x=>x.id===modalTrabajoId);
   if(!t) return;
   if(!confirm('¿Quitar este trabajo de la semana?\n' + (t.cliente||'Sin cliente'))) return;
-  t.diasProgramados = []; // Limpia los días asignados
-  t.operarios = [];       // Limpia los operarios asignados
-  t.estado = 'Aceptado';  // Vuelve al estado anterior a Programado
-  saveTrab(trabajos);
+  t.diasProgramados = [];
+  t.operarios = [];
+  t.estado = 'Aceptado';
   cerrarModal('modal-detalle');
+  await updateTrab(t);
+  await loadTrab();
   renderSemana();
   showToast('↩ Trabajo desprogramado');
 }
@@ -1922,22 +2254,21 @@ function renderOperario() {
 
 // Marca un trabajo como Realizado desde la vista del operario
 function opMarcarRealizado(id) {
-  const trabajos = getTrab();
-  const t = trabajos.find(x => x.id === id);
-  if (!t) return;
-  const clienteCorto = (t.cliente || 'Sin cliente').split(/[—\-,]/)[0].trim().slice(0, 40);
-  if (!confirm('¿Marcar como REALIZADO?\n' + clienteCorto + '\n\nEsta acción no se puede deshacer.')) return;
-  t.estado = 'Realizado';
-  t.diasProgramados = []; // Sale del calendario automáticamente
-  saveTrab(trabajos);
-  showToast('✓ Trabajo realizado');
-  renderOperario(); // Refresca la vista — la tarjeta desaparece
+  modalTrabajoId = id;
+  abrirModalRealizadoPorId(id);
 }
 
 
 buildChips();       // Construye los chips de tipo y maquinaria
 updateProgress();   // Dibuja la barra de progreso del formulario
-renderListado();    // Carga el listado inicial
+
+// Arranque: carga datos desde Supabase y renderiza
+(async () => {
+  setConexionStatus(false, 'Conectando...');
+  await loadTrab();
+  renderListado();
+  renderSemana();
+})();
 
 // ════════════════════════════════════════════════════════
 // MÓDULO 5 — CONFIGURACIÓN
