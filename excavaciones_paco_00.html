@@ -1945,7 +1945,7 @@ function renderListado() {
 
 // Cambia el estado de un trabajo con confirmación previa
 // Para 'Realizado' avisa que no se puede deshacer
-function cambiarEstado(id, nuevoEstado) {
+async function cambiarEstado(id, nuevoEstado) {
   const trabajos = getTrab();
   const t = trabajos.find(x=>String(x.id)===String(id));
   if(!t) return;
