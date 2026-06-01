@@ -11,9 +11,9 @@
   :root {
     --bg: #1C1C1C;
     --card: #272727;
-    --text: #FFD100;
-    --text2: #C9A800;
-    --text3: #7A6600;
+    --text: #FFFFFF;
+    --text2: #AAAAAA;
+    --text3: #666666;
     --accent: #FFD100;
     --accent-light: #332B00;
     --accent2: #FFA500;
@@ -35,7 +35,7 @@
 
   /* NAV TABS */
   .nav { display: flex; background: #1C1C1C; border-bottom: 1px solid var(--border); }
-  .nav-tab { flex: 1; padding: 12px 4px; text-align: center; font-size: 12px; color: #7A6600; cursor: pointer; border: none; background: none; font-family: 'Courier New', monospace; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .nav-tab { flex: 1; padding: 12px 4px; text-align: center; font-size: 13px; color: #CCCCCC; cursor: pointer; border: none; background: none; font-family: 'Courier New', monospace; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 2px solid transparent; transition: all 0.2s; font-weight: bold; }
   .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; } .nav { background: #222; }
 
   /* VIEWS */
@@ -61,14 +61,14 @@
   .voice-btn:active { opacity: 0.85; transform: scale(0.99); }
   .voice-btn.listening { background: var(--danger); animation: pulse 1.2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.8} }
-  .voice-result { background: #332B00; border: 1px solid #FFD100; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 14px; color: #FFD100; margin-bottom: 10px; min-height: 40px; font-style: italic; display: none; }
+  .voice-result { background: #332B00; border: 1px solid #FFD100; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 14px; color: #FFFFFF; margin-bottom: 10px; min-height: 40px; font-style: italic; display: none; }
   .voice-result.show { display: block; }
   .divider { text-align: center; font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; margin: 8px 0; letter-spacing: 0.1em; }
 
   /* INPUTS */
   input[type=text], input[type=number], textarea, select {
     width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-    font-size: 15px; color: var(--text); background: #1C1C1C; font-family: Georgia, serif; color: #FFD100;
+    font-size: 15px; color: var(--text); background: #1C1C1C; font-family: Georgia, serif; color: #FFFFFF;
     outline: none; transition: border-color 0.2s;
   }
   input:focus, textarea:focus, select:focus { border-color: var(--accent); }
@@ -337,6 +337,8 @@
 .cfg-btn-baja:hover { border-color: #888; color: #bbb; }
 .cfg-btn-alta { background: none; border: 1px solid #3a5a3a; border-radius: 6px; color: #6a9a6a; cursor: pointer; font-size: 11px; padding: 2px 8px; margin-left: 6px; white-space: nowrap; }
 .cfg-btn-alta:hover { border-color: #6a9a6a; color: #8fc98f; }
+.cfg-btn-del { background: none; border: 1px solid #7a2a2a; border-radius: 6px; color: #c06060; cursor: pointer; font-size: 11px; padding: 2px 8px; margin-left: 6px; white-space: nowrap; }
+.cfg-btn-del:hover { border-color: #c06060; color: #ff8080; }
 </style>
 </head>
 <body>
@@ -2562,7 +2564,8 @@ function renderCfgOperarios(ops, containerId) {
     const btn = op.activo
       ? `<button class="cfg-btn-baja" onclick="cfgToggleOperario(${i})">Dar de baja</button>`
       : `<button class="cfg-btn-alta" onclick="cfgToggleOperario(${i})">Dar de alta</button>`;
-    chip.innerHTML = `<span>${op.nombre}${badge}</span>${btn}`;
+    const btnDel = `<button class="cfg-btn-del" onclick="cfgEliminarOperario(${i})">Eliminar</button>`;
+    chip.innerHTML = `<span>${op.nombre}${badge}</span>${btn}${btnDel}`;
     wrap.appendChild(chip);
   });
 }
@@ -2579,7 +2582,8 @@ function renderCfgToggleList(key, items, containerId) {
     const btn = item.activo
       ? `<button class="cfg-btn-baja" onclick="cfgToggleItem('${key}',${i})">Dar de baja</button>`
       : `<button class="cfg-btn-alta" onclick="cfgToggleItem('${key}',${i})">Dar de alta</button>`;
-    chip.innerHTML = `<span>${item.nombre}${badge}</span>${btn}`;
+    const btnDel = `<button class="cfg-btn-del" onclick="cfgEliminarItem('${key}',${i})">Eliminar</button>`;
+    chip.innerHTML = `<span>${item.nombre}${badge}</span>${btn}${btnDel}`;
     wrap.appendChild(chip);
   });
 }
@@ -2774,6 +2778,52 @@ async function cfgReset() {
   renderConfig();
   showToast('✓ Configuración restaurada');
 }
+// Elimina definitivamente un operario de Supabase
+async function cfgEliminarOperario(idx) {
+  const arr = getOperariosCfg();
+  const op = arr[idx];
+  if (!op) return;
+  if (!confirm(`¿Eliminar "${op.nombre}" definitivamente? Esta acción no se puede deshacer.`)) return;
+  if (op.id) {
+    try {
+      await fetch(`${SUPA_URL}/rest/v1/operarios?id=eq.${op.id}`, {
+        method: 'DELETE', headers: {...SUPA_HEADERS, 'Prefer': 'return=minimal'}
+      });
+    } catch(e) { showToast('Error al eliminar'); return; }
+  }
+  arr.splice(idx, 1);
+  _operariosCfgCache = arr;
+  localStorage.setItem('cfg_operarios', JSON.stringify(arr));
+  OPERARIOS = getOperariosActivos();
+  if (!OPERARIOS.includes(opSeleccionado)) opSeleccionado = OPERARIOS[0] || '';
+  renderConfig();
+  showToast('✓ Eliminado');
+}
+
+// Elimina definitivamente un tipo o maquinaria de Supabase
+async function cfgEliminarItem(key, idx) {
+  const tablaMap = {tipos: 'tipos_trabajo', maquinaria: 'maquinaria'};
+  const c = getCfg();
+  const item = c[key][idx];
+  if (!item) return;
+  if (!confirm(`¿Eliminar "${item.nombre}" definitivamente? Esta acción no se puede deshacer.`)) return;
+  if (item.id) {
+    try {
+      await fetch(`${SUPA_URL}/rest/v1/${tablaMap[key]}?id=eq.${item.id}`, {
+        method: 'DELETE', headers: {...SUPA_HEADERS, 'Prefer': 'return=minimal'}
+      });
+    } catch(e) { showToast('Error al eliminar'); return; }
+  }
+  delete c.sinonimos[item.nombre];
+  c[key].splice(idx, 1);
+  _cfgCache = c;
+  localStorage.setItem('cfg_listas', JSON.stringify(c));
+  CONFIG = c;
+  buildChips();
+  renderConfig();
+  showToast('✓ Eliminado');
+}
+
 </script>
 </body>
 </html>
