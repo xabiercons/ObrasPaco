@@ -339,9 +339,52 @@
 .cfg-btn-alta:hover { border-color: #6a9a6a; color: #8fc98f; }
 .cfg-btn-del { background: none; border: 1px solid #7a2a2a; border-radius: 6px; color: #c06060; cursor: pointer; font-size: 11px; padding: 2px 8px; margin-left: 6px; white-space: nowrap; }
 .cfg-btn-del:hover { border-color: #c06060; color: #ff8080; }
+
+/* ═══ LOGIN ═══ */
+.login-overlay {
+  position: fixed; inset: 0; background: var(--bg);
+  z-index: 9999; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; padding: 32px 24px;
+}
+.login-overlay.hidden { display: none; }
+.login-logo { font-size: 48px; font-weight: bold; color: var(--accent); margin-bottom: 8px; letter-spacing: -2px; }
+.login-title { font-size: 22px; color: var(--text); margin-bottom: 4px; }
+.login-sub { font-size: 13px; color: var(--text2); margin-bottom: 36px; font-family: 'Courier New', monospace; }
+.login-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; width: 100%; max-width: 360px; }
+.login-label { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; margin-top: 14px; }
+.login-label:first-child { margin-top: 0; }
+.login-btn { width: 100%; padding: 15px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 16px; cursor: pointer; font-family: Georgia, serif; font-weight: bold; margin-top: 20px; letter-spacing: 0.02em; }
+.login-btn:active { opacity: 0.85; }
+.login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-error { font-size: 13px; color: var(--danger); font-family: 'Courier New', monospace; margin-top: 12px; text-align: center; min-height: 18px; }
+.login-spinner { font-size: 13px; color: var(--text3); font-family: 'Courier New', monospace; margin-top: 12px; text-align: center; }
+.btn-cerrar-sesion { width: 100%; padding: 12px; background: var(--danger-light); color: var(--danger); border: 1px solid var(--danger); border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-family: Georgia, serif; margin-top: 4px; }
+.btn-cerrar-sesion:active { opacity: 0.85; }
 </style>
 </head>
 <body>
+
+<!-- ═══════════════════════════════════════
+     PANTALLA DE LOGIN
+════════════════════════════════════════ -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-logo">EP</div>
+  <div class="login-title">Excavaciones Paco</div>
+  <div class="login-sub">GESTIÓN DE OBRAS · ACCESO PRIVADO</div>
+  <div class="login-card">
+    <div class="login-label">Email</div>
+    <input type="email" id="login-email" placeholder="usuario@email.com"
+      autocomplete="username" autocapitalize="off"
+      onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+    <div class="login-label">Contraseña</div>
+    <input type="password" id="login-pass" placeholder="••••••••"
+      autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')hacerLogin()">
+    <button class="login-btn" id="login-btn" onclick="hacerLogin()">Entrar</button>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-spinner" id="login-spinner"></div>
+  </div>
+</div>
 
 <div class="header">
   <span class="header-icon" style="font-size:28px;font-weight:bold;color:#FFD100;">EP</span>
@@ -721,6 +764,13 @@
       <button class="cfg-btn-reset" onclick="cfgReset()">Restaurar listas por defecto</button>
       <div class="cfg-info" style="margin-top:6px">No borra los trabajos guardados.</div>
     </div>
+
+    <!-- CERRAR SESIÓN -->
+    <div class="cfg-section cfg-danger-section" style="margin-top:8px">
+      <div class="cfg-section-title">🔒 Sesión</div>
+      <div class="cfg-info" id="cfg-usuario-info" style="margin-bottom:10px"></div>
+      <button class="btn-cerrar-sesion" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
   </div>
 </div>
 
@@ -729,9 +779,136 @@
 <script>
 
 // ════════════════════════════════════════════════════════
+// AUTH — Supabase Authentication
+// Usa el SDK de Supabase para gestionar sesión con email+contraseña.
+// La sesión persiste en localStorage automáticamente.
 // ════════════════════════════════════════════════════════
-// SUPABASE — Acceso directo via REST API (sin SDK)
-// ════════════════════════════════════════════════════════
+
+const SUPA_AUTH_URL = 'https://wqcwicukenycsopnyvck.supabase.co/auth/v1';
+let _session = null; // Sesión activa (token + usuario)
+
+// Recupera sesión guardada en localStorage (para no pedir login al reabrir)
+function _getSessionStored() {
+  try { return JSON.parse(localStorage.getItem('supa_session')); } catch { return null; }
+}
+function _setSessionStored(s) {
+  if (s) localStorage.setItem('supa_session', JSON.stringify(s));
+  else localStorage.removeItem('supa_session');
+}
+
+// Cabeceras REST con token de usuario autenticado (en lugar de anon key)
+function _authHeaders() {
+  const token = _session?.access_token || SUPA_KEY;
+  return {
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=minimal'
+  };
+}
+
+// Login con email + contraseña
+async function hacerLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  const spin  = document.getElementById('login-spinner');
+  const btn   = document.getElementById('login-btn');
+
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'Introduce email y contraseña'; return; }
+
+  btn.disabled = true;
+  spin.textContent = 'Verificando…';
+
+  try {
+    const res = await fetch(`${SUPA_AUTH_URL}/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || data.message || 'Error de acceso');
+    _session = data;
+    _setSessionStored(data);
+    // Actualizar cabeceras globales con el nuevo token
+    Object.assign(SUPA_HEADERS, _authHeaders());
+    spin.textContent = '';
+    document.getElementById('login-overlay').classList.add('hidden');
+    iniciarApp();
+  } catch (e) {
+    errEl.textContent = e.message === 'Invalid login credentials'
+      ? 'Email o contraseña incorrectos' : e.message;
+    spin.textContent = '';
+    btn.disabled = false;
+  }
+}
+
+// Refresca el token si está cerca de expirar (Supabase lo hace automáticamente,
+// pero por seguridad lo forzamos si la sesión tiene más de 55 min)
+async function _refreshSessionIfNeeded() {
+  if (!_session?.refresh_token) return;
+  const createdAt = _session.expires_at || 0;
+  const now = Math.floor(Date.now() / 1000);
+  // expires_at viene en segundos epoch desde Supabase
+  if (createdAt - now < 300) { // Menos de 5 min para expirar → refrescar
+    try {
+      const res = await fetch(`${SUPA_AUTH_URL}/token?grant_type=refresh_token`, {
+        method: 'POST',
+        headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: _session.refresh_token })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        _session = data;
+        _setSessionStored(data);
+        Object.assign(SUPA_HEADERS, _authHeaders());
+      }
+    } catch (e) { console.warn('No se pudo refrescar token:', e); }
+  }
+}
+
+// Cierra sesión
+async function cerrarSesion() {
+  if (!confirm('¿Cerrar sesión?')) return;
+  try {
+    await fetch(`${SUPA_AUTH_URL}/logout`, {
+      method: 'POST',
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (_session?.access_token || '') }
+    });
+  } catch {}
+  _session = null;
+  _setSessionStored(null);
+  // Recarga la página (muestra login)
+  location.reload();
+}
+
+// Comprueba si hay sesión guardada y decide si mostrar login o entrar directo
+async function checkAuth() {
+  const stored = _getSessionStored();
+  if (stored?.access_token) {
+    _session = stored;
+    await _refreshSessionIfNeeded();
+    Object.assign(SUPA_HEADERS, _authHeaders());
+    document.getElementById('login-overlay').classList.add('hidden');
+    iniciarApp();
+  }
+  // Si no hay sesión, el login-overlay ya está visible (visible por defecto)
+}
+
+// Arranca la app (se llama tras login exitoso o sesión recuperada)
+async function iniciarApp() {
+  setConexionStatus(false, 'Conectando...');
+  await loadConfig();
+  CONFIG = getCfg();
+  OPERARIOS = getOperariosActivos();
+  buildChips();
+  await loadTrab();
+  renderListado();
+  renderSemana();
+}
+
+
 const SUPA_URL = 'https://wqcwicukenycsopnyvck.supabase.co';
 const SUPA_KEY = 'sb_publishable_bZqoK0K9f_f3Mv4A-Q2V9A_LPRqeIpa';
 const SUPA_HEADERS = {
@@ -2526,17 +2703,8 @@ function opMarcarRealizado(id) {
 
 updateProgress();   // Dibuja la barra de progreso del formulario
 
-// Arranque: carga configuración y trabajos desde Supabase, luego renderiza
-(async () => {
-  setConexionStatus(false, 'Conectando...');
-  await loadConfig();               // 1. Carga operarios, tipos, maquinaria desde Supabase
-  CONFIG = getCfg();                // 2. Sincroniza cache en memoria
-  OPERARIOS = getOperariosActivos();
-  buildChips();                     // 3. Construye los chips con los datos reales
-  await loadTrab();                 // 4. Carga trabajos
-  renderListado();
-  renderSemana();
-})();
+// Arranque: comprueba autenticación primero
+checkAuth();
 
 // ════════════════════════════════════════════════════════
 // MÓDULO 5 — CONFIGURACIÓN
@@ -2550,6 +2718,11 @@ function renderConfig() {
   renderCfgToggleList('tipos', c.tipos, 'cfg-tipos');
   renderCfgToggleList('maquinaria', c.maquinaria, 'cfg-maquinaria');
   renderCfgSinonimos(c);
+  // Mostrar email del usuario logueado
+  const infoEl = document.getElementById('cfg-usuario-info');
+  if (infoEl && _session?.user?.email) {
+    infoEl.textContent = 'Sesión activa: ' + _session.user.email;
+  }
 }
 
 // Renderiza operarios con toggle Dar de baja/Dar de alta
