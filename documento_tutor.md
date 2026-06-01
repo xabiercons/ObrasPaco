@@ -1,5 +1,5 @@
 # Documento Tutor — Excavaciones Paco
-**Versión 6.3 · Junio 2026**
+**Versión 6.7 · Junio 2026**
 
 Guía técnica del código para quien quiera entenderlo, modificarlo o aprender de él.
 
@@ -18,6 +18,7 @@ Guía técnica del código para quien quiera entenderlo, modificarlo o aprender 
 9. [Decisiones técnicas — por qué así y no de otra manera](#9-decisiones-técnicas)
 10. [Cómo modificar cosas sin romper nada](#10-cómo-modificar-cosas)
 11. [Autenticación — Login y seguridad](#11-autenticación)
+12. [Sistema de roles — diseño para Fase 3](#12-sistema-de-roles)
 
 ---
 
@@ -70,7 +71,7 @@ excavaciones_paco_00.html
 │   ├── Cabecera y navegación (5 pestañas)
 │   ├── Vista: + Nuevo (formulario 7 pasos)
 │   ├── Vista: Listado
-│   ├── Vista: Semana
+│   ├── Vista: Mes
 │   ├── Vista: Hoy
 │   └── Vista: Configuración ⚙
 │
@@ -83,7 +84,7 @@ excavaciones_paco_00.html
     ├── Funciones de almacenamiento de trabajos (loadTrab, addTrab...)
     ├── Módulo 1 — Formulario de captura
     ├── Módulo 2 — Listado
-    ├── Módulo 3 — Programación semanal
+    ├── Módulo 3 — Vista Mes + Programación
     ├── Módulo 4 — Vista operario (Hoy)
     ├── Módulo 5 — Configuración
     ├── Módulo 6 — Informes y CSV
@@ -275,8 +276,8 @@ let currentStep = 1; // Paso actual (1-7)
 - `renderListado()` — construye el HTML de todas las tarjetas
 - `buildFiltros()` — rellena los selectores de zona y maquinaria
 - `setLTab(tab)` — cambia entre Pendientes / Programados / Realizados
-- `cambiarEstado(id, nuevoEstado)` — avanza el estado de un trabajo
-- `eliminar(id)` — borra un trabajo (pide confirmación)
+- `cambiarEstado(id, nuevoEstado)` — avanza el estado de un trabajo (async — usa await showConfirm)
+- `eliminar(id)` — borra un trabajo (async — usa await showConfirm con botón rojo)
 
 **Agrupación por maquinaria**:
 ```javascript
@@ -287,22 +288,42 @@ lista.forEach(t => {
 });
 ```
 
-### Módulo 3 — Programación semanal
+### Módulo 3 — Vista Mes + Programación
 
-**Qué hace**: calendario semanal donde se asignan trabajos a días y operarios.
+**Qué hace**: grid mensual con todos los días del mes, bolsa de pendientes y modal de programación. Sustituye completamente la vista Semana desde v6.4.
 
 **Conceptos clave**:
-- El calendario muestra 7 días (lunes a domingo) de la semana seleccionada
-- La navegación usa un `offset` en semanas desde la semana actual
-- Los trabajos `Aceptados` sin días asignados aparecen en la "bolsa de pendientes"
-- Al programar, el trabajo pasa a estado `Programado` y se le asignan `dias[]` y `operarios[]`
+- Grid de 5-6 filas × 7 columnas con todos los días del mes activo
+- Punto de color por día: verde (1 trabajo) · naranja (2-3) · rojo (4+)
+- Los trabajos sin días asignados aparecen en la bolsa de pendientes debajo del grid
+- Tocar un día abre el modal de programar situado en esa semana con el día preseleccionado
+- Responsabilidades separadas limpiamente: `renderMes()` solo renderiza el grid, `renderBolsa()` solo la bolsa
 
 **Funciones principales**:
-- `renderSemana()` — dibuja el calendario completo
-- `getLunes(offset)` — calcula la fecha del lunes de la semana offset
-- `abrirModalProgramar(id)` — abre el modal de asignación
+- `renderMes()` — dibuja el grid mensual completo (sin acoplamiento a bolsa)
+- `renderBolsa()` — función independiente con una sola responsabilidad: actualizar la bolsa
+- `getLunes(offset, fechaBase?)` — calcula el lunes de la semana; `fechaBase` opcional (por defecto hoy)
+- `abrirModalProgramar(id, fechaInicio?)` — abre el modal; calcula offset internamente desde `fechaInicio`
+- `cambiarMes(dir)` — navega entre meses
 - `confirmarProgramar()` — guarda días y operarios, cambia estado a Programado
 - `desprogramarDesdeDetalle()` — quita el trabajo del calendario (vuelve a Aceptado)
+
+**Decisiones de arquitectura**:
+```javascript
+// getLunes acepta fechaBase opcional — no depende implícitamente de new Date()
+function getLunes(offset, fechaBase) {
+  const base = fechaBase ? new Date(fechaBase) : new Date();
+  ...
+}
+
+// abrirModalProgramar calcula el offset internamente — quien llama no toca modalSemanaOffset
+function abrirModalProgramar(id, fechaInicio) {
+  const hoyLunes = getLunes(0);
+  const lunesDestino = getLunes(0, fechaInicio || new Date());
+  modalSemanaOffset = Math.round((lunesDestino - hoyLunes) / (7 * 24 * 60 * 60 * 1000));
+  ...
+}
+```
 
 ### Módulo 4 — Vista Hoy (operario)
 
@@ -368,16 +389,30 @@ Usuario pulsa "🎤 Hablar"
     ↓
 startVoice(field, btnId, resId)
     ↓
-SpeechRecognition escucha (único resultado, no continuo)
+SpeechRecognition escucha (continuo, interimResults=true)
     ↓
-onresult → processVoice(field, texto)
+onresult — se ejecuta en cada fragmento:
+  ├── Fragmento provisional → muestra en gris con "…" (feedback inmediato)
+  └── Fragmento final → acumula en textoAcumulado → processVoice(field, texto)
+    ↓
+processVoice devuelve {ok: boolean, msg: string}
+    ↓
+  ├── ok=true  → muestra vr-ok en verde bajo el texto reconocido
+  └── ok=false → muestra vr-err en rojo bajo el texto reconocido
     ↓
   Si field es 'tipos' o 'maquinaria':
-      matchSinonimo() → busca en CONFIG.sinonimos
-      Si hay coincidencia → selecciona el chip automáticamente
+      matchSinonimo() → devuelve {ok, msg} → selecciona chip si coincide
   Si field es 'cliente', 'notas', 'horas':
-      Rellena el campo directamente
+      Rellena el campo y devuelve {ok: true, msg}
 ```
+
+**Clases CSS del feedback de voz**:
+- `.vr-interim` — texto provisional en gris mientras habla
+- `.vr-final` — texto confirmado en blanco negrita entre comillas
+- `.vr-ok` — resultado en verde (✓ Minipala JCB)
+- `.vr-err` — resultado en rojo (✗ No reconocido — selecciona manualmente)
+
+**Desacoplamiento**: `processVoice()` y `matchSinonimo()` devuelven `{ok, msg}` — no llaman `showToast()` directamente. Quien llama (el handler de voz) decide cómo mostrar el feedback.
 
 ### Los sinónimos
 
@@ -589,6 +624,23 @@ fetch(`${SUPA_URL}/rest/v1/trabajos?select=id&limit=1`, { headers: _authHeaders(
   .catch(e => console.error('Error:', e));
 ```
 
+### Modal de confirmación propio
+
+Desde v6.6 todos los `confirm()` nativos del navegador están sustituidos por `showConfirm()`, una función que devuelve una `Promise` y muestra un modal con el diseño de la app:
+
+```javascript
+// Uso — siempre en funciones async
+if (!await showConfirm('¿Eliminar este trabajo?', 'Esta acción no se puede deshacer.', true)) return;
+// peligro=true → botón rojo "Eliminar"
+// peligro=false (por defecto) → botón amarillo "Aceptar"
+```
+
+**Por qué**: `confirm()` nativo rompe la experiencia visual, no se puede estilizar, y en móvil queda fuera de contexto. `showConfirm()` es un modal propio, centrado, con el mismo fondo y tipografía que el resto de la app.
+
+**Requisito**: cualquier función que use `await showConfirm()` debe declararse `async`.
+
+---
+
 > **Nota v6.3**: si obtienes `401` donde antes funcionaba, el motivo es que la política RLS cambió de `anon` a `authenticated`. La sesión debe estar activa y `_authHeaders()` debe devolver el JWT correcto.
 
 ### Actualizar la app en producción
@@ -710,4 +762,57 @@ Este cambio mejora la seguridad: si alguien obtiene la `SUPA_KEY` del código fu
 
 ---
 
-*Documento generado en Junio 2026 · App v6.3*
+
+---
+
+## 12. Sistema de roles
+
+> Diseñado en sesión 14 para Fase 3. No implementado en la versión actual.
+
+### Por qué los roles son estratégicos
+
+La app actual tiene dos credenciales sin distinción real de permisos. Con roles bien definidos se convierte en un producto vendible a múltiples empresas.
+
+### Roles previstos
+
+| Rol | Quién | Permisos |
+|---|---|---|
+| **Admin** | Propietario | Todo — crear, presupuestar, programar, informes, gestionar usuarios |
+| **Encargado** | Jefe de obra | Crear, programar, ver listado completo, marcar realizados |
+| **Operario** | Trabajador | Solo ver sus trabajos del día y marcar realizados |
+| **Cliente** | Cliente final | Solo ver estado de sus trabajos (portal cliente futuro) |
+
+### Implementación técnica en Fase 3
+
+```sql
+-- Tabla perfiles vinculada a auth.users
+CREATE TABLE perfiles (
+  id UUID REFERENCES auth.users PRIMARY KEY,
+  role TEXT CHECK (role IN ('admin','encargado','operario','cliente')),
+  empresa_id UUID
+);
+
+-- RLS por rol: operarios solo ven sus trabajos
+CREATE POLICY "operario_sus_trabajos" ON trabajos
+  FOR SELECT TO authenticated
+  USING (
+    auth.uid() IN (
+      SELECT id FROM perfiles WHERE role = 'admin'
+    )
+    OR nombre_operario = (SELECT nombre FROM perfiles WHERE id = auth.uid())
+  );
+```
+
+**UI condicional**: botones de presupuestar, programar y configurar solo visibles para Admin/Encargado. En React esto se gestiona con un `AuthContext` que expone el rol del usuario activo.
+
+### Modelo de negocio SaaS
+
+- **Plan Básico**: 1 Admin + hasta 3 Operarios — precio mensual fijo
+- **Plan Pro**: Admin + Encargados + Operarios ilimitados + portal Cliente
+- **Plan Enterprise**: multisede, informes avanzados, integración contabilidad
+
+La arquitectura de Supabase Auth soporta esto sin cambios de infraestructura — solo ampliar tablas y políticas RLS.
+
+---
+
+*Documento generado en Junio 2026 · App v6.7*

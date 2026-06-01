@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manual de Usuario — Excavaciones Paco v6.3</title>
+<title>Manual de Usuario — Excavaciones Paco v6.7</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap');
 
@@ -486,7 +486,7 @@
   <div class="portada-sub">Excavaciones Paco · Sistema de gestión de obras</div>
   <div class="portada-titulo">Manual<br>de Usuario</div>
   <div class="portada-desc">Guía completa para el uso diario de la app en obra. Sin tecnicismos.</div>
-  <div class="portada-version">Versión 6.3 · Junio 2026</div>
+  <div class="portada-version">Versión 6.7 · Junio 2026</div>
 </div>
 
 <!-- ÍNDICE -->
@@ -498,7 +498,7 @@
   <div class="indice-item"><div class="indice-num">03</div><div class="indice-nombre">Añadir un trabajo nuevo (7 pasos)</div></div>
   <div class="indice-item"><div class="indice-num">04</div><div class="indice-nombre">Estados de un trabajo — el flujo completo</div></div>
   <div class="indice-item"><div class="indice-num">05</div><div class="indice-nombre">El listado — ver y gestionar trabajos</div></div>
-  <div class="indice-item"><div class="indice-num">06</div><div class="indice-nombre">La semana — programar trabajos</div></div>
+  <div class="indice-item"><div class="indice-num">06</div><div class="indice-nombre">El mes — programar trabajos</div></div>
   <div class="indice-item"><div class="indice-num">07</div><div class="indice-nombre">Vista Hoy — lo que toca hacer hoy</div></div>
   <div class="indice-item"><div class="indice-num">08</div><div class="indice-nombre">Informes y exportar a Excel</div></div>
   <div class="indice-item"><div class="indice-num">09</div><div class="indice-nombre">Copia de seguridad — backup completo</div></div>
@@ -737,8 +737,8 @@
   <div class="consejo">
     <div class="consejo-icono">🎤</div>
     <div>
-      <div class="consejo-titulo">El micrófono reconoce palabras normales</div>
-      <div class="consejo-texto">No hace falta decir el nombre exacto. "retro" o "excavadora" selecciona el Volvo giratorio. "camión" o "contenedor" selecciona el Camión contenedor. Los sinónimos se pueden ampliar en Configuración.</div>
+      <div class="consejo-titulo">El micrófono reconoce palabras normales y muestra lo que entiende</div>
+      <div class="consejo-texto">Mientras hablas ves el texto provisional en gris. Cuando confirma, aparece en blanco y debajo muestra en verde lo que seleccionó (✓ Minipala JCB) o en rojo si no lo reconoció. "retro" o "excavadora" selecciona el Volvo giratorio. Los sinónimos se pueden ampliar en Configuración.</div>
     </div>
   </div>
 </div>
@@ -870,13 +870,13 @@
   </div>
 </div>
 
-<!-- 06 — SEMANA -->
+<!-- 06 — MES -->
 <div class="seccion">
   <div class="seccion-header">
     <div class="seccion-num">06</div>
     <div class="seccion-info">
-      <div class="seccion-titulo">La semana</div>
-      <div class="seccion-desc">Programar trabajos en días concretos y asignar operarios</div>
+      <div class="seccion-titulo">El mes</div>
+      <div class="seccion-desc">Vista mensual para programar trabajos y ver la carga de cada día</div>
     </div>
   </div>
 
@@ -884,29 +884,29 @@
     <div class="paso">
       <div class="paso-num">1</div>
       <div class="paso-body">
-        <div class="paso-titulo">Navega a la semana correcta</div>
-        <div class="paso-texto">Usa las flechas ← → o las píldoras de mes para moverte por el calendario. El día de hoy aparece marcado en amarillo.</div>
+        <div class="paso-titulo">Navega entre meses</div>
+        <div class="paso-texto">Usa las flechas ← → para moverte entre meses. Ves de un vistazo todo el mes: cada día muestra un punto de color según la carga de trabajo.</div>
       </div>
     </div>
     <div class="paso naranja">
       <div class="paso-num">2</div>
       <div class="paso-body">
-        <div class="paso-titulo">Bolsa de pendientes</div>
-        <div class="paso-texto">En la parte inferior verás todos los trabajos <strong style="color:var(--amarillo)">Aceptados</strong> sin día asignado. Son los que están listos para programar. Toca uno para abrirlo.</div>
+        <div class="paso-titulo">Punto de carga por día</div>
+        <div class="paso-texto">Cada día con trabajos tiene un punto en la esquina: <strong style="color:var(--verde)">● verde</strong> (1 trabajo), <strong style="color:var(--naranja)">● naranja</strong> (2-3 trabajos), <strong style="color:var(--rojo)">● rojo</strong> (4 o más). De un vistazo sabes dónde está la carga.</div>
       </div>
     </div>
     <div class="paso">
       <div class="paso-num">3</div>
       <div class="paso-body">
-        <div class="paso-titulo">Asigna día y operario</div>
-        <div class="paso-texto">Se abre una ventana. Selecciona el día o días en que se hará el trabajo y el operario que lo ejecuta. Pulsa "Programar".</div>
+        <div class="paso-titulo">Toca un día para programar</div>
+        <div class="paso-texto">Al tocar cualquier día del mes se abre el modal de programación situado en esa semana, con el día ya preseleccionado. Elige el trabajo de la bolsa, asigna operario y confirma.</div>
       </div>
     </div>
     <div class="paso verde">
       <div class="paso-num">4</div>
       <div class="paso-body">
-        <div class="paso-titulo">El trabajo aparece en el calendario</div>
-        <div class="paso-texto">Una píldora con el cliente y el tipo de trabajo aparece en el día asignado. Tócala para ver el detalle, desprogramarla, o marcarla como realizada.</div>
+        <div class="paso-titulo">Bolsa de pendientes</div>
+        <div class="paso-texto">Debajo del grid mensual aparecen todos los trabajos <strong style="color:var(--amarillo)">Aceptados</strong> sin día asignado. Toca cualquiera para abrirlo y programarlo directamente.</div>
       </div>
     </div>
   </div>
@@ -915,7 +915,7 @@
     <div class="consejo-icono">↩</div>
     <div>
       <div class="consejo-titulo">Quitar un trabajo del calendario</div>
-      <div class="consejo-texto">Toca la píldora del trabajo → "Quitar de la semana". Vuelve a la bolsa de pendientes sin perder ningún dato.</div>
+      <div class="consejo-texto">Toca la píldora del trabajo → "Quitar de la programación". Vuelve a la bolsa de pendientes sin perder ningún dato.</div>
     </div>
   </div>
 </div>
@@ -1148,6 +1148,12 @@
   </div>
 
   <div class="pasos">
+    <div class="paso azul">
+      <div class="paso-body">
+        <div class="paso-titulo">¿Cómo confirmo acciones como eliminar o cerrar sesión?</div>
+        <div class="paso-texto">La app muestra un modal de confirmación propio (no el de tu navegador). Para acciones definitivas como eliminar un trabajo u operario, el botón de confirmar aparece en rojo. Para acciones reversibles como cambiar estado o desprogramar, aparece en amarillo. Siempre puedes cancelar.</div>
+      </div>
+    </div>
     <div class="paso morado">
       <div class="paso-body">
         <div class="paso-titulo">Me pide el login cada vez que abro la app</div>
