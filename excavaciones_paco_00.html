@@ -1168,30 +1168,50 @@ let recognition = null;
 let listening = false;
 
 // Wrapper fetch para Supabase REST
+// ════════════════════════════════════════════════════════
+// Detecta JWT expirado en cualquier respuesta de Supabase
+// Se llama desde el wrapper supa — un solo punto de control
+// Si detecta sesión caducada: toast + limpia sesión + muestra login
+// ════════════════════════════════════════════════════════
+async function _checkSesionExpirada(r) {
+  if (r.status === 401) {
+    let body = '';
+    try { body = await r.clone().text(); } catch(e) {}
+    if (body.includes('JWT expired') || body.includes('jwt expired') || body.includes('PGRST303')) {
+      _session = null;
+      localStorage.removeItem('supa_session');
+      showToast('⚠ Sesión caducada — vuelve a entrar', true);
+      setTimeout(() => mostrarLogin(), 1500); // Pequeña pausa para que el toast se vea
+      return true; // sesión expirada
+    }
+  }
+  return false;
+}
+
 const supa = {
   async select(table, order) {
     const url = `${SUPA_URL}/rest/v1/${table}?select=*${order ? '&order=' + order : ''}`;
     const r = await fetch(url, { headers: { ...SUPA_HEADERS, 'Prefer': '' } });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) { if (await _checkSesionExpirada(r)) return []; throw new Error(await r.text()); }
     return r.json();
   },
   async insert(table, row) {
     const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
       method: 'POST', headers: SUPA_HEADERS, body: JSON.stringify(row)
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) { await _checkSesionExpirada(r); throw new Error(await r.text()); }
   },
   async update(table, row, idField, idVal) {
     const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${idField}=eq.${idVal}`, {
       method: 'PATCH', headers: SUPA_HEADERS, body: JSON.stringify(row)
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) { await _checkSesionExpirada(r); throw new Error(await r.text()); }
   },
   async delete(table, idField, idVal) {
     const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${idField}=eq.${idVal}`, {
       method: 'DELETE', headers: SUPA_HEADERS
     });
-    if (!r.ok) throw new Error(await r.text());
+    if (!r.ok) { await _checkSesionExpirada(r); throw new Error(await r.text()); }
   }
 };
 

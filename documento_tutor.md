@@ -1,5 +1,5 @@
 # Documento Tutor — Excavaciones Paco
-**Versión 6.7 · Junio 2026**
+**Versión 6.8 · Junio 2026**
 
 Guía técnica del código para quien quiera entenderlo, modificarlo o aprender de él.
 
@@ -724,6 +724,31 @@ async function _refreshSessionIfNeeded(session) {
 }
 ```
 
+### Detección automática de sesión expirada
+
+Desde v6.8, cuando cualquier petición a Supabase devuelve `401 JWT expired`, la app lo detecta automáticamente sin que el usuario tenga que hacer nada:
+
+```javascript
+// Un solo punto de control — en el wrapper supa
+async function _checkSesionExpirada(r) {
+  if (r.status === 401) {
+    let body = await r.clone().text();
+    if (body.includes('JWT expired') || body.includes('PGRST303')) {
+      _session = null;
+      localStorage.removeItem('supa_session');
+      showToast('⚠ Sesión caducada — vuelve a entrar', true);
+      setTimeout(() => mostrarLogin(), 1500);
+      return true;
+    }
+  }
+  return false;
+}
+```
+
+Se llama desde todos los métodos del wrapper `supa` (select, insert, update, delete). Si devuelve `true`, el método aborta la operación y la app redirige al login automáticamente tras 1,5 segundos para que el toast sea visible.
+
+**Por qué en el wrapper y no en cada llamada**: un solo punto de control evita duplicar la lógica en los 4 métodos y en todos los `catch` del código. Si en el futuro cambia el código de error de Supabase, solo hay que actualizar `_checkSesionExpirada`.
+
 ### Cerrar sesión
 
 El botón "Cerrar sesión" en la pestaña ⚙ Configuración llama a `cerrarSesion()`:
@@ -815,4 +840,4 @@ La arquitectura de Supabase Auth soporta esto sin cambios de infraestructura —
 
 ---
 
-*Documento generado en Junio 2026 · App v6.7*
+*Documento generado en Junio 2026 · App v6.8*
