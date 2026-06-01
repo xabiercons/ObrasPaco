@@ -236,6 +236,17 @@
   .mes-carga.media { background: #FFA500; }
   .mes-carga.lleno { background: #FF4444; }
 
+  /* ── MODAL CONFIRMACIÓN ── */
+  .modal-confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-confirm-overlay.show { display: flex; }
+  .modal-confirm-box { background: #272727; border-radius: 16px; width: 100%; max-width: 340px; padding: 28px 24px 20px; border: 1px solid var(--border); }
+  .modal-confirm-msg { font-size: 15px; color: var(--text); margin-bottom: 8px; line-height: 1.5; }
+  .modal-confirm-sub { font-size: 12px; color: var(--text2); margin-bottom: 24px; line-height: 1.4; }
+  .modal-confirm-btns { display: flex; gap: 10px; }
+  .modal-confirm-cancel { flex: 1; padding: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text2); font-size: 14px; cursor: pointer; font-family: Georgia, serif; }
+  .modal-confirm-ok { flex: 2; padding: 13px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-family: Georgia, serif; font-weight: bold; }
+  .modal-confirm-ok.peligro { background: #FF4444; color: #FFFFFF; }
+
   /* Modal programar */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
   .modal-overlay.show { display: flex; }
@@ -888,7 +899,7 @@ async function _refreshSessionIfNeeded() {
 
 // Cierra sesión
 async function cerrarSesion() {
-  if (!confirm('¿Cerrar sesión?')) return;
+  if (!await showConfirm('¿Cerrar sesión?', 'Tendrás que volver a introducir tus credenciales.')) return;
   try {
     await fetch(`${SUPA_AUTH_URL}/logout`, {
       method: 'POST',
@@ -1945,7 +1956,7 @@ function cambiarEstado(id, nuevoEstado) {
     return;
   }
   const nombre = (t.cliente||'Sin cliente') + ' — ' + (t.direccion||'Sin dirección');
-  if(!confirm('¿Cambiar a "' + nuevoEstado + '"?\n' + nombre)) return;
+  if(!await showConfirm('¿Cambiar estado a "' + nuevoEstado + '"?', nombre)) return;
   t.estado = nuevoEstado;
   updateTrab(t).then(()=>{ renderListado(); });
   showToast('→ ' + nuevoEstado);
@@ -1953,7 +1964,7 @@ function cambiarEstado(id, nuevoEstado) {
 
 // Elimina un trabajo permanentemente (con confirmación)
 async function eliminar(id) {
-  if(!confirm('¿Eliminar este trabajo?')) return;
+  if(!await showConfirm('¿Eliminar este trabajo?', 'Esta acción no se puede deshacer.', true)) return;
   await deleteTrab(id);
   renderListado();
 }
@@ -2086,6 +2097,28 @@ function renderMes() {
     if (cursor > ultimo && cursor.getDay() === 1) break;
   }
 
+}
+
+// ════════════════════════════════════════════════════════
+// MODAL CONFIRMACIÓN — Sustituye confirm() nativo
+// Uso: await showConfirm('¿Cerrar sesión?') → true/false
+// peligro=true → botón rojo (acciones destructivas)
+// ════════════════════════════════════════════════════════
+let _confirmResolve = null;
+
+function showConfirm(msg, sub, peligro) {
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-sub').textContent = sub || '';
+  const btn = document.getElementById('confirm-ok-btn');
+  btn.textContent = peligro ? 'Eliminar' : 'Aceptar';
+  btn.className = 'modal-confirm-ok' + (peligro ? ' peligro' : '');
+  document.getElementById('modal-confirm').classList.add('show');
+  return new Promise(resolve => { _confirmResolve = resolve; });
+}
+
+function confirmRespuesta(ok) {
+  document.getElementById('modal-confirm').classList.remove('show');
+  if (_confirmResolve) { _confirmResolve(ok); _confirmResolve = null; }
 }
 
 // ════════════════════════════════════════════════════════
@@ -2497,7 +2530,7 @@ async function desprogramarDesdeDetalle() {
   const trabajos = getTrab();
   const t = trabajos.find(x=>String(x.id)===String(modalTrabajoId));
   if(!t) return;
-  if(!confirm('¿Quitar este trabajo de la semana?\n' + (t.cliente||'Sin cliente'))) return;
+  if(!await showConfirm('¿Quitar de la programación?', t.cliente||'Sin cliente')) return;
   t.diasProgramados = [];
   t.operarios = [];
   t.estado = 'Aceptado';
@@ -2936,7 +2969,7 @@ async function cfgDelSin(item, sin) {
 
 // Restaura las listas por defecto borrando Supabase e insertando defaults (no borra trabajos)
 async function cfgReset() {
-  if (!confirm('¿Restaurar las listas de maquinaria, tipos y operarios a los valores originales? Los trabajos no se borran.')) return;
+  if (!await showConfirm('¿Restaurar configuración por defecto?', 'Se restablecen tipos, maquinaria y operarios. Los trabajos no se borran.', true)) return;
   try {
     showToast('Restaurando...');
     await Promise.all([
@@ -2963,7 +2996,7 @@ async function cfgEliminarOperario(idx) {
   const arr = getOperariosCfg();
   const op = arr[idx];
   if (!op) return;
-  if (!confirm(`¿Eliminar "${op.nombre}" definitivamente? Esta acción no se puede deshacer.`)) return;
+  if (!await showConfirm(`¿Eliminar "${op.nombre}"?`, 'Esta acción no se puede deshacer.', true)) return;
   if (op.id) {
     try {
       await fetch(`${SUPA_URL}/rest/v1/operarios?id=eq.${op.id}`, {
@@ -2986,7 +3019,7 @@ async function cfgEliminarItem(key, idx) {
   const c = getCfg();
   const item = c[key][idx];
   if (!item) return;
-  if (!confirm(`¿Eliminar "${item.nombre}" definitivamente? Esta acción no se puede deshacer.`)) return;
+  if (!await showConfirm(`¿Eliminar "${item.nombre}"?`, 'Esta acción no se puede deshacer.', true)) return;
   if (item.id) {
     try {
       await fetch(`${SUPA_URL}/rest/v1/${tablaMap[key]}?id=eq.${item.id}`, {
@@ -3005,5 +3038,17 @@ async function cfgEliminarItem(key, idx) {
 }
 
 </script>
+<!-- MODAL CONFIRMACIÓN GENÉRICO -->
+<div class="modal-confirm-overlay" id="modal-confirm">
+  <div class="modal-confirm-box">
+    <div class="modal-confirm-msg" id="confirm-msg"></div>
+    <div class="modal-confirm-sub" id="confirm-sub"></div>
+    <div class="modal-confirm-btns">
+      <button class="modal-confirm-cancel" onclick="confirmRespuesta(false)">Cancelar</button>
+      <button class="modal-confirm-ok" id="confirm-ok-btn" onclick="confirmRespuesta(true)">Aceptar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
