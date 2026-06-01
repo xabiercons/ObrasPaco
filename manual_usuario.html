@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manual de Usuario — Excavaciones Paco v6.2</title>
+<title>Manual de Usuario — Excavaciones Paco v6.3</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap');
 
@@ -486,29 +486,96 @@
   <div class="portada-sub">Excavaciones Paco · Sistema de gestión de obras</div>
   <div class="portada-titulo">Manual<br>de Usuario</div>
   <div class="portada-desc">Guía completa para el uso diario de la app en obra. Sin tecnicismos.</div>
-  <div class="portada-version">Versión 6.2 · Junio 2026</div>
+  <div class="portada-version">Versión 6.3 · Junio 2026</div>
 </div>
 
 <!-- ÍNDICE -->
 <div class="indice">
   <div class="seccion-label">Contenido</div>
   <div class="indice-titulo">Índice</div>
-  <div class="indice-item"><div class="indice-num">01</div><div class="indice-nombre">Abrir la app y guardar acceso directo en el móvil</div></div>
-  <div class="indice-item"><div class="indice-num">02</div><div class="indice-nombre">Añadir un trabajo nuevo (7 pasos)</div></div>
-  <div class="indice-item"><div class="indice-num">03</div><div class="indice-nombre">Estados de un trabajo — el flujo completo</div></div>
-  <div class="indice-item"><div class="indice-num">04</div><div class="indice-nombre">El listado — ver y gestionar trabajos</div></div>
-  <div class="indice-item"><div class="indice-num">05</div><div class="indice-nombre">La semana — programar trabajos</div></div>
-  <div class="indice-item"><div class="indice-num">06</div><div class="indice-nombre">Vista Hoy — lo que toca hacer hoy</div></div>
-  <div class="indice-item"><div class="indice-num">07</div><div class="indice-nombre">Informes y exportar a Excel</div></div>
-  <div class="indice-item"><div class="indice-num">08</div><div class="indice-nombre">Copia de seguridad — backup completo</div></div>
-  <div class="indice-item"><div class="indice-num">09</div><div class="indice-nombre">Configuración — operarios, máquinas y tipos</div></div>
-  <div class="indice-item"><div class="indice-num">10</div><div class="indice-nombre">Preguntas frecuentes y resolución de problemas</div></div>
+  <div class="indice-item"><div class="indice-num">01</div><div class="indice-nombre">Iniciar sesión — acceso seguro a la app</div></div>
+  <div class="indice-item"><div class="indice-num">02</div><div class="indice-nombre">Abrir la app y guardar acceso directo en el móvil</div></div>
+  <div class="indice-item"><div class="indice-num">03</div><div class="indice-nombre">Añadir un trabajo nuevo (7 pasos)</div></div>
+  <div class="indice-item"><div class="indice-num">04</div><div class="indice-nombre">Estados de un trabajo — el flujo completo</div></div>
+  <div class="indice-item"><div class="indice-num">05</div><div class="indice-nombre">El listado — ver y gestionar trabajos</div></div>
+  <div class="indice-item"><div class="indice-num">06</div><div class="indice-nombre">La semana — programar trabajos</div></div>
+  <div class="indice-item"><div class="indice-num">07</div><div class="indice-nombre">Vista Hoy — lo que toca hacer hoy</div></div>
+  <div class="indice-item"><div class="indice-num">08</div><div class="indice-nombre">Informes y exportar a Excel</div></div>
+  <div class="indice-item"><div class="indice-num">09</div><div class="indice-nombre">Copia de seguridad — backup completo</div></div>
+  <div class="indice-item"><div class="indice-num">10</div><div class="indice-nombre">Configuración — operarios, máquinas y tipos</div></div>
+  <div class="indice-item"><div class="indice-num">11</div><div class="indice-nombre">Preguntas frecuentes y resolución de problemas</div></div>
 </div>
 
-<!-- 01 — ABRIR LA APP -->
+<!-- 01 — LOGIN -->
 <div class="seccion">
   <div class="seccion-header">
     <div class="seccion-num">01</div>
+    <div class="seccion-info">
+      <div class="seccion-titulo">Iniciar sesión</div>
+      <div class="seccion-desc">La app requiere usuario y contraseña — tus datos están protegidos</div>
+    </div>
+  </div>
+
+  <div class="pantalla-wrap">
+    <div style="flex:1">
+      <div class="pasos">
+        <div class="paso">
+          <div class="paso-num">1</div>
+          <div class="paso-body">
+            <div class="paso-titulo">Abre la app</div>
+            <div class="paso-texto">Al entrar verás la pantalla de login. La app no se puede usar sin identificarse primero.</div>
+          </div>
+        </div>
+        <div class="paso naranja">
+          <div class="paso-num">2</div>
+          <div class="paso-body">
+            <div class="paso-titulo">Introduce tu email y contraseña</div>
+            <div class="paso-texto">Escribe el email y la contraseña que te ha facilitado el administrador. Pulsa <strong style="color:var(--texto)">Entrar</strong>.</div>
+          </div>
+        </div>
+        <div class="paso verde">
+          <div class="paso-num">3</div>
+          <div class="paso-body">
+            <div class="paso-titulo">La sesión se guarda automáticamente</div>
+            <div class="paso-texto">No tendrás que volver a introducir la contraseña cada vez. La sesión se mantiene aunque cierres el navegador o reinicies el móvil. Si la sesión caduca, la app te pedirá el login de nuevo.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="consejo" style="margin-top:20px">
+        <div class="consejo-icono">🔒</div>
+        <div>
+          <div class="consejo-titulo">Cerrar sesión</div>
+          <div class="consejo-texto">Si necesitas cerrar la sesión, ve a la pestaña ⚙ Configuración y pulsa <strong style="color:var(--texto)">Cerrar sesión</strong>. Aparece junto al email de tu cuenta activa.</div>
+        </div>
+      </div>
+
+      <div class="aviso" style="margin-top:16px">
+        <div class="aviso-icono">⚠</div>
+        <div>
+          <div class="aviso-titulo">No compartas la contraseña</div>
+          <div class="aviso-texto">Cada usuario debe tener sus propias credenciales. Si alguien más necesita acceso, pide al administrador que le cree una cuenta nueva.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pantalla">
+      <div class="pantalla-barra">EXCAVACIONES PACO</div>
+      <div style="text-align:center;padding:16px 8px 8px">
+        <div style="font-size:28px;margin-bottom:6px">🔒</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--amarillo);margin-bottom:14px">Acceso</div>
+        <div style="background:#111;border:1px solid #3A3A3A;border-radius:8px;padding:10px 10px;font-size:9px;color:#666;text-align:left;margin-bottom:8px;font-family:'IBM Plex Mono',monospace">✉ usuario@email.com</div>
+        <div style="background:#111;border:1px solid #3A3A3A;border-radius:8px;padding:10px 10px;font-size:9px;color:#666;text-align:left;margin-bottom:12px;font-family:'IBM Plex Mono',monospace">🔒 ••••••••</div>
+        <div style="background:var(--amarillo);border-radius:8px;padding:10px;font-size:10px;font-weight:700;color:#1C1C1C;text-align:center">ENTRAR</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 02 — ABRIR LA APP -->
+<div class="seccion">
+  <div class="seccion-header">
+    <div class="seccion-num">02</div>
     <div class="seccion-info">
       <div class="seccion-titulo">Abrir la app</div>
       <div class="seccion-desc">Cómo acceder y guardar el acceso directo en el móvil</div>
@@ -571,10 +638,10 @@
   </div>
 </div>
 
-<!-- 02 — AÑADIR TRABAJO -->
+<!-- 03 — AÑADIR TRABAJO -->
 <div class="seccion">
   <div class="seccion-header">
-    <div class="seccion-num">02</div>
+    <div class="seccion-num">03</div>
     <div class="seccion-info">
       <div class="seccion-titulo">Añadir un trabajo nuevo</div>
       <div class="seccion-desc">7 pasos para registrar un trabajo desde obra</div>
@@ -676,10 +743,10 @@
   </div>
 </div>
 
-<!-- 03 — ESTADOS -->
+<!-- 04 — ESTADOS -->
 <div class="seccion">
   <div class="seccion-header">
-    <div class="seccion-num">03</div>
+    <div class="seccion-num">04</div>
     <div class="seccion-info">
       <div class="seccion-titulo">Estados de un trabajo</div>
       <div class="seccion-desc">Cada trabajo pasa por estas fases desde que se anota hasta que se termina</div>
@@ -737,10 +804,10 @@
   </div>
 </div>
 
-<!-- 04 — LISTADO -->
+<!-- 05 — LISTADO -->
 <div class="seccion">
   <div class="seccion-header">
-    <div class="seccion-num">04</div>
+    <div class="seccion-num">05</div>
     <div class="seccion-info">
       <div class="seccion-titulo">El listado</div>
       <div class="seccion-desc">Ver, filtrar y gestionar todos los trabajos</div>
@@ -803,10 +870,10 @@
   </div>
 </div>
 
-<!-- 05 — SEMANA -->
+<!-- 06 — SEMANA -->
 <div class="seccion">
   <div class="seccion-header">
-    <div class="seccion-num">05</div>
+    <div class="seccion-num">06</div>
     <div class="seccion-info">
       <div class="seccion-titulo">La semana</div>
       <div class="seccion-desc">Programar trabajos en días concretos y asignar operarios</div>
@@ -853,10 +920,10 @@
   </div>
 </div>
 
-<!-- 06 — VISTA HOY -->
+<!-- 07 — VISTA HOY -->
 <div class="seccion">
   <div class="seccion-header">
-    <div class="seccion-num">06</div>
+    <div class="seccion-num">07</div>
     <div class="seccion-info">
       <div class="seccion-titulo">Vista Hoy</div>
       <div class="seccion-desc">Lo que toca hacer hoy y los próximos días — vista del operario</div>
@@ -916,10 +983,10 @@
   </div>
 </div>
 
-<!-- 07 — INFORMES -->
+<!-- 08 — INFORMES -->
 <div class="seccion">
   <div class="seccion-header">
-    <div class="seccion-num">07</div>
+    <div class="seccion-num">08</div>
     <div class="seccion-info">
       <div class="seccion-titulo">Informes y exportar</div>
       <div class="seccion-desc">Consultar trabajos realizados y exportar a Excel por fechas</div>
@@ -959,10 +1026,10 @@
   </div>
 </div>
 
-<!-- 08 — BACKUP -->
+<!-- 09 — BACKUP -->
 <div class="seccion">
   <div class="seccion-header">
-    <div class="seccion-num">08</div>
+    <div class="seccion-num">09</div>
     <div class="seccion-info">
       <div class="seccion-titulo">Copia de seguridad</div>
       <div class="seccion-desc">Los datos están en la nube — backup extra para mayor seguridad</div>
@@ -1015,10 +1082,10 @@
   </div>
 </div>
 
-<!-- 09 — CONFIGURACIÓN -->
+<!-- 10 — CONFIGURACIÓN -->
 <div class="seccion">
   <div class="seccion-header">
-    <div class="seccion-num">09</div>
+    <div class="seccion-num">10</div>
     <div class="seccion-info">
       <div class="seccion-titulo">Configuración ⚙</div>
       <div class="seccion-desc">Gestionar operarios, tipos de trabajo y maquinaria</div>
@@ -1053,6 +1120,12 @@
         <div class="paso-texto">Borra todo lo configurado y vuelve a los valores originales de fábrica. Los trabajos guardados no se borran. Úsalo solo si hay algún problema grave con la configuración.</div>
       </div>
     </div>
+    <div class="paso morado">
+      <div class="paso-body">
+        <div class="paso-titulo">Cerrar sesión</div>
+        <div class="paso-texto">Al final de la pantalla de Configuración aparece tu email activo y el botón <strong style="color:var(--texto)">Cerrar sesión</strong>. Úsalo si compartes el dispositivo o quieres cambiar de usuario. La próxima vez que abras la app pedirá el login de nuevo.</div>
+      </div>
+    </div>
   </div>
 
   <div class="aviso" style="margin-top:24px">
@@ -1064,10 +1137,10 @@
   </div>
 </div>
 
-<!-- 10 — PREGUNTAS FRECUENTES -->
+<!-- 11 — PREGUNTAS FRECUENTES -->
 <div class="seccion">
   <div class="seccion-header">
-    <div class="seccion-num">10</div>
+    <div class="seccion-num">11</div>
     <div class="seccion-info">
       <div class="seccion-titulo">Preguntas frecuentes</div>
       <div class="seccion-desc">Problemas habituales y cómo resolverlos</div>
@@ -1075,6 +1148,12 @@
   </div>
 
   <div class="pasos">
+    <div class="paso morado">
+      <div class="paso-body">
+        <div class="paso-titulo">Me pide el login cada vez que abro la app</div>
+        <div class="paso-texto">La sesión se guarda automáticamente y debería mantenerse. Si se pide de nuevo, puede que haya caducado (esto es normal tras un período largo sin usar) o que hayas cerrado sesión manualmente. Introduce el email y contraseña y continuarás donde lo dejaste.</div>
+      </div>
+    </div>
     <div class="paso">
       <div class="paso-body">
         <div class="paso-titulo">La app dice "Sin conexión — datos locales"</div>

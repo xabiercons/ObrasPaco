@@ -1,5 +1,5 @@
 # Documento Tutor — Excavaciones Paco
-**Versión 6.2 · Junio 2026**
+**Versión 6.3 · Junio 2026**
 
 Guía técnica del código para quien quiera entenderlo, modificarlo o aprender de él.
 
@@ -17,6 +17,7 @@ Guía técnica del código para quien quiera entenderlo, modificarlo o aprender 
 8. [Cómo fluye una acción de principio a fin](#8-flujo-de-una-acción)
 9. [Decisiones técnicas — por qué así y no de otra manera](#9-decisiones-técnicas)
 10. [Cómo modificar cosas sin romper nada](#10-cómo-modificar-cosas)
+11. [Autenticación — Login y seguridad](#11-autenticación)
 
 ---
 
@@ -30,11 +31,12 @@ Guía técnica del código para quien quiera entenderlo, modificarlo o aprender 
 |---|---|---|
 | **HTML + CSS + JavaScript** | La app completa — interfaz y lógica | Gratis |
 | **GitHub Pages** | Hosting con HTTPS (necesario para GPS y voz) | Gratis |
-| **Supabase** | Base de datos en la nube (PostgreSQL) | Gratis (plan free) |
+| **Supabase** | Base de datos en la nube (PostgreSQL) + autenticación | Gratis (plan free) |
 | **Leaflet.js** | Mapas interactivos | Gratis |
 | **OpenStreetMap** | Tiles del mapa (las imágenes del mapa) | Gratis |
 | **Nominatim** | Geocodificación inversa (coordenadas → dirección) | Gratis |
 | **Web Speech API** | Reconocimiento de voz del navegador | Gratis, nativo |
+| **Tabler Icons** | Iconos SVG para la interfaz (candado, correo…) | Gratis (CDN) |
 
 **Coste total: 0 €/mes.**
 
@@ -57,12 +59,14 @@ excavaciones_paco_00.html
 │
 ├── <head>
 │   ├── Leaflet CSS (CDN)
-│   └── Leaflet JS (CDN)
+│   ├── Leaflet JS (CDN)
+│   └── Tabler Icons (CDN)
 │
 ├── <style>
 │   └── Todo el CSS de la app (~700 líneas)
 │
 ├── <body>
+│   ├── Pantalla de Login (bloquea la app hasta autenticar)
 │   ├── Cabecera y navegación (5 pestañas)
 │   ├── Vista: + Nuevo (formulario 7 pasos)
 │   ├── Vista: Listado
@@ -75,12 +79,15 @@ excavaciones_paco_00.html
     ├── CONFIG (listas de tipos, maquinaria, operarios)
     ├── Estado global (variables en memoria)
     ├── Supabase REST API helpers
+    ├── Autenticación (login, sesión, refresh token)
+    ├── Funciones de almacenamiento de trabajos (loadTrab, addTrab...)
     ├── Módulo 1 — Formulario de captura
     ├── Módulo 2 — Listado
     ├── Módulo 3 — Programación semanal
     ├── Módulo 4 — Vista operario (Hoy)
     ├── Módulo 5 — Configuración
-    └── Módulo 6 — Informes y CSV
+    ├── Módulo 6 — Informes y CSV
+    └── Arranque — IIFE async: checkAuth() → iniciarApp()
 ```
 
 ### Ventajas de este enfoque
@@ -105,15 +112,17 @@ El script está dividido en bloques bien delimitados con comentarios `// ══�
 ### Orden de declaración (crítico)
 
 ```
-1. Constantes Supabase (SUPA_URL, SUPA_KEY, SUPA_HEADERS)
+1. Constantes Supabase (SUPA_URL, SUPA_KEY)
       ↓ deben existir antes que cualquier función que las use
 2. CONFIG — defaults y funciones de configuración
       ↓ loadConfig() usa SUPA_URL
-3. Estado global (variables let: form, modalTrabajoId, etc.)
+3. Estado global (variables let: form, modalTrabajoId, _session, etc.)
 4. Wrapper Supabase (objeto supa con select/insert/update/delete)
-5. Funciones de almacenamiento de trabajos (loadTrab, addTrab...)
-6. Módulos 1-6 (formulario, listado, semana, hoy, config, informe)
-7. Arranque — IIFE async que llama a loadConfig() y loadTrab()
+      ↓ usa _authHeaders() que depende de _session
+5. Autenticación — login(), checkAuth(), _refreshSessionIfNeeded()
+6. Funciones de almacenamiento de trabajos (loadTrab, addTrab...)
+7. Módulos 1-6 (formulario, listado, semana, hoy, config, informe)
+8. Arranque — IIFE async: checkAuth() → si autenticado, iniciarApp()
 ```
 
 > **Regla de oro**: si una función A llama a una función B, B debe estar declarada antes que A, O B debe ser una `function` (no `const`/`let`) porque las `function` se elevan (hoisting) al inicio del script.
@@ -184,17 +193,34 @@ const SUPA_HEADERS = {
 
 ### Row Level Security (RLS)
 
-Supabase tiene RLS activado en todas las tablas. Esto significa que por defecto nadie puede leer ni escribir. Se creó una política llamada `acceso_total` que permite todo al rol `anon` (usuarios no autenticados):
+Supabase tiene RLS activado en todas las tablas. Desde v6.3 la política exige usuario **autenticado** (rol `authenticated`). El rol `anon` ya no tiene acceso:
 
 ```sql
-CREATE POLICY "acceso_total" ON trabajos FOR ALL USING (true) WITH CHECK (true);
+-- v6.3: solo usuarios autenticados pueden leer/escribir
+CREATE POLICY "solo_auth" ON trabajos
+  FOR ALL TO authenticated
+  USING (true) WITH CHECK (true);
 ```
 
-También se necesita dar permisos explícitos:
-```sql
-GRANT ALL ON public.trabajos TO anon;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon;
+Esto significa que todas las peticiones a Supabase deben incluir el JWT del usuario en la cabecera `Authorization`. Si no hay sesión activa, Supabase devuelve `401 Unauthorized`.
+
+### Headers dinámicos: `_authHeaders()`
+
+Antes de v6.3 había una constante fija `SUPA_HEADERS`. Ahora se usa una función que construye las cabeceras con el token de sesión activo:
+
+```javascript
+function _authHeaders() {
+  const token = _session?.access_token || SUPA_KEY;
+  return {
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=minimal'
+  };
+}
 ```
+
+Todas las peticiones a Supabase usan `_authHeaders()` en vez de la constante antigua.
 
 ### Fallback a localStorage
 
@@ -290,10 +316,10 @@ lista.forEach(t => {
 
 ### Módulo 5 — Configuración
 
-**Qué hace**: gestiona las listas de operarios, tipos de trabajo y maquinaria. Guarda en Supabase.
+**Qué hace**: gestiona las listas de operarios, tipos de trabajo y maquinaria. Guarda en Supabase. Desde v6.3 incluye también el botón de cerrar sesión y muestra el email del usuario activo.
 
 **Funciones principales**:
-- `renderConfig()` — dibuja toda la sección de configuración
+- `renderConfig()` — dibuja toda la sección de configuración (incluye email activo y botón cerrar sesión)
 - `cfgAdd(key)` — añade un nuevo elemento (async, guarda en Supabase)
 - `cfgToggleItem(key, idx)` — da de baja o reactiva un tipo/máquina
 - `cfgToggleOperario(idx)` — da de baja o reactiva un operario
@@ -301,6 +327,7 @@ lista.forEach(t => {
 - `cfgEliminarOperario(idx)` — elimina definitivamente un operario
 - `cfgAddSin(item)` / `cfgDelSin(item, sin)` — gestiona sinónimos de voz
 - `cfgReset()` — borra las tablas y recarga los defaults
+- `cerrarSesion()` — llama a Supabase Auth `/auth/v1/logout`, borra `_session` y muestra la pantalla de login
 
 **Patrón de las listas**:
 ```javascript
@@ -548,19 +575,21 @@ Los estados son strings definidos en varios sitios. Para añadir o renombrar un 
 Abre la consola del navegador (F12) y busca los `console.warn` y `console.error`. El patrón más común:
 
 ```
-401 Unauthorized → falta GRANT o política RLS incorrecta
+401 Unauthorized → sesión caducada o no iniciada / política RLS solo_auth activa
 403 Forbidden    → RLS activo sin política que lo permita
 404 Not Found    → nombre de tabla incorrecto
 ```
 
-Para verificar que Supabase responde correctamente, pega esto en la consola:
+Para verificar que Supabase responde correctamente, pega esto en la consola (requiere estar autenticado):
 
 ```javascript
-fetch(`${SUPA_URL}/rest/v1/trabajos?select=id&limit=1`, { headers: SUPA_HEADERS })
+fetch(`${SUPA_URL}/rest/v1/trabajos?select=id&limit=1`, { headers: _authHeaders() })
   .then(r => r.json())
   .then(d => console.log('OK:', d))
   .catch(e => console.error('Error:', e));
 ```
+
+> **Nota v6.3**: si obtienes `401` donde antes funcionaba, el motivo es que la política RLS cambió de `anon` a `authenticated`. La sesión debe estar activa y `_authHeaders()` debe devolver el JWT correcto.
 
 ### Actualizar la app en producción
 
@@ -584,14 +613,101 @@ git push
 |---|---|
 | **async/await** | Forma moderna de manejar operaciones que tardan (como llamadas a red). `async` declara que una función puede tener esperas. `await` espera a que termine antes de continuar. |
 | **IIFE** | Función que se ejecuta sola al declararse: `(async () => { ... })()`. Se usa para el arranque de la app. |
-| **CDN** | Red de distribución de contenido. Leaflet se carga desde `unpkg.com` en vez de incluir el archivo. |
+| **CDN** | Red de distribución de contenido. Leaflet y Tabler Icons se cargan desde CDN en vez de incluir los archivos. |
 | **REST API** | Interfaz para comunicarse con un servidor mediante peticiones HTTP (GET, POST, PATCH, DELETE). |
-| **RLS** | Row Level Security. Sistema de Supabase que controla qué filas puede leer/escribir cada usuario. |
-| **localStorage** | Almacenamiento del navegador. Persiste entre sesiones pero está ligado al dispositivo. |
+| **RLS** | Row Level Security. Sistema de Supabase que controla qué filas puede leer/escribir cada usuario. En v6.3 exige rol `authenticated`. |
+| **JWT** | JSON Web Token. Token firmado que Supabase devuelve al hacer login. Se incluye en cada petición en la cabecera `Authorization: Bearer <token>`. |
+| **refresh_token** | Token de larga duración que permite obtener un nuevo `access_token` sin volver a hacer login. Se guarda en localStorage. |
+| **localStorage** | Almacenamiento del navegador. Persiste entre sesiones pero está ligado al dispositivo. Se usa para guardar `supa_session`. |
 | **fetch** | Función nativa de JavaScript para hacer peticiones HTTP. |
 | **hoisting** | Las declaraciones `function` se "elevan" al inicio del script. Las `const`/`let` no. |
 | **cache en memoria** | Variables como `_trabCache` que guardan los datos mientras la app está abierta para no tener que consultar Supabase en cada render. |
 
 ---
 
-*Documento generado en Junio 2026 · App v6.2*
+## 11. Autenticación
+
+### Flujo de login
+
+La pantalla de login bloquea toda la app hasta que el usuario se autentica. El flujo completo:
+
+```
+App arranca → checkAuth()
+    ↓
+¿Hay sesión guardada en localStorage ('supa_session')?
+    ├── Sí → _refreshSessionIfNeeded() → si token válido → iniciarApp()
+    └── No → mostrar pantalla de login
+
+Usuario introduce email + contraseña → login()
+    ↓
+POST a Supabase Auth /auth/v1/token?grant_type=password
+    ↓
+  Éxito → guardar sesión en localStorage + _session → iniciarApp()
+  Error → mostrar mensaje de error en la pantalla de login
+```
+
+### Variables de sesión
+
+```javascript
+let _session = null; // { access_token, refresh_token, expires_at, user: { email } }
+```
+
+La sesión se guarda en `localStorage` con la clave `supa_session` para persistir entre recargas.
+
+### Refresh automático del token
+
+Los tokens de Supabase caducan. La función `_refreshSessionIfNeeded()` comprueba si el token caduca en menos de 5 minutos y, si es así, llama a `/auth/v1/token?grant_type=refresh_token` antes de arrancar la app:
+
+```javascript
+async function _refreshSessionIfNeeded(session) {
+  const expira = session.expires_at * 1000; // UNIX timestamp → ms
+  const margen = 5 * 60 * 1000;            // 5 minutos de margen
+  if (Date.now() > expira - margen) {
+    // Llamar a Supabase con el refresh_token para obtener uno nuevo
+    const nuevo = await _refreshToken(session.refresh_token);
+    localStorage.setItem('supa_session', JSON.stringify(nuevo));
+    return nuevo;
+  }
+  return session;
+}
+```
+
+### Cerrar sesión
+
+El botón "Cerrar sesión" en la pestaña ⚙ Configuración llama a `cerrarSesion()`:
+
+```javascript
+async function cerrarSesion() {
+  // 1. Notificar a Supabase (invalida el token en servidor)
+  await fetch(`${SUPA_URL}/auth/v1/logout`, {
+    method: 'POST',
+    headers: _authHeaders()
+  });
+  // 2. Limpiar estado local
+  _session = null;
+  localStorage.removeItem('supa_session');
+  // 3. Mostrar pantalla de login
+  mostrarLogin();
+}
+```
+
+### Diseño de la pantalla de login
+
+- Inputs con `padding: 18px`, `font-size: 17px` — optimizados para móvil
+- Botón "Entrar" con `font-size: 20px`, `padding: 18px`
+- Icono de candado (Tabler Icons) en el campo contraseña
+- Icono de correo (Tabler Icons) en el campo email
+- Borde `#3A3A3A` con foco en amarillo `--accent`
+
+### Cambio en RLS respecto a v6.2
+
+| Versión | Política | Rol | Efecto |
+|---|---|---|---|
+| v6.2 | `acceso_total` | `anon` | Cualquiera con la clave API podía leer y escribir |
+| v6.3 | `solo_auth` | `authenticated` | Solo usuarios con sesión activa pueden operar |
+
+Este cambio mejora la seguridad: si alguien obtiene la `SUPA_KEY` del código fuente, no puede acceder a los datos sin también tener credenciales de usuario válidas.
+
+---
+
+*Documento generado en Junio 2026 · App v6.3*
