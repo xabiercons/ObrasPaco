@@ -62,8 +62,12 @@
   .voice-btn:active { opacity: 0.85; transform: scale(0.99); }
   .voice-btn.listening { background: var(--danger); animation: pulse 1.2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.8} }
-  .voice-result { background: #332B00; border: 1px solid #FFD100; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 14px; color: #FFFFFF; margin-bottom: 10px; min-height: 40px; font-style: italic; display: none; }
+  .voice-result { background: #332B00; border: 1px solid #FFD100; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: #FFFFFF; margin-bottom: 10px; min-height: 40px; display: none; }
   .voice-result.show { display: block; }
+  .voice-result .vr-interim { color: #888888; font-style: italic; font-size: 12px; }
+  .voice-result .vr-final { color: #FFFFFF; font-weight: 600; }
+  .voice-result .vr-ok { color: #44CC77; font-size: 11px; margin-top: 4px; font-family: 'Courier New', monospace; }
+  .voice-result .vr-err { color: #FF6666; font-size: 11px; margin-top: 4px; font-family: 'Courier New', monospace; }
   .divider { text-align: center; font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; margin: 8px 0; letter-spacing: 0.1em; }
 
   /* INPUTS */
@@ -180,20 +184,7 @@
   .mc-man { background: #2A2A28; color: #AAAAAA; }
 
   /* ── NUEVA NAVEGACIÓN SEMANA/MES ── */
-  .nav-mes-row { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 4px; scrollbar-width: none; }
-  .nav-mes-row::-webkit-scrollbar { display: none; }
-  .mes-pill { flex-shrink: 0; padding: 7px 14px; border: 1px solid var(--border); border-radius: 20px; background: var(--card); color: var(--text2); font-size: 12px; cursor: pointer; font-family: 'Courier New', monospace; letter-spacing: 0.04em; transition: all 0.15s; white-space: nowrap; }
-  .mes-pill:active { opacity: 0.8; }
-  .mes-pill.activo { background: var(--accent); color: #1C1C1C; border-color: var(--accent); font-weight: bold; }
 
-  .nav-semanas-row { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px; scrollbar-width: none; align-items: center; }
-  .nav-semanas-row::-webkit-scrollbar { display: none; }
-  .semana-pill { flex-shrink: 0; padding: 6px 11px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text3); font-size: 11px; cursor: pointer; font-family: 'Courier New', monospace; transition: all 0.15s; text-align: center; }
-  .semana-pill:active { opacity: 0.8; }
-  .semana-pill.activa { background: #332B00; color: var(--text); border-color: var(--accent); }
-  .semana-pill.hoy-semana { border-color: var(--accent2); color: var(--accent2); }
-  .btn-hoy { flex-shrink: 0; padding: 6px 14px; border: 1px solid var(--accent2); border-radius: var(--radius-sm); background: #2A1F00; color: var(--accent2); font-size: 12px; cursor: pointer; font-family: 'Courier New', monospace; margin-left: 4px; }
-  .btn-hoy:active { opacity: 0.8; }
 
   .semana-titulo-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
   .nav-flecha { width: 40px; height: 40px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -207,24 +198,11 @@
   .dia-trabajo-pill:active { opacity: 0.8; }
   .dia-trabajo-pill.urgente { background: #3A0000; color: #FF6666; border-color: rgba(255,100,100,0.4); }
   .dia-trabajo-pill.alta { background: #2A1800; color: #FFA500; border-color: rgba(255,165,0,0.4); }
-  .semana-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .semana-titulo { font-size: 15px; color: var(--text); font-family: 'Courier New', monospace; letter-spacing: 0.04em; }
-  .semana-nav { display: flex; gap: 6px; }
-  .semana-nav button { padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text2); font-size: 14px; cursor: pointer; }
-  .semana-nav button:active { opacity: 0.8; }
 
-  .semana-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 16px; }
-  .dia-col { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); min-height: 120px; display: flex; flex-direction: column; }
-  .dia-header { padding: 6px 4px 4px; text-align: center; border-bottom: 1px solid var(--border); }
-  .dia-nombre { font-size: 9px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
-  .dia-num { font-size: 15px; color: var(--text); line-height: 1.2; }
-  .dia-num.hoy { color: #1C1C1C; background: var(--accent); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 13px; }
-  .dia-trabajos { flex: 1; padding: 4px 3px; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
   .dia-trabajo-pill { font-size: 9px; padding: 3px 5px; border-radius: 4px; background: #332B00; color: #FFD100; border: 1px solid rgba(255,209,0,0.3); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
   .dia-trabajo-pill:active { opacity: 0.8; }
   .dia-trabajo-pill.urgente { background: #3A0000; color: #FF6666; border-color: rgba(255,100,100,0.4); }
   .dia-trabajo-pill.alta { background: #2A1800; color: #FFA500; border-color: rgba(255,165,0,0.4); }
-  .dia-mas { font-size: 9px; color: var(--text3); text-align: center; font-family: 'Courier New', monospace; padding: 2px; }
 
   .bolsa-header { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
   .bolsa-count { background: var(--accent); color: #1C1C1C; border-radius: 20px; padding: 1px 8px; font-size: 10px; }
@@ -238,6 +216,25 @@
   .bolsa-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
   .bolsa-chip { font-size: 10px; padding: 1px 7px; border: 1px solid var(--border); border-radius: 20px; color: var(--text2); white-space: nowrap; }
   .bolsa-btn { font-size: 20px; color: var(--accent); flex-shrink: 0; }
+
+  /* ── VISTA MENSUAL ── */
+  .mes-grid-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
+  .mes-grid-header-dia { text-align: center; font-size: 9px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 0; }
+  .mes-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 16px; }
+  .mes-dia { background: var(--card); border: 1px solid var(--border); border-radius: 4px; min-height: 60px; padding: 4px 3px; position: relative; cursor: pointer; }
+  .mes-dia.otro-mes { opacity: 0.3; cursor: default; }
+  .mes-dia.hoy-mes { border-color: var(--accent); }
+  .mes-dia-num { font-size: 11px; color: var(--text2); font-family: 'Courier New', monospace; margin-bottom: 3px; text-align: right; line-height: 1; }
+  .mes-dia.hoy-mes .mes-dia-num { color: var(--accent); font-weight: bold; }
+  .mes-dia-pills { display: flex; flex-direction: column; gap: 2px; }
+  .mes-pill-mini { font-size: 8px; padding: 2px 4px; border-radius: 3px; background: #332B00; color: #FFD100; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mes-pill-mini.urgente { background: #3A0000; color: #FF6666; }
+  .mes-pill-mini.alta { background: #2A1800; color: #FFA500; }
+  .mes-mas-mini { font-size: 8px; color: var(--text3); text-align: center; font-family: 'Courier New', monospace; margin-top: 1px; }
+  .mes-carga { position: absolute; top: 3px; left: 3px; width: 6px; height: 6px; border-radius: 50%; }
+  .mes-carga.libre { background: #44CC77; }
+  .mes-carga.media { background: #FFA500; }
+  .mes-carga.lleno { background: #FF4444; }
 
   /* Modal programar */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
@@ -256,32 +253,6 @@
   .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
   .modal-cancel { flex: 1; padding: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text2); font-size: 14px; cursor: pointer; font-family: Georgia, serif; }
   .modal-confirm { flex: 2; padding: 13px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-family: Georgia, serif; font-weight: bold; }
-
-  /* ── TOGGLE SEMANA / MES ── */
-  .vista-toggle { display: flex; gap: 0; margin-bottom: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
-  .vista-toggle button { flex: 1; padding: 8px; background: var(--card); color: var(--text3); font-size: 12px; border: none; cursor: pointer; font-family: 'Courier New', monospace; letter-spacing: 0.04em; transition: all 0.15s; }
-  .vista-toggle button.activo { background: var(--accent); color: #1C1C1C; font-weight: bold; }
-  .vista-toggle button:active { opacity: 0.8; }
-
-  /* ── VISTA MENSUAL ── */
-  .mes-grid-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
-  .mes-grid-header-dia { text-align: center; font-size: 9px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 0; }
-  .mes-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 16px; }
-  .mes-dia { background: var(--card); border: 1px solid var(--border); border-radius: 4px; min-height: 56px; padding: 4px 3px; cursor: default; position: relative; }
-  .mes-dia.otro-mes { opacity: 0.35; }
-  .mes-dia.hoy-mes { border-color: var(--accent); }
-  .mes-dia-num { font-size: 11px; color: var(--text2); font-family: 'Courier New', monospace; margin-bottom: 3px; text-align: right; }
-  .mes-dia.hoy-mes .mes-dia-num { color: var(--accent); font-weight: bold; }
-  .mes-dia-pills { display: flex; flex-direction: column; gap: 2px; }
-  .mes-pill-mini { font-size: 8px; padding: 2px 4px; border-radius: 3px; background: #332B00; color: #FFD100; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
-  .mes-pill-mini:active { opacity: 0.8; }
-  .mes-pill-mini.urgente { background: #3A0000; color: #FF6666; }
-  .mes-pill-mini.alta { background: #2A1800; color: #FFA500; }
-  .mes-mas-mini { font-size: 8px; color: var(--text3); text-align: center; font-family: 'Courier New', monospace; }
-  .mes-carga { position: absolute; top: 3px; left: 3px; width: 6px; height: 6px; border-radius: 50%; }
-  .mes-carga.libre { background: #44CC77; }
-  .mes-carga.media { background: #FFA500; }
-  .mes-carga.lleno { background: #FF4444; }
 
   /* Navegación semana dentro del modal programar */
   .modal-semana-nav { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
@@ -444,56 +415,33 @@
 </div>
 
 <div class="nav">
-  <button class="nav-tab active" onclick="showView('captura')">+ Nuevo</button>
+  <button class="nav-tab active" onclick="showView('captura')">+</button>
   <button class="nav-tab" onclick="showView('listado')">Listado</button>
-  <button class="nav-tab" onclick="showView('semana')">Semana</button>
+  <button class="nav-tab" onclick="showView('mes')">Mes</button>
   <button class="nav-tab" onclick="showView('operario')">Hoy</button>
   <button class="nav-tab" onclick="showView('config')">⚙</button>
 </div>
 
 
 <!-- ═══════════════════════════════════════
-     VISTA: SEMANA
+     VISTA: MES
 ════════════════════════════════════════ -->
-<div class="view" id="view-semana">
+<div class="view" id="view-mes">
 
-  <!-- Toggle Semana / Mes -->
-  <div class="vista-toggle">
-    <button id="btn-vista-semana" class="activo" onclick="setVistaModo('semana')">&#128197; Semana</button>
-    <button id="btn-vista-mes" onclick="setVistaModo('mes')">&#128198; Mes</button>
+  <!-- Navegación mes -->
+  <div class="semana-titulo-bar">
+    <button class="nav-flecha" onclick="cambiarMes(-1)">&#8592;</button>
+    <span id="mes-titulo" class="semana-titulo-txt">Mes actual</span>
+    <button class="nav-flecha" onclick="cambiarMes(1)">&#8594;</button>
   </div>
 
-  <!-- Fila 1: selector de mes (solo en modo semana) -->
-  <div id="nav-semana-controls">
-    <div class="nav-mes-row" id="nav-mes-row"></div>
+  <!-- Cabecera días semana -->
+  <div class="mes-grid-header" id="mes-grid-header"></div>
 
-    <!-- Fila 2: semanas del mes seleccionado + botón Hoy -->
-    <div class="nav-semanas-row" id="nav-semanas-row"></div>
+  <!-- Grid mensual -->
+  <div class="mes-grid" id="mes-grid"></div>
 
-    <!-- Título de la semana visible -->
-    <div class="semana-titulo-bar">
-      <button class="nav-flecha" onclick="cambiarSemana(-1)">&#8592;</button>
-      <span id="semana-titulo" class="semana-titulo-txt">Semana actual</span>
-      <button class="nav-flecha" onclick="cambiarSemana(1)">&#8594;</button>
-    </div>
-
-    <div class="semana-grid" id="semana-grid"></div>
-  </div>
-
-  <!-- Vista mensual (oculta por defecto) -->
-  <div id="nav-mes-controls" style="display:none">
-    <!-- Navegación mes -->
-    <div class="semana-titulo-bar">
-      <button class="nav-flecha" onclick="cambiarMes(-1)">&#8592;</button>
-      <span id="mes-titulo" class="semana-titulo-txt">Mes actual</span>
-      <button class="nav-flecha" onclick="cambiarMes(1)">&#8594;</button>
-    </div>
-    <!-- Cabecera días -->
-    <div class="mes-grid-header" id="mes-grid-header"></div>
-    <!-- Grid del mes -->
-    <div class="mes-grid" id="mes-grid"></div>
-  </div>
-
+  <!-- Bolsa de pendientes (igual que en semana) -->
   <div class="bolsa-header">
     <span>Pendientes de programar</span>
     <span class="bolsa-count" id="bolsa-count">0</span>
@@ -934,7 +882,7 @@ async function _refreshSessionIfNeeded() {
         _setSessionStored(data);
         Object.assign(SUPA_HEADERS, _authHeaders());
       }
-    } catch (e) { console.warn('No se pudo refrescar token:', e); }
+    } catch (e) { console.warn('No se pudo refrescar token:', e); showToast('⚠ Sesión caducada — vuelve a entrar', true); }
   }
 }
 
@@ -975,7 +923,8 @@ async function iniciarApp() {
   buildChips();
   await loadTrab();
   renderListado();
-  renderSemana();
+  renderMes();
+  renderBolsa();
 }
 
 
@@ -1093,6 +1042,7 @@ async function loadConfig() {
     localStorage.setItem('cfg_operarios', JSON.stringify(_operariosCfgCache));
   } catch(e) {
     console.warn('Supabase config no disponible, usando localStorage:', e.message);
+    // Config carga silenciosa — no molestamos al usuario con esto al arranque
     // Fallback localStorage
     try {
       const r = JSON.parse(localStorage.getItem('cfg_listas'));
@@ -1273,6 +1223,7 @@ async function loadTrab() {
   } catch(e) {
     console.warn('Supabase no disponible, usando localStorage:', e.message || e);
     setConexionStatus(false);
+    showToast('⚠ Sin conexión — mostrando datos guardados', true);
     try { _trabCache = JSON.parse(localStorage.getItem('excavaciones_trabajos') || '[]'); } catch(e2) { _trabCache = []; }
     return _trabCache;
   }
@@ -1294,6 +1245,7 @@ async function addTrab(t) {
   } catch(e) {
     console.warn('Error guardando en Supabase:', e.message || e);
     setConexionStatus(false);
+    showToast('✗ Error al guardar — revisa la conexión', true);
     const arr = getTrab();
     arr.unshift(t);
     localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr));
@@ -1315,6 +1267,7 @@ async function updateTrab(t) {
   } catch(e) {
     console.warn('Error actualizando en Supabase:', e.message || e);
     setConexionStatus(false);
+    showToast('✗ Error al actualizar — revisa la conexión', true);
     const arr = getTrab();
     const idx = arr.findIndex(x => String(x.id) === String(t.id));
     if (idx >= 0) arr[idx] = t;
@@ -1333,6 +1286,7 @@ async function deleteTrab(id) {
   } catch(e) {
     console.warn('Error eliminando en Supabase:', e.message || e);
     setConexionStatus(false);
+    showToast('✗ Error al eliminar — revisa la conexión', true);
     const arr = getTrab().filter(x => x.id !== id);
     localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr));
     _trabCache = arr;
@@ -1626,28 +1580,43 @@ function startVoice(field, btnId, resId) {
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new Rec();
   recognition.lang = 'es-ES';
-  recognition.continuous = true;      // No para solo al hacer pausa
-  recognition.interimResults = false; // Solo resultados finales (más precisos)
+  recognition.continuous = true;
+  recognition.interimResults = true; // Resultados provisionales mientras habla
 
   const btn = document.getElementById(btnId);
   const res = document.getElementById(resId);
   btn.textContent = '⏹ Escuchando… (toca para parar)';
-  btn.classList.add('listening'); // Pone el botón en rojo animado
+  btn.classList.add('listening');
   listening = true;
 
-  let textoAcumulado = ''; // Acumula todo lo dictado en esta sesión
+  let textoAcumulado = ''; // Acumula fragmentos finales confirmados
 
-  // Se ejecuta cada vez que el API reconoce un fragmento de texto
+  // Se ejecuta en cada fragmento — final o provisional
   recognition.onresult = e => {
-    let nuevo = '';
+    let finalNuevo = '';
+    let interimActual = '';
     for(let i = e.resultIndex; i < e.results.length; i++) {
-      if(e.results[i].isFinal) nuevo += e.results[i][0].transcript + ' ';
+      if(e.results[i].isFinal) finalNuevo += e.results[i][0].transcript + ' ';
+      else interimActual += e.results[i][0].transcript; // Texto provisional
     }
-    if(nuevo.trim()) {
-      textoAcumulado = (textoAcumulado + ' ' + nuevo).trim();
-      res.className = 'voice-result show';
-      res.textContent = '"' + textoAcumulado + '"'; // Muestra en pantalla
-      processVoice(field, textoAcumulado);           // Procesa el texto
+
+    // Mostrar siempre el estado actual: final acumulado + provisional en curso
+    res.className = 'voice-result show';
+    const finalTexto = textoAcumulado + (finalNuevo ? ' ' + finalNuevo.trim() : '');
+    res.innerHTML =
+      (finalTexto.trim() ? '<span class="vr-final">“' + finalTexto.trim() + '”</span>' : '') +
+      (interimActual ? '<span class="vr-interim"> ' + interimActual + '…</span>' : '');
+
+    // Solo procesar cuando hay texto final nuevo
+    if(finalNuevo.trim()) {
+      textoAcumulado = finalTexto.trim();
+      const resultado = processVoice(field, textoAcumulado);
+      // Mostrar feedback de resultado bajo el texto reconocido
+      if(resultado && resultado.ok) {
+        res.innerHTML += '<div class="vr-ok">✓ ' + resultado.msg + '</div>';
+      } else if(resultado && !resultado.ok) {
+        res.innerHTML += '<div class="vr-err">✗ ' + resultado.msg + '</div>';
+      }
     }
   };
 
@@ -1677,28 +1646,37 @@ function resetVoiceBtn(btn, field) {
 }
 
 // Interpreta el texto dictado y lo aplica al campo correcto del formulario
+// Devuelve {ok: boolean, msg: string} para que el llamador muestre el feedback
 function processVoice(field, texto) {
   const t = texto.toLowerCase();
   if(field==='cliente') {
     form.cliente = texto;
     document.getElementById('f-cliente').value = texto;
+    return { ok: true, msg: 'Cliente registrado' };
   } else if(field==='direccion') {
     form.direccion = texto;
     document.getElementById('f-direccion').value = texto;
+    return { ok: true, msg: 'Dirección registrada' };
   } else if(field==='tipo') {
-    matchSinonimo('tipos', t, 'chips-tipo'); // Busca coincidencia en la lista de tipos
+    return matchSinonimo('tipos', t, 'chips-tipo');
   } else if(field==='maquinaria') {
-    matchSinonimo('maquinarias', t, 'chips-maq'); // Busca coincidencia en maquinaria
+    return matchSinonimo('maquinarias', t, 'chips-maq');
   } else if(field==='horas') {
-    const nums = t.match(/\d+/); // Extrae el primer número del texto
-    if(nums) { form.horas = parseInt(nums[0]); document.getElementById('horas-display').textContent = form.horas; }
+    const nums = t.match(/\d+/);
+    if(nums) {
+      form.horas = parseInt(nums[0]);
+      document.getElementById('horas-display').textContent = form.horas;
+      return { ok: true, msg: form.horas + 'h registradas' };
+    }
+    return { ok: false, msg: 'No se detectó número de horas' };
   } else if(field==='notas') {
     form.notas = texto;
     document.getElementById('f-notas').value = texto;
-    // Detecta urgencia en las notas automáticamente
     if(t.includes('urgent')) setUrgencia('Urgente');
     else if(t.includes('alta')) setUrgencia('Alta');
+    return { ok: true, msg: 'Nota registrada' };
   }
+  return null;
 }
 
 // Busca en CONFIG.sinonimos si el texto dictado corresponde a algún valor de la lista
@@ -1715,14 +1693,13 @@ function matchSinonimo(field, texto, chipsId) {
   }
   if(matched) {
     if(!form[field]) form[field] = [];
-    if(!form[field].includes(matched)) form[field].push(matched); // Añade si no estaba
-    // Actualiza visualmente los chips en pantalla
-    document.querySelectorAll(`#${chipsId} .chip-opt`).forEach(c=>{
-      c.classList.toggle('selected', form[field].includes(c.textContent));
+    if(!form[field].includes(matched)) form[field].push(matched);
+    document.querySelectorAll(`#${chipsId} .chip-opt`).forEach(ch=>{
+      ch.classList.toggle('selected', form[field].includes(ch.textContent));
     });
-    showToast('✓ Detectado: '+matched);
+    return { ok: true, msg: matched };
   } else {
-    showToast('No reconocido. Selecciona manualmente.');
+    return { ok: false, msg: 'No reconocido — selecciona manualmente' };
   }
 }
 
@@ -1988,22 +1965,145 @@ function showView(name) {
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
-  const idx = name==='captura'?0:name==='listado'?1:name==='semana'?2:name==='operario'?3:4;
+  const idx = name==='captura'?0:name==='listado'?1:name==='mes'?2:name==='operario'?3:4;
   document.querySelectorAll('.nav-tab')[idx].classList.add('active');
   if(name==='listado') renderListado();
-  if(name==='semana') renderSemana();
+  if(name==='mes') { renderMes(); renderBolsa(); }
   if(name==='operario') renderOperario();
   if(name==='config') renderConfig();
 }
 
 // ════════════════════════════════════════════════════════
+// MÓDULO MES — Vista mensual con bolsa de pendientes y programación
+// ════════════════════════════════════════════════════════
+
+let mesOffset = 0; // 0 = mes actual, -1 = anterior, +1 = siguiente
+
+function cambiarMes(dir) {
+  mesOffset += dir;
+  renderMes();
+}
+
+function getPrimerDiaMes() {
+  const hoy = new Date();
+  return new Date(hoy.getFullYear(), hoy.getMonth() + mesOffset, 1);
+}
+
+function renderMes() {
+  const primer = getPrimerDiaMes();
+  const anyo = primer.getFullYear();
+  const mes = primer.getMonth();
+  const mesesNombre = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  document.getElementById('mes-titulo').textContent = mesesNombre[mes] + ' ' + anyo;
+
+  // Cabecera días
+  const header = document.getElementById('mes-grid-header');
+  header.innerHTML = '';
+  ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'mes-grid-header-dia';
+    el.textContent = d;
+    header.appendChild(el);
+  });
+
+  const trabajos = getTrab();
+  const hoyISO = fechaISO(new Date());
+
+  // Primer lunes del grid (puede ser del mes anterior)
+  const primerDow = primer.getDay() === 0 ? 6 : primer.getDay() - 1;
+  const inicio = new Date(primer);
+  inicio.setDate(1 - primerDow);
+  inicio.setHours(0,0,0,0);
+
+  const ultimo = new Date(anyo, mes + 1, 0); // Último día del mes
+
+  const grid = document.getElementById('mes-grid');
+  grid.innerHTML = '';
+
+  let cursor = new Date(inicio);
+  while (true) {
+    const iso = fechaISO(cursor);
+    const esMes = cursor.getMonth() === mes;
+    const esHoy = iso === hoyISO;
+
+    const trabajosDia = trabajos.filter(t =>
+      t.diasProgramados && t.diasProgramados.includes(iso) && t.estado !== 'Realizado'
+    );
+
+    const cel = document.createElement('div');
+    cel.className = 'mes-dia' + (esMes ? '' : ' otro-mes') + (esHoy ? ' hoy-mes' : '');
+
+    // Punto de carga
+    if (trabajosDia.length > 0 && esMes) {
+      const carga = document.createElement('div');
+      carga.className = 'mes-carga ' + (trabajosDia.length >= 4 ? 'lleno' : trabajosDia.length >= 2 ? 'media' : 'libre');
+      cel.appendChild(carga);
+    }
+
+    // Número día
+    const num = document.createElement('div');
+    num.className = 'mes-dia-num';
+    num.textContent = cursor.getDate();
+    cel.appendChild(num);
+
+    // Píldoras (máx 2)
+    const pillsWrap = document.createElement('div');
+    pillsWrap.className = 'mes-dia-pills';
+    trabajosDia.slice(0, 2).forEach(t => {
+      const pill = document.createElement('div');
+      const urg = (t.urgencia || '').toLowerCase();
+      pill.className = 'mes-pill-mini' + (urg === 'urgente' ? ' urgente' : urg === 'alta' ? ' alta' : '');
+      pill.textContent = (t.cliente || 'Trabajo').split(/[-,]/)[0].trim().slice(0, 11);
+      pill.onclick = (e) => { e.stopPropagation(); abrirDetalle(t.id); };
+      pillsWrap.appendChild(pill);
+    });
+    if (trabajosDia.length > 2) {
+      const mas = document.createElement('div');
+      mas.className = 'mes-mas-mini';
+      mas.textContent = '+' + (trabajosDia.length - 2) + ' más';
+      pillsWrap.appendChild(mas);
+    }
+    cel.appendChild(pillsWrap);
+
+    // Tocar día del mes actual → abre modal de programar situado en esa semana
+    // abrirModalProgramar recibe la fecha del día tocado y calcula el offset internamente
+    if (esMes) {
+      const diaCapturado = new Date(cursor); // capturar valor del bucle
+      cel.onclick = () => {
+        const pendientes = getTrab().filter(t =>
+          t.estado !== 'Realizado' && (!t.diasProgramados || t.diasProgramados.length === 0)
+        );
+        if (pendientes.length > 0) {
+          abrirModalProgramar(pendientes[0].id, diaCapturado);
+        }
+      };
+    }
+
+    grid.appendChild(cel);
+    cursor.setDate(cursor.getDate() + 1);
+
+    // Parar cuando hemos superado el último día del mes y completado la semana
+    if (cursor > ultimo && cursor.getDay() === 1) break;
+  }
+
+}
+
+// ════════════════════════════════════════════════════════
 // TOAST — Mensaje emergente breve en la parte inferior
 // ════════════════════════════════════════════════════════
-function showToast(msg) {
+function showToast(msg, esError) {
   const t = document.getElementById('toast');
   t.textContent = msg;
+  t.style.background = esError ? '#3A0000' : '';
+  t.style.borderColor = esError ? '#FF4444' : '';
+  t.style.color = esError ? '#FF8888' : '';
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2200); // Desaparece a los 2.2 segundos
+  setTimeout(() => {
+    t.classList.remove('show');
+    t.style.background = '';
+    t.style.borderColor = '';
+    t.style.color = '';
+  }, esError ? 3500 : 2200);
 }
 
 // ════════════════════════════════════════════════════════
@@ -2071,14 +2171,41 @@ function importarJSON(input) {
 
 
 // ════════════════════════════════════════════════════════
-// MÓDULO 3 — PROGRAMACIÓN SEMANAL
-// Vista de 7 columnas (lun-dom) con los trabajos asignados a cada día.
-// Debajo: bolsa de trabajos pendientes de programar.
-// Al tocar un trabajo de la bolsa → modal para asignar día(s) y operario(s).
-// Al tocar un trabajo en el calendario → modal de detalle con opción de realizarlo.
+// ════════════════════════════════════════════════════════
+// renderBolsa — Actualiza la bolsa de pendientes de programar
+// Usada por renderMes() y tras cualquier acción que cambie estados
+// ════════════════════════════════════════════════════════
+function renderBolsa() {
+  const trabajos = getTrab();
+  const pendientes = trabajos.filter(t => t.estado !== 'Realizado' && (!t.diasProgramados || t.diasProgramados.length === 0));
+  document.getElementById('bolsa-count').textContent = pendientes.length;
+  const bolsa = document.getElementById('bolsa-trabajos');
+  if (pendientes.length === 0) {
+    bolsa.innerHTML = '<div class="empty-state">No hay trabajos pendientes de programar</div>';
+    return;
+  }
+  bolsa.innerHTML = '';
+  pendientes.forEach(t => {
+    const urg = (t.urgencia || '').toLowerCase();
+    const div = document.createElement('div');
+    div.className = 'bolsa-trabajo' + (urg === 'urgente' ? ' urgente' : urg === 'alta' ? ' alta' : '');
+    div.innerHTML = '<div class="bolsa-info"><div class="bolsa-cliente">' + (t.cliente || 'Sin cliente') + '</div>'
+      + '<div class="bolsa-dir">' + (t.direccion || 'Sin dirección') + '</div>'
+      + '<div class="bolsa-meta">'
+      + (t.tipos || []).map(x => '<span class="bolsa-chip">' + x + '</span>').join('')
+      + (t.maquinarias || []).map(x => '<span class="bolsa-chip">⚙ ' + x + '</span>').join('')
+      + (t.horas ? '<span class="bolsa-chip">⏱ ' + t.horas + 'h</span>' : '')
+      + '</div></div><div class="bolsa-btn">+</div>';
+    div.onclick = () => abrirModalProgramar(t.id);
+    bolsa.appendChild(div);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// MÓDULO 3 — PROGRAMACIÓN
+// Estado compartido por el modal de programar y la vista Mes
 // ════════════════════════════════════════════════════════
 
-let semanaOffset = 0;       // 0 = semana actual, -1 = semana anterior, +1 = siguiente
 let modalTrabajoId = null;  // ID del trabajo abierto en el modal (programar o detalle)
 let diasSelModal = [];      // Días seleccionados en el modal de programar (fechas ISO)
 let operariosSelModal = []; // Operarios seleccionados en el modal de programar
@@ -2089,12 +2216,14 @@ const DIAS_LARGO = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','
 
 // OPERARIOS viene de CONFIG (declarado arriba junto a CONFIG)
 
-// Calcula el lunes de la semana actual desplazada por 'offset' semanas
-function getLunes(offset) {
-  const hoy = new Date();
-  const dow = hoy.getDay() === 0 ? 6 : hoy.getDay() - 1; // Convierte domingo(0) a 6, lunes(1) a 0
-  const lunes = new Date(hoy);
-  lunes.setDate(hoy.getDate() - dow + offset * 7);
+// Calcula el lunes de la semana desplazada por 'offset' semanas desde fechaBase (por defecto hoy)
+// fechaBase es opcional — si no se pasa, usa la fecha actual
+// Esto permite calcular lunes relativos a cualquier fecha, no solo a hoy
+function getLunes(offset, fechaBase) {
+  const base = fechaBase ? new Date(fechaBase) : new Date();
+  const dow = base.getDay() === 0 ? 6 : base.getDay() - 1;
+  const lunes = new Date(base);
+  lunes.setDate(base.getDate() - dow + offset * 7);
   lunes.setHours(0,0,0,0);
   return lunes;
 }
@@ -2114,349 +2243,21 @@ function formatoSemana(lunes) {
   return lunes.getDate()+' '+meses[lunes.getMonth()]+' — '+dom.getDate()+' '+meses[dom.getMonth()]+' '+dom.getFullYear();
 }
 
-// Dibuja la vista completa de la semana: cabecera + 7 columnas + bolsa de pendientes
-function renderSemana() {
-  const lunes = getLunes(semanaOffset);
-  document.getElementById('semana-titulo').textContent = formatoSemana(lunes);
-  buildNavMes(); // Actualiza la barra de meses marcando el activo
-
-  const trabajos = getTrab();
-  const hoyISO = fechaISO(new Date()); // Para marcar visualmente el día de hoy
-
-  // ── Grilla de 7 días ──
-  const grid = document.getElementById('semana-grid');
-  grid.innerHTML = '';
-
-  for(let i=0; i<7; i++) {
-    const dia = new Date(lunes); dia.setDate(lunes.getDate()+i);
-    const iso = fechaISO(dia);
-    const esHoy = iso === hoyISO;
-    // Trabajos asignados a este día que no estén realizados
-    const trabajosDia = trabajos.filter(t => t.diasProgramados && t.diasProgramados.includes(iso) && t.estado !== 'Realizado');
-
-    // Crea la columna del día con cabecera y contenedor de píldoras
-    const col = document.createElement('div');
-    col.className = 'dia-col';
-    col.innerHTML = '<div class="dia-header"><div class="dia-nombre">'+DIAS_CORTO[i]+'</div><div class="dia-num'+(esHoy?' hoy':'')+'">'+dia.getDate()+'</div></div><div class="dia-trabajos" id="dia-'+iso+'"></div>';
-    grid.appendChild(col);
-
-    const cont = col.querySelector('.dia-trabajos');
-    const visibles = trabajosDia.slice(0,3); // Muestra máximo 3 píldoras por día
-    visibles.forEach(t => {
-      const pill = document.createElement('div');
-      const urg = (t.urgencia||'').toLowerCase();
-      // Color de la píldora según urgencia
-      pill.className = 'dia-trabajo-pill' + (urg==='urgente'?' urgente':urg==='alta'?' alta':'');
-      // Cliente corto (primera parte antes de guión/coma, máx 15 chars)
-      const clienteCorto = (t.cliente||'Sin nombre').split(/[—\-,]/)[0].trim().slice(0,15);
-      // Tipo corto (primera tipo o abreviatura)
-      const tipoCorto = (t.tipos&&t.tipos.length) ? t.tipos[0].slice(0,12) : (t.tipo||'').split(',')[0].trim().slice(0,12);
-      pill.innerHTML = '<span class="pill-cliente">'+clienteCorto+'</span>'+(tipoCorto?'<span class="pill-tipo">'+tipoCorto+'</span>':'');
-      pill.onclick = () => abrirDetalle(t.id); // Toca la píldora → abre detalle
-      cont.appendChild(pill);
-    });
-    // Si hay más de 3 trabajos en el día, muestra "+N más"
-    if(trabajosDia.length > 3) {
-      const mas = document.createElement('div');
-      mas.className = 'dia-mas';
-      mas.textContent = '+' + (trabajosDia.length-3) + ' más';
-      cont.appendChild(mas);
-    }
-  }
-
-  // ── Bolsa de pendientes ──
-  // Trabajos que no están realizados y no tienen días asignados todavía
-  const pendientes = trabajos.filter(t => t.estado !== 'Realizado' && (!t.diasProgramados || t.diasProgramados.length === 0));
-  document.getElementById('bolsa-count').textContent = pendientes.length;
-  const bolsa = document.getElementById('bolsa-trabajos');
-  if(pendientes.length === 0) {
-    bolsa.innerHTML = '<div class="empty-state">No hay trabajos pendientes de programar</div>';
-    return;
-  }
-  bolsa.innerHTML = '';
-  pendientes.forEach(t => {
-    const urg = (t.urgencia||'').toLowerCase();
-    const div = document.createElement('div');
-    div.className = 'bolsa-trabajo' + (urg==='urgente'?' urgente':urg==='alta'?' alta':'');
-    // Muestra tipo, maquinaria y horas como chips informativos
-    div.innerHTML = '<div class="bolsa-info"><div class="bolsa-cliente">'+(t.cliente||'Sin cliente')+'</div><div class="bolsa-dir">'+(t.direccion||'Sin dirección')+'</div><div class="bolsa-meta">'
-      + (t.tipos||[]).map(x=>'<span class="bolsa-chip">'+x+'</span>').join('')
-      + (t.maquinarias||[]).map(x=>'<span class="bolsa-chip">⚙ '+x+'</span>').join('')
-      + (t.horas?'<span class="bolsa-chip">⏱ '+t.horas+'h</span>':'')
-      + '</div></div><div class="bolsa-btn">+</div>';
-    div.onclick = () => abrirModalProgramar(t.id); // Toca la fila → abre modal para programar
-    bolsa.appendChild(div);
-  });
-}
-
-// Navega entre semanas: dir=-1 anterior, dir=0 hoy, dir=1 siguiente
-function cambiarSemana(dir) {
-  if(dir === 0) semanaOffset = 0;
-  else semanaOffset += dir;
-  renderSemana();
-}
-
-// ════════════════════════════════════════════════════════
-// NAVEGACIÓN DOS FILAS
-// Fila 1: píldoras de mes (12 meses desde el actual)
-// Fila 2: semanas del mes activo + botón Hoy
-// ════════════════════════════════════════════════════════
-
-const MESES_CORTO = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-
-// Mes actualmente seleccionado en la barra (año y mes)
-let mesNavSelAnyo = new Date().getFullYear();
-let mesNavSelMes  = new Date().getMonth();
-
-function buildNavMes() {
-  const hoy = new Date();
-  const rowMes = document.getElementById('nav-mes-row');
-  if(!rowMes) return;
-
-  // Detecta mes/año de la semana visible para marcar el activo
-  const lunesVisible = getLunes(semanaOffset);
-  const mesVisible = lunesVisible.getMonth();
-  const anyoVisible = lunesVisible.getFullYear();
-
-  rowMes.innerHTML = '';
-  // 12 meses desde el actual
-  for(let m = 0; m < 12; m++) {
-    const fecha = new Date(hoy.getFullYear(), hoy.getMonth() + m, 1);
-    const pill = document.createElement('button');
-    pill.className = 'mes-pill';
-    const label = MESES_CORTO[fecha.getMonth()] + (fecha.getFullYear() !== hoy.getFullYear() ? ' ' + fecha.getFullYear().toString().slice(2) : '');
-    pill.textContent = label;
-    const esActivo = fecha.getMonth() === mesVisible && fecha.getFullYear() === anyoVisible;
-    if(esActivo) { pill.classList.add('activo'); mesNavSelAnyo = fecha.getFullYear(); mesNavSelMes = fecha.getMonth(); }
-    pill.onclick = () => {
-      mesNavSelAnyo = fecha.getFullYear();
-      mesNavSelMes  = fecha.getMonth();
-      // Al tocar un mes: salta a la primera semana que contenga días de ese mes
-      const primerLunes = getPrimerLunesMes(fecha);
-      const hoyLunes    = getLunes(0);
-      semanaOffset = Math.round((primerLunes - hoyLunes) / (7*24*60*60*1000));
-      renderSemana();
-    };
-    rowMes.appendChild(pill);
-  }
-
-  // Fila 2: semanas del mes seleccionado
-  buildNavSemanas(mesNavSelAnyo, mesNavSelMes);
-}
-
-function buildNavSemanas(anyo, mes) {
-  const rowSem = document.getElementById('nav-semanas-row');
-  if(!rowSem) return;
-  rowSem.innerHTML = '';
-
-  // Botón Hoy siempre visible al inicio
-  const btnHoy = document.createElement('button');
-  btnHoy.className = 'btn-hoy';
-  btnHoy.textContent = 'Hoy';
-  btnHoy.onclick = () => { semanaOffset = 0; renderSemana(); };
-  rowSem.appendChild(btnHoy);
-
-  // Calcula todas las semanas (lunes) que tienen días en este mes
-  const semanas = semanasDelMes(anyo, mes);
-  const lunesVisible = getLunes(semanaOffset);
-  const isoVisible   = fechaISO(lunesVisible);
-  const hoyLunes     = getLunes(0);
-
-  semanas.forEach(lunes => {
-    const dom = new Date(lunes); dom.setDate(lunes.getDate() + 6);
-    const pill = document.createElement('button');
-    pill.className = 'semana-pill';
-    // Etiqueta: "26-1 jun" (lunes día - domingo día mes)
-    const diaL = lunes.getDate();
-    const diaD = dom.getDate();
-    const mesD = MESES_CORTO[dom.getMonth()];
-    pill.textContent = diaL + '–' + diaD + ' ' + mesD;
-
-    const isoLunes = fechaISO(lunes);
-    if(isoLunes === isoVisible) pill.classList.add('activa');
-    if(isoLunes === fechaISO(hoyLunes)) pill.classList.add('hoy-semana');
-
-    pill.onclick = () => {
-      semanaOffset = Math.round((lunes - hoyLunes) / (7*24*60*60*1000));
-      renderSemana();
-    };
-    rowSem.appendChild(pill);
-  });
-}
-
-// Devuelve array de fechas Date (lunes) de todas las semanas que tienen días en un mes dado
-function semanasDelMes(anyo, mes) {
-  const semanas = [];
-  // Primer día del mes
-  const primer = new Date(anyo, mes, 1);
-  // Último día del mes
-  const ultimo = new Date(anyo, mes + 1, 0);
-  // Lunes de la semana del primer día
-  let lunes = new Date(primer);
-  const dow = lunes.getDay() === 0 ? 6 : lunes.getDay() - 1;
-  lunes.setDate(lunes.getDate() - dow);
-  lunes.setHours(0,0,0,0);
-  // Avanza semana a semana mientras el lunes esté antes del fin del mes
-  while(lunes <= ultimo) {
-    semanas.push(new Date(lunes));
-    lunes.setDate(lunes.getDate() + 7);
-  }
-  return semanas;
-}
-
-// Devuelve el primer lunes del mes dado (o el lunes de la semana que contiene el día 1)
-function getPrimerLunesMes(fecha) {
-  const d = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
-  const dow = d.getDay() === 0 ? 6 : d.getDay() - 1;
-  d.setDate(d.getDate() - dow);
-  d.setHours(0,0,0,0);
-  return d;
-}
-
-
-// ════════════════════════════════════════════════════════
-// VISTA MENSUAL
-// ════════════════════════════════════════════════════════
-
-let vistaModo = 'semana';  // 'semana' | 'mes'
-let mesOffset = 0;         // 0 = mes actual, -1 = anterior, +1 = siguiente
-
-// Cambia entre vista semana y vista mes
-function setVistaModo(modo) {
-  vistaModo = modo;
-  document.getElementById('btn-vista-semana').classList.toggle('activo', modo === 'semana');
-  document.getElementById('btn-vista-mes').classList.toggle('activo', modo === 'mes');
-  document.getElementById('nav-semana-controls').style.display = modo === 'semana' ? '' : 'none';
-  document.getElementById('nav-mes-controls').style.display = modo === 'mes' ? '' : 'none';
-  if (modo === 'mes') renderMes();
-  else renderSemana();
-}
-
-// Navega entre meses
-function cambiarMes(dir) {
-  mesOffset += dir;
-  renderMes();
-}
-
-// Devuelve el primer día del mes actual + offset
-function getPrimerDiaMes() {
-  const hoy = new Date();
-  return new Date(hoy.getFullYear(), hoy.getMonth() + mesOffset, 1);
-}
-
-// Renderiza el grid mensual completo
-function renderMes() {
-  const primer = getPrimerDiaMes();
-  const anyo = primer.getFullYear();
-  const mes = primer.getMonth();
-  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  document.getElementById('mes-titulo').textContent = meses[mes] + ' ' + anyo;
-
-  // Cabecera días
-  const header = document.getElementById('mes-grid-header');
-  header.innerHTML = '';
-  ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].forEach(d => {
-    const el = document.createElement('div');
-    el.className = 'mes-grid-header-dia';
-    el.textContent = d;
-    header.appendChild(el);
-  });
-
-  const trabajos = getTrab();
-  const hoyISO = fechaISO(new Date());
-
-  // Calcular primer lunes del grid (puede ser del mes anterior)
-  const primerDow = primer.getDay() === 0 ? 6 : primer.getDay() - 1;
-  const inicio = new Date(primer);
-  inicio.setDate(1 - primerDow);
-
-  // Último día del mes
-  const ultimo = new Date(anyo, mes + 1, 0);
-
-  const grid = document.getElementById('mes-grid');
-  grid.innerHTML = '';
-
-  let cursor = new Date(inicio);
-  while (cursor <= ultimo || cursor.getDay() !== 1) {
-    const iso = fechaISO(cursor);
-    const esMes = cursor.getMonth() === mes;
-    const esHoy = iso === hoyISO;
-
-    // Trabajos de este día (programados, no realizados)
-    const trabajosDia = trabajos.filter(t =>
-      t.diasProgramados && t.diasProgramados.includes(iso) && t.estado !== 'Realizado'
-    );
-
-    const cel = document.createElement('div');
-    cel.className = 'mes-dia' + (esMes ? '' : ' otro-mes') + (esHoy ? ' hoy-mes' : '');
-
-    // Indicador de carga (punto de color)
-    const n = trabajosDia.length;
-    if (n > 0) {
-      const carga = document.createElement('div');
-      carga.className = 'mes-carga ' + (n >= 4 ? 'lleno' : n >= 2 ? 'media' : 'libre');
-      cel.appendChild(carga);
-    }
-
-    // Número del día
-    const num = document.createElement('div');
-    num.className = 'mes-dia-num';
-    num.textContent = cursor.getDate();
-    cel.appendChild(num);
-
-    // Píldoras (máx 2 visibles)
-    const pillsWrap = document.createElement('div');
-    pillsWrap.className = 'mes-dia-pills';
-    trabajosDia.slice(0, 2).forEach(t => {
-      const pill = document.createElement('div');
-      const urg = (t.urgencia || '').toLowerCase();
-      pill.className = 'mes-pill-mini' + (urg === 'urgente' ? ' urgente' : urg === 'alta' ? ' alta' : '');
-      const clienteCorto = (t.cliente || '').split(/[—\-,]/)[0].trim().slice(0, 10);
-      pill.textContent = clienteCorto || 'Trabajo';
-      pill.title = (t.cliente || '') + ' — ' + (t.tipo || '');
-      pill.onclick = () => abrirDetalle(t.id);
-      pillsWrap.appendChild(pill);
-    });
-    if (trabajosDia.length > 2) {
-      const mas = document.createElement('div');
-      mas.className = 'mes-mas-mini';
-      mas.textContent = '+' + (trabajosDia.length - 2);
-      pillsWrap.appendChild(mas);
-    }
-    cel.appendChild(pillsWrap);
-
-    // Al tocar un día sin trabajo: saltar a esa semana en vista semana
-    if (trabajosDia.length === 0 && esMes) {
-      cel.style.cursor = 'pointer';
-      cel.onclick = () => {
-        const hoyLunes = getLunes(0);
-        const dow = cursor.getDay() === 0 ? 6 : cursor.getDay() - 1;
-        const lunesDia = new Date(cursor);
-        lunesDia.setDate(cursor.getDate() - dow);
-        semanaOffset = Math.round((lunesDia - hoyLunes) / (7 * 24 * 60 * 60 * 1000));
-        setVistaModo('semana');
-      };
-    }
-
-    grid.appendChild(cel);
-    cursor.setDate(cursor.getDate() + 1);
-
-    // Parar cuando hemos cubierto todo el mes y terminamos la semana
-    if (cursor > ultimo && cursor.getDay() === 1) break;
-  }
-}
-
 let modalSemanaOffset = 0; // Offset de semana dentro del modal (independiente del calendario)
 
 // ════════════════════════════════════════════════════════
 // MODAL PROGRAMAR — Asigna un trabajo a uno o varios días y operarios
 // Tiene su propia navegación de semana independiente del calendario
 // ════════════════════════════════════════════════════════
-function abrirModalProgramar(id) {
+// fechaInicio (opcional): Date — si se pasa, el modal arranca en la semana que contiene ese día
+function abrirModalProgramar(id, fechaInicio) {
   modalTrabajoId = id;
-  diasSelModal = [];
+  diasSelModal = fechaInicio ? [fechaISO(fechaInicio)] : []; // Pre-selecciona el día tocado si viene
   operariosSelModal = [];
-  modalSemanaOffset = semanaOffset; // Arranca en la semana que estás viendo
+  // Calcular offset de semana a partir de fechaInicio (o semana actual si no se pasa)
+  const hoyLunes = getLunes(0);
+  const lunesDestino = getLunes(0, fechaInicio || new Date());
+  modalSemanaOffset = Math.round((lunesDestino - hoyLunes) / (7 * 24 * 60 * 60 * 1000));
   const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
 
@@ -2530,7 +2331,8 @@ async function confirmarProgramar() {
   showToast('Guardando...');
   await updateTrab(t);
   await loadTrab();
-  renderSemana();
+  renderMes();
+  renderBolsa();
   showToast('✓ Trabajo programado');
 }
 
@@ -2637,7 +2439,8 @@ async function confirmarRealizado() {
   await updateTrab(t);
   await loadTrab();
   renderListado();
-  renderSemana();
+  renderMes();
+  renderBolsa();
   showToast('✓ Trabajo realizado');
 }
 
@@ -2701,7 +2504,8 @@ async function desprogramarDesdeDetalle() {
   cerrarModal('modal-detalle');
   await updateTrab(t);
   await loadTrab();
-  renderSemana();
+  renderMes();
+  renderBolsa();
   showToast('↩ Trabajo desprogramado');
 }
 
