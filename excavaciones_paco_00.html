@@ -727,26 +727,40 @@
 <script>
 
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// SUPABASE — Acceso directo via REST API (sin SDK)
+// ════════════════════════════════════════════════════════
+const SUPA_URL = 'https://wqcwicukenycsopnyvck.supabase.co';
+const SUPA_KEY = 'sb_publishable_bZqoK0K9f_f3Mv4A-Q2V9A_LPRqeIpa';
+const SUPA_HEADERS = {
+  'apikey': SUPA_KEY,
+  'Authorization': 'Bearer ' + SUPA_KEY,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=minimal'
+};
+
 // CONFIG — Listas editables desde el Módulo 5 (⚙ Configuración)
-// Se guardan en localStorage. Si no hay datos guardados, usa los valores por defecto.
+// Se guardan en Supabase (tablas: operarios, maquinaria, tipos_trabajo).
+// En memoria: CONFIG y OPERARIOS_CFG. Fallback a localStorage si Supabase no responde.
 // ════════════════════════════════════════════════════════
 
 const CONFIG_DEFAULT = {
   tipos: [
-    {nombre:'Excavación', activo:true},
-    {nombre:'Picado', activo:true},
-    {nombre:'Carga escombro', activo:true},
-    {nombre:'Zanjas', activo:true},
-    {nombre:'Nivelación', activo:true},
-    {nombre:'Limpieza solar', activo:true}
+    {nombre:'Excavación', activo:true, sinonimos:['excavar','excavación','abrir','cimientos']},
+    {nombre:'Picado', activo:true, sinonimos:['picar','picado','romper','demoler']},
+    {nombre:'Carga escombro', activo:true, sinonimos:['escombro','retirar','carga','llevar']},
+    {nombre:'Zanjas', activo:true, sinonimos:[]},
+    {nombre:'Nivelación', activo:true, sinonimos:[]},
+    {nombre:'Limpieza solar', activo:true, sinonimos:[]}
   ],
   maquinaria: [
-    {nombre:'Minipala JCB', activo:true},
-    {nombre:'Volvo giratorio', activo:true},
-    {nombre:'Camión contenedor', activo:true},
-    {nombre:'Niveladora', activo:true},
-    {nombre:'Manual', activo:true}
+    {nombre:'Minipala JCB', activo:true, sinonimos:['mini','jcb','pala pequeña','minipala']},
+    {nombre:'Volvo giratorio', activo:true, sinonimos:['volvo','retro','giratorio','excavadora']},
+    {nombre:'Camión contenedor', activo:true, sinonimos:['camión','contenedor','volquete']},
+    {nombre:'Niveladora', activo:true, sinonimos:['niveladora','motoniveladora']},
+    {nombre:'Manual', activo:true, sinonimos:[]}
   ],
+  // sinonimos como objeto plano para compatibilidad con el resto del código
   sinonimos: {
     'Minipala JCB': ['mini','jcb','pala pequeña','minipala'],
     'Volvo giratorio': ['volvo','retro','giratorio','excavadora'],
@@ -759,35 +773,106 @@ const CONFIG_DEFAULT = {
 };
 
 const OPERARIOS_DEFAULT = [
-  {nombre:'Paco', activo:true},
-  {nombre:'Operario 2', activo:true},
-  {nombre:'Operario 3', activo:true},
-  {nombre:'Operario 4', activo:true}
+  {nombre:'Paco', activo:true, sinonimos:[]},
+  {nombre:'Operario 2', activo:true, sinonimos:[]},
+  {nombre:'Operario 3', activo:true, sinonimos:[]},
+  {nombre:'Operario 4', activo:true, sinonimos:[]}
 ];
 
+// Cache en memoria — se carga al inicio desde Supabase
+let _cfgCache = null;         // { tipos:[], maquinaria:[], sinonimos:{} }
+let _operariosCfgCache = null; // [{nombre, activo, sinonimos:[]}]
+
+// ── SUPABASE CONFIG HELPERS ──────────────────────────────
+
+// Convierte filas de Supabase (tabla tipos_trabajo o maquinaria) a formato interno
+function _rowsToItems(rows) {
+  return rows.map(r => ({
+    id: r.id,
+    nombre: r.nombre,
+    activo: r.activo,
+    sinonimos: Array.isArray(r.sinonimos) ? r.sinonimos : []
+  }));
+}
+
+// Construye el objeto sinonimos plano { nombre: [sins] } para compatibilidad
+function _buildSinonimosObj(tipos, maquinaria) {
+  const obj = {};
+  [...tipos, ...maquinaria].forEach(item => {
+    obj[item.nombre] = item.sinonimos || [];
+  });
+  return obj;
+}
+
+// Carga configuración desde Supabase al iniciar la app
+async function loadConfig() {
+  try {
+    const [rTipos, rMaq, rOps] = await Promise.all([
+      fetch(`${SUPA_URL}/rest/v1/tipos_trabajo?order=id.asc`, {headers: SUPA_HEADERS}),
+      fetch(`${SUPA_URL}/rest/v1/maquinaria?order=id.asc`, {headers: SUPA_HEADERS}),
+      fetch(`${SUPA_URL}/rest/v1/operarios?order=id.asc`, {headers: SUPA_HEADERS})
+    ]);
+    const tipos = _rowsToItems(await rTipos.json());
+    const maquinaria = _rowsToItems(await rMaq.json());
+    const operarios = _rowsToItems(await rOps.json());
+
+    // Si las tablas están vacías, insertar los valores por defecto
+    if (tipos.length === 0) {
+      await _insertDefaultConfig('tipos_trabajo', CONFIG_DEFAULT.tipos);
+      const r2 = await fetch(`${SUPA_URL}/rest/v1/tipos_trabajo?order=id.asc`, {headers: SUPA_HEADERS});
+      const t2 = _rowsToItems(await r2.json());
+      _cfgCache = { tipos: t2, maquinaria, sinonimos: _buildSinonimosObj(t2, maquinaria) };
+    } else {
+      _cfgCache = { tipos, maquinaria, sinonimos: _buildSinonimosObj(tipos, maquinaria) };
+    }
+    if (maquinaria.length === 0) {
+      await _insertDefaultConfig('maquinaria', CONFIG_DEFAULT.maquinaria);
+      const r2 = await fetch(`${SUPA_URL}/rest/v1/maquinaria?order=id.asc`, {headers: SUPA_HEADERS});
+      const m2 = _rowsToItems(await r2.json());
+      _cfgCache.maquinaria = m2;
+      _cfgCache.sinonimos = _buildSinonimosObj(_cfgCache.tipos, m2);
+    }
+    if (operarios.length === 0) {
+      await _insertDefaultConfig('operarios', OPERARIOS_DEFAULT);
+      const r2 = await fetch(`${SUPA_URL}/rest/v1/operarios?order=id.asc`, {headers: SUPA_HEADERS});
+      _operariosCfgCache = _rowsToItems(await r2.json());
+    } else {
+      _operariosCfgCache = operarios;
+    }
+    // Guardar en localStorage como fallback
+    localStorage.setItem('cfg_listas', JSON.stringify(_cfgCache));
+    localStorage.setItem('cfg_operarios', JSON.stringify(_operariosCfgCache));
+  } catch(e) {
+    console.warn('Supabase config no disponible, usando localStorage:', e.message);
+    // Fallback localStorage
+    try {
+      const r = JSON.parse(localStorage.getItem('cfg_listas'));
+      _cfgCache = r || structuredClone(CONFIG_DEFAULT);
+    } catch(e2) { _cfgCache = structuredClone(CONFIG_DEFAULT); }
+    try {
+      const r = JSON.parse(localStorage.getItem('cfg_operarios'));
+      _operariosCfgCache = Array.isArray(r) ? r : OPERARIOS_DEFAULT.map(o=>({...o}));
+    } catch(e2) { _operariosCfgCache = OPERARIOS_DEFAULT.map(o=>({...o})); }
+  }
+}
+
+async function _insertDefaultConfig(tabla, items) {
+  const rows = items.map(i => ({ nombre: i.nombre, activo: i.activo, sinonimos: i.sinonimos || [] }));
+  await fetch(`${SUPA_URL}/rest/v1/${tabla}`, {
+    method: 'POST',
+    headers: { ...SUPA_HEADERS, 'Prefer': 'return=minimal' },
+    body: JSON.stringify(rows)
+  });
+}
+
+// ── GETTERS SÍNCRONOS (leen de cache en memoria) ─────────
+
 function getCfg() {
-  try {
-    const r = JSON.parse(localStorage.getItem('cfg_listas'));
-    if (!r) return structuredClone(CONFIG_DEFAULT);
-    // Migración: si tipos/maquinaria son arrays de strings, convertir a objetos
-    if (r.tipos && r.tipos.length > 0 && typeof r.tipos[0] === 'string')
-      r.tipos = r.tipos.map(n => ({nombre: n, activo: true}));
-    if (r.maquinaria && r.maquinaria.length > 0 && typeof r.maquinaria[0] === 'string')
-      r.maquinaria = r.maquinaria.map(n => ({nombre: n, activo: true}));
-    return r;
-  } catch(e){ return structuredClone(CONFIG_DEFAULT); }
+  return _cfgCache || structuredClone(CONFIG_DEFAULT);
 }
-function saveCfg(c) { localStorage.setItem('cfg_listas', JSON.stringify(c)); }
 function getOperariosCfg() {
-  try {
-    const r = JSON.parse(localStorage.getItem('cfg_operarios'));
-    if (!Array.isArray(r)) return OPERARIOS_DEFAULT.map(o=>({...o}));
-    // Migración: si el array guardado es de strings (versión anterior), convertir a objetos
-    if (r.length > 0 && typeof r[0] === 'string') return r.map(n=>({nombre:n, activo:true}));
-    return r;
-  } catch(e){ return OPERARIOS_DEFAULT.map(o=>({...o})); }
+  return _operariosCfgCache || OPERARIOS_DEFAULT.map(o=>({...o}));
 }
-function saveOperariosCfg(arr) { localStorage.setItem('cfg_operarios', JSON.stringify(arr)); }
 
 // Nombres de operarios activos (para asignar en modal programar)
 function getOperariosActivos() { return getOperariosCfg().filter(o=>o.activo).map(o=>o.nombre); }
@@ -796,6 +881,62 @@ function getOperariosTodos() { return getOperariosCfg().map(o=>o.nombre); }
 // Nombres activos de tipos y maquinaria (para chips del formulario)
 function getTiposActivos() { return getCfg().tipos.filter(o=>o.activo).map(o=>o.nombre); }
 function getMaqActiva() { return getCfg().maquinaria.filter(o=>o.activo).map(o=>o.nombre); }
+
+// ── ESCRITURA EN SUPABASE ─────────────────────────────────
+
+// Guarda un ítem (tipo o maquinaria) en Supabase y actualiza cache
+async function _saveItemSupabase(tabla, item) {
+  const body = { nombre: item.nombre, activo: item.activo, sinonimos: item.sinonimos || [] };
+  if (item.id) {
+    // UPDATE
+    await fetch(`${SUPA_URL}/rest/v1/${tabla}?id=eq.${item.id}`, {
+      method: 'PATCH',
+      headers: { ...SUPA_HEADERS, 'Prefer': 'return=minimal' },
+      body: JSON.stringify(body)
+    });
+  } else {
+    // INSERT — devuelve el id nuevo
+    const res = await fetch(`${SUPA_URL}/rest/v1/${tabla}`, {
+      method: 'POST',
+      headers: { ...SUPA_HEADERS, 'Prefer': 'return=representation' },
+      body: JSON.stringify(body)
+    });
+    const rows = await res.json();
+    if (rows && rows[0]) item.id = rows[0].id;
+  }
+  // Actualizar fallback localStorage
+  localStorage.setItem('cfg_listas', JSON.stringify(_cfgCache));
+}
+
+async function _saveOperarioSupabase(op) {
+  const body = { nombre: op.nombre, activo: op.activo, sinonimos: op.sinonimos || [] };
+  if (op.id) {
+    await fetch(`${SUPA_URL}/rest/v1/operarios?id=eq.${op.id}`, {
+      method: 'PATCH',
+      headers: { ...SUPA_HEADERS, 'Prefer': 'return=minimal' },
+      body: JSON.stringify(body)
+    });
+  } else {
+    const res = await fetch(`${SUPA_URL}/rest/v1/operarios`, {
+      method: 'POST',
+      headers: { ...SUPA_HEADERS, 'Prefer': 'return=representation' },
+      body: JSON.stringify(body)
+    });
+    const rows = await res.json();
+    if (rows && rows[0]) op.id = rows[0].id;
+  }
+  localStorage.setItem('cfg_operarios', JSON.stringify(_operariosCfgCache));
+}
+
+// saveCfg — compatibilidad: ya no se usa directamente, la cache se escribe desde las funciones async
+function saveCfg(c) {
+  _cfgCache = c;
+  localStorage.setItem('cfg_listas', JSON.stringify(c));
+}
+function saveOperariosCfg(arr) {
+  _operariosCfgCache = arr;
+  localStorage.setItem('cfg_operarios', JSON.stringify(arr));
+}
 
 // CONFIG y OPERARIOS — variables vivas, se recargan al guardar cambios
 let CONFIG = getCfg();
@@ -815,18 +956,6 @@ let ltabActual = 'pendientes';
 let recognition = null;
 // Indica si el micrófono está activo en este momento
 let listening = false;
-
-// ════════════════════════════════════════════════════════
-// SUPABASE — Acceso directo via REST API (sin SDK)
-// ════════════════════════════════════════════════════════
-const SUPA_URL = 'https://wqcwicukenycsopnyvck.supabase.co';
-const SUPA_KEY = 'sb_publishable_bZqoK0K9f_f3Mv4A-Q2V9A_LPRqeIpa';
-const SUPA_HEADERS = {
-  'apikey': SUPA_KEY,
-  'Authorization': 'Bearer ' + SUPA_KEY,
-  'Content-Type': 'application/json',
-  'Prefer': 'return=minimal'
-};
 
 // Wrapper fetch para Supabase REST
 const supa = {
@@ -2393,13 +2522,16 @@ function opMarcarRealizado(id) {
 }
 
 
-buildChips();       // Construye los chips de tipo y maquinaria
 updateProgress();   // Dibuja la barra de progreso del formulario
 
-// Arranque: carga datos desde Supabase y renderiza
+// Arranque: carga configuración y trabajos desde Supabase, luego renderiza
 (async () => {
   setConexionStatus(false, 'Conectando...');
-  await loadTrab();
+  await loadConfig();               // 1. Carga operarios, tipos, maquinaria desde Supabase
+  CONFIG = getCfg();                // 2. Sincroniza cache en memoria
+  OPERARIOS = getOperariosActivos();
+  buildChips();                     // 3. Construye los chips con los datos reales
+  await loadTrab();                 // 4. Carga trabajos
   renderListado();
   renderSemana();
 })();
@@ -2493,7 +2625,8 @@ function toggleSinItem(header) {
 }
 
 // Añade un ítem a operarios, tipos o maquinaria
-function cfgAdd(key) {
+// Añade un ítem a operarios, tipos o maquinaria
+async function cfgAdd(key) {
   const inputId = key==='operarios'?'inp-operario':key==='tipos'?'inp-tipo':'inp-maquinaria';
   const inp = document.getElementById(inputId);
   const val = inp.value.trim();
@@ -2502,34 +2635,40 @@ function cfgAdd(key) {
   if (key === 'operarios') {
     const arr = getOperariosCfg();
     if (arr.some(o => o.nombre === val)) { showToast('Ya existe'); return; }
-    arr.push({nombre: val, activo: true});
-    saveOperariosCfg(arr);
+    const newOp = {nombre: val, activo: true, sinonimos: []};
+    arr.push(newOp);
+    _operariosCfgCache = arr;
+    await _saveOperarioSupabase(newOp);
     OPERARIOS = getOperariosActivos();
   } else {
+    const tablaMap = {tipos: 'tipos_trabajo', maquinaria: 'maquinaria'};
     const c = getCfg();
     if (c[key].some(o => o.nombre === val)) { showToast('Ya existe'); return; }
-    c[key].push({nombre: val, activo: true});
+    const newItem = {nombre: val, activo: true, sinonimos: []};
+    c[key].push(newItem);
     if (!c.sinonimos[val]) c.sinonimos[val] = [];
-    saveCfg(c);
+    _cfgCache = c;
+    await _saveItemSupabase(tablaMap[key], newItem);
     CONFIG = c;
   }
   inp.value = '';
-  buildChips(); // Reconstruye los chips del formulario de captura
+  buildChips();
   renderConfig();
   showToast('✓ Añadido');
 }
 
 // Archiva o reactiva un tipo de trabajo o maquinaria
-function cfgToggleItem(key, idx) {
+async function cfgToggleItem(key, idx) {
+  const tablaMap = {tipos: 'tipos_trabajo', maquinaria: 'maquinaria'};
   const c = getCfg();
   const item = c[key][idx];
   if (!item) return;
-  // Evitar archivar si es el único activo
   if (item.activo && c[key].filter(o=>o.activo).length <= 1) {
     showToast('Debe haber al menos 1 elemento activo'); return;
   }
   item.activo = !item.activo;
-  saveCfg(c);
+  _cfgCache = c;
+  await _saveItemSupabase(tablaMap[key], item);
   CONFIG = c;
   buildChips();
   renderConfig();
@@ -2537,29 +2676,27 @@ function cfgToggleItem(key, idx) {
 }
 
 // Archiva o reactiva un operario (nunca se borra — sus trabajos quedan intactos)
-function cfgToggleOperario(idx) {
+async function cfgToggleOperario(idx) {
   const arr = getOperariosCfg();
   const op = arr[idx];
   if (!op) return;
-  // Evitar archivar si es el único activo
   if (op.activo && arr.filter(o=>o.activo).length <= 1) {
     showToast('Debe haber al menos 1 operario activo'); return;
   }
   op.activo = !op.activo;
-  saveOperariosCfg(arr);
+  _operariosCfgCache = arr;
+  await _saveOperarioSupabase(op);
   OPERARIOS = getOperariosActivos();
-  // Si el opSeleccionado fue archivado, cambiar al primero activo
   if (!OPERARIOS.includes(opSeleccionado)) opSeleccionado = OPERARIOS[0] || '';
   renderConfig();
   showToast(op.activo ? 'Dado de alta' : 'Dado de baja');
 }
 
-// cfgDel ya no se usa para tipos/maquinaria (ahora son cfgToggleItem/cfgToggleOperario)
-// Se mantiene por compatibilidad pero no hace nada
+// cfgDel ya no se usa — se mantiene por compatibilidad
 function cfgDel(key, idx) { }
 
 // Añade un sinónimo a un ítem
-function cfgAddSin(item) {
+async function cfgAddSin(item) {
   const inp = document.getElementById('sin-inp-'+item);
   const val = inp.value.trim().toLowerCase();
   if (!val) return;
@@ -2567,11 +2704,15 @@ function cfgAddSin(item) {
   if (!c.sinonimos[item]) c.sinonimos[item] = [];
   if (c.sinonimos[item].includes(val)) { showToast('Ya existe'); return; }
   c.sinonimos[item].push(val);
-  saveCfg(c);
+  _cfgCache = c;
+  // Actualizar sinonimos en el objeto del item correspondiente y guardar en Supabase
+  const tipoItem = c.tipos.find(o=>o.nombre===item);
+  const maqItem = c.maquinaria.find(o=>o.nombre===item);
+  if (tipoItem) { tipoItem.sinonimos = c.sinonimos[item]; await _saveItemSupabase('tipos_trabajo', tipoItem); }
+  else if (maqItem) { maqItem.sinonimos = c.sinonimos[item]; await _saveItemSupabase('maquinaria', maqItem); }
   CONFIG = c;
   inp.value = '';
   renderConfig();
-  // Reabrir el acordeón del ítem que se estaba editando
   setTimeout(() => {
     const items = document.querySelectorAll('.cfg-sin-item');
     const allItems = [...c.tipos.map(o=>o.nombre), ...c.maquinaria.map(o=>o.nombre)];
@@ -2586,14 +2727,17 @@ function cfgAddSin(item) {
 }
 
 // Elimina un sinónimo
-function cfgDelSin(item, sin) {
+async function cfgDelSin(item, sin) {
   const c = getCfg();
   if (!c.sinonimos[item]) return;
   c.sinonimos[item] = c.sinonimos[item].filter(s => s !== sin);
-  saveCfg(c);
+  _cfgCache = c;
+  const tipoItem = c.tipos.find(o=>o.nombre===item);
+  const maqItem = c.maquinaria.find(o=>o.nombre===item);
+  if (tipoItem) { tipoItem.sinonimos = c.sinonimos[item]; await _saveItemSupabase('tipos_trabajo', tipoItem); }
+  else if (maqItem) { maqItem.sinonimos = c.sinonimos[item]; await _saveItemSupabase('maquinaria', maqItem); }
   CONFIG = c;
   renderConfig();
-  // Reabrir el acordeón del ítem que se estaba editando
   setTimeout(() => {
     const items = document.querySelectorAll('.cfg-sin-item');
     const allItems = [...c.tipos.map(o=>o.nombre), ...c.maquinaria.map(o=>o.nombre)];
@@ -2606,11 +2750,23 @@ function cfgDelSin(item, sin) {
   }, 10);
 }
 
-// Restaura las listas por defecto (no borra trabajos)
-function cfgReset() {
+// Restaura las listas por defecto borrando Supabase e insertando defaults (no borra trabajos)
+async function cfgReset() {
   if (!confirm('¿Restaurar las listas de maquinaria, tipos y operarios a los valores originales? Los trabajos no se borran.')) return;
-  localStorage.removeItem('cfg_listas');
-  localStorage.removeItem('cfg_operarios');
+  try {
+    showToast('Restaurando...');
+    await Promise.all([
+      fetch(`${SUPA_URL}/rest/v1/tipos_trabajo?id=gte.0`, { method:'DELETE', headers:{...SUPA_HEADERS,'Prefer':'return=minimal'} }),
+      fetch(`${SUPA_URL}/rest/v1/maquinaria?id=gte.0`, { method:'DELETE', headers:{...SUPA_HEADERS,'Prefer':'return=minimal'} }),
+      fetch(`${SUPA_URL}/rest/v1/operarios?id=gte.0`, { method:'DELETE', headers:{...SUPA_HEADERS,'Prefer':'return=minimal'} })
+    ]);
+    _cfgCache = null;
+    _operariosCfgCache = null;
+    await loadConfig();
+  } catch(e) {
+    localStorage.removeItem('cfg_listas');
+    localStorage.removeItem('cfg_operarios');
+  }
   CONFIG = getCfg();
   OPERARIOS = getOperariosActivos();
   opSeleccionado = OPERARIOS[0] || '';
