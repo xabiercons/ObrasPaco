@@ -3,478 +3,460 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manual de Usuario — Excavaciones Paco v6.7</title>
+<title>Manual de Usuario — Excavaciones Paco v7.3</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&display=swap');
 
   :root {
     --amarillo: #FFD100;
-    --naranja: #FFA500;
-    --negro: #1C1C1C;
-    --gris-oscuro: #272727;
-    --gris-medio: #3a3a3a;
-    --texto: #FFFFFF;
-    --texto2: #CCCCCC;
-    --texto3: #888888;
-    --verde: #44CC77;
-    --rojo: #FF4444;
-    --azul: #6699FF;
-    --morado: #BB88FF;
+    --negro: #1A1A1A;
+    --gris-oscuro: #2E2E2E;
+    --gris-medio: #5A5A5A;
+    --gris-claro: #E8E4DC;
+    --blanco: #FAFAF7;
+    --rojo: #D63B2F;
+    --verde: #2D7A4F;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     font-family: 'IBM Plex Sans', sans-serif;
-    background: var(--negro);
-    color: var(--texto);
+    font-size: 11pt;
+    color: var(--negro);
+    background: var(--blanco);
     line-height: 1.6;
   }
 
-  /* ── PORTADA ── */
+  /* ─── PORTADA ─────────────────────────────────── */
   .portada {
+    background: var(--negro);
+    color: var(--blanco);
     min-height: 100vh;
-    background: var(--amarillo);
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: 60px 50px;
-    page-break-after: always;
+    justify-content: flex-end;
+    padding: 48px;
     position: relative;
-    overflow: hidden;
+    page-break-after: always;
   }
-  .portada::before {
-    content: '';
-    position: absolute;
-    right: -80px; bottom: -80px;
-    width: 400px; height: 400px;
-    border: 40px solid rgba(0,0,0,0.08);
-    border-radius: 50%;
-  }
-  .portada::after {
-    content: '';
-    position: absolute;
-    right: 40px; bottom: 40px;
-    width: 200px; height: 200px;
-    border: 20px solid rgba(0,0,0,0.06);
-    border-radius: 50%;
-  }
-  .portada-logo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 100px;
-    color: var(--negro);
-    line-height: 0.9;
+
+  .portada-linea {
+    width: 80px;
+    height: 4px;
+    background: var(--amarillo);
     margin-bottom: 24px;
-    letter-spacing: 2px;
   }
-  .portada-sub {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
-    color: rgba(0,0,0,0.5);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-bottom: 60px;
-  }
+
   .portada-titulo {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 52px;
-    color: var(--negro);
-    line-height: 1;
-    margin-bottom: 16px;
-  }
-  .portada-desc {
-    font-size: 16px;
-    color: rgba(0,0,0,0.6);
-    max-width: 400px;
-    font-weight: 300;
-  }
-  .portada-version {
-    position: absolute;
-    bottom: 40px; left: 50px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: rgba(0,0,0,0.4);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    font-size: 72pt;
+    letter-spacing: 0.02em;
+    line-height: 0.9;
+    color: var(--blanco);
+    margin-bottom: 8px;
   }
 
-  /* ── ÍNDICE ── */
-  .indice {
-    padding: 60px 50px;
-    page-break-after: always;
-    border-bottom: 1px solid rgba(255,209,0,0.15);
+  .portada-titulo span {
+    color: var(--amarillo);
   }
-  .seccion-label {
+
+  .portada-sub {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    color: var(--naranja);
+    font-size: 10pt;
+    color: #888;
+    letter-spacing: 0.15em;
     text-transform: uppercase;
-    letter-spacing: 0.2em;
-    margin-bottom: 20px;
+    margin-bottom: 48px;
   }
+
+  .portada-meta {
+    display: flex;
+    gap: 48px;
+    border-top: 1px solid #333;
+    padding-top: 24px;
+  }
+
+  .portada-meta-item label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8pt;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .portada-meta-item span {
+    font-size: 10pt;
+    color: #CCC;
+  }
+
+  .portada-marca {
+    position: absolute;
+    top: 48px;
+    right: 48px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9pt;
+    color: #444;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  /* ─── ÍNDICE ──────────────────────────────────── */
+  .indice {
+    padding: 48px;
+    page-break-after: always;
+    border-bottom: 2px solid var(--gris-claro);
+  }
+
   .indice-titulo {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 48px;
-    color: var(--amarillo);
-    margin-bottom: 40px;
-  }
-  .indice-item {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 0;
-    border-bottom: 1px solid rgba(255,209,0,0.1);
-  }
-  .indice-num {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    color: rgba(255,209,0,0.3);
-    min-width: 40px;
-  }
-  .indice-nombre {
-    font-size: 15px;
-    color: var(--texto);
-    flex: 1;
-  }
-  .indice-pag {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--texto3);
+    font-size: 28pt;
+    letter-spacing: 0.05em;
+    color: var(--negro);
+    margin-bottom: 32px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid var(--amarillo);
+    display: inline-block;
   }
 
-  /* ── SECCIONES ── */
-  .seccion {
-    padding: 60px 50px;
-    page-break-before: always;
-    min-height: 100vh;
+  .indice-lista {
+    list-style: none;
+    columns: 2;
+    column-gap: 48px;
   }
+
+  .indice-lista li {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px dotted #CCC;
+    break-inside: avoid;
+  }
+
+  .indice-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8pt;
+    color: var(--amarillo);
+    background: var(--negro);
+    padding: 2px 6px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+
+  .indice-texto {
+    font-size: 10pt;
+    color: var(--gris-oscuro);
+  }
+
+  /* ─── CONTENIDO ───────────────────────────────── */
+  .contenido {
+    padding: 48px;
+  }
+
+  /* ─── SECCIÓN ─────────────────────────────────── */
+  .seccion {
+    margin-bottom: 48px;
+    page-break-inside: avoid;
+  }
+
   .seccion-header {
     display: flex;
-    align-items: flex-start;
-    gap: 24px;
-    margin-bottom: 40px;
-    padding-bottom: 24px;
-    border-bottom: 2px solid var(--amarillo);
-  }
-  .seccion-num {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 72px;
-    color: rgba(255,209,0,0.2);
-    line-height: 1;
-    min-width: 80px;
-  }
-  .seccion-info { flex: 1; }
-  .seccion-titulo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 42px;
-    color: var(--amarillo);
-    line-height: 1;
-    margin-bottom: 8px;
-  }
-  .seccion-desc {
-    font-size: 14px;
-    color: var(--texto2);
-    font-weight: 300;
-  }
-
-  /* ── PASOS ── */
-  .pasos { display: flex; flex-direction: column; gap: 16px; }
-  .paso {
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
-    background: var(--gris-oscuro);
-    border-radius: 12px;
-    padding: 20px;
-    border-left: 4px solid var(--amarillo);
-  }
-  .paso.naranja { border-left-color: var(--naranja); }
-  .paso.verde { border-left-color: var(--verde); }
-  .paso.rojo { border-left-color: var(--rojo); }
-  .paso.azul { border-left-color: var(--azul); }
-  .paso.morado { border-left-color: var(--morado); }
-  .paso-num {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 36px;
-    color: var(--amarillo);
-    line-height: 1;
-    min-width: 40px;
-  }
-  .paso.naranja .paso-num { color: var(--naranja); }
-  .paso.verde .paso-num { color: var(--verde); }
-  .paso.rojo .paso-num { color: var(--rojo); }
-  .paso.azul .paso-num { color: var(--azul); }
-  .paso.morado .paso-num { color: var(--morado); }
-  .paso-body { flex: 1; }
-  .paso-titulo {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--texto);
-    margin-bottom: 6px;
-  }
-  .paso-texto {
-    font-size: 13px;
-    color: var(--texto2);
-    line-height: 1.6;
-  }
-
-  /* ── PANTALLA SIMULADA ── */
-  .pantalla-wrap {
-    display: flex;
-    gap: 30px;
-    align-items: flex-start;
-    margin: 24px 0;
-  }
-  .pantalla {
-    background: #111;
-    border: 2px solid rgba(255,209,0,0.3);
-    border-radius: 16px;
-    padding: 16px;
-    min-width: 180px;
-    max-width: 200px;
-  }
-  .pantalla-barra {
-    background: var(--amarillo);
-    padding: 8px 12px;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 13px;
-    color: var(--negro);
-    letter-spacing: 0.05em;
-    margin: -16px -16px 12px -16px;
-    border-radius: 14px 14px 0 0;
-  }
-  .pantalla-nav {
-    display: flex;
-    gap: 4px;
-    background: #222;
-    border-radius: 6px;
-    padding: 4px;
-    margin-bottom: 12px;
-  }
-  .nav-item {
-    flex: 1;
-    text-align: center;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 7px;
-    color: #aaa;
-    padding: 4px 2px;
-    border-radius: 4px;
-    text-transform: uppercase;
-    font-weight: bold;
-  }
-  .nav-item.activo {
-    background: var(--amarillo);
-    color: var(--negro);
-    font-weight: 600;
-  }
-  .pantalla-card {
-    background: #272727;
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 8px;
-    border-left: 3px solid var(--amarillo);
-  }
-  .card-titulo {
-    font-size: 9px;
-    color: var(--texto);
-    font-weight: 600;
-    margin-bottom: 3px;
-  }
-  .card-sub { font-size: 8px; color: #888; }
-  .card-pill {
-    display: inline-block;
-    font-size: 7px;
-    padding: 1px 6px;
-    border-radius: 10px;
-    margin-top: 4px;
-  }
-  .pill-pend { background: #2A1000; color: #FFB800; }
-  .pill-pres { background: #001A3A; color: #6699FF; }
-  .pill-acep { background: #332B00; color: #FFD100; }
-  .pill-prog { background: #1A0040; color: #BB88FF; }
-  .pill-real { background: #003310; color: #44CC77; }
-  .pantalla-btn {
-    width: 100%;
-    background: var(--amarillo);
-    color: var(--negro);
-    border: none;
-    border-radius: 6px;
-    padding: 7px;
-    font-size: 9px;
-    font-weight: 600;
-    text-align: center;
-    margin-top: 6px;
-    font-family: 'IBM Plex Mono', monospace;
-  }
-  .pantalla-btn.verde { background: #003310; color: var(--verde); border: 1px solid var(--verde); }
-  .pantalla-input {
-    background: #111;
-    border: 1px solid rgba(255,209,0,0.2);
-    border-radius: 6px;
-    padding: 6px 8px;
-    font-size: 9px;
-    color: #888;
-    width: 100%;
-    margin-bottom: 6px;
-    font-family: 'IBM Plex Mono', monospace;
-  }
-  .pantalla-step {
-    background: #111;
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 6px;
-  }
-  .step-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 7px;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 4px;
-  }
-  .step-title-sim {
-    font-size: 14px;
-    color: var(--texto);
-    font-weight: 600;
-    margin-bottom: 4px;
-  }
-  .step-hint-sim { font-size: 8px; color: #888; margin-bottom: 8px; }
-  .voice-btn-sim {
-    width: 100%;
-    background: var(--amarillo);
-    color: var(--negro);
-    border-radius: 6px;
-    padding: 7px;
-    font-size: 9px;
-    font-weight: 600;
-    text-align: center;
-    margin-bottom: 5px;
-  }
-  .chips-sim { display: flex; flex-wrap: wrap; gap: 3px; margin: 4px 0; }
-  .chip-sim {
-    font-size: 7px;
-    padding: 2px 6px;
-    border: 1px solid rgba(255,209,0,0.3);
-    border-radius: 10px;
-    color: #aaa;
-  }
-  .chip-sim.sel { background: var(--amarillo); color: var(--negro); border-color: var(--amarillo); }
-  .progress-sim { display: flex; gap: 3px; margin-bottom: 10px; }
-  .prog-step-sim { flex: 1; height: 3px; background: rgba(255,209,0,0.2); border-radius: 2px; }
-  .prog-step-sim.done { background: var(--amarillo); }
-  .prog-step-sim.active { background: var(--naranja); }
-
-  /* ── FLUJO DE ESTADOS ── */
-  .flujo { display: flex; flex-direction: column; gap: 0; margin: 24px 0; }
-  .flujo-item {
-    display: flex;
     align-items: center;
     gap: 16px;
-    padding: 16px 20px;
-    background: var(--gris-oscuro);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--negro);
   }
-  .flujo-item:first-child { border-radius: 12px 12px 0 0; }
-  .flujo-item:last-child { border-radius: 0 0 12px 12px; }
-  .flujo-item + .flujo-item { border-top: 1px solid rgba(255,209,0,0.1); }
-  .flujo-punto { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-  .flujo-nombre { font-size: 14px; font-weight: 600; color: var(--texto); flex: 1; }
-  .flujo-desc { font-size: 12px; color: var(--texto2); text-align: right; max-width: 200px; }
-  .flujo-flecha { text-align: center; color: rgba(255,209,0,0.3); font-size: 20px; padding: 4px 0; background: var(--negro); margin: 0 20px; }
 
-  /* ── AVISO / CONSEJO ── */
-  .aviso {
-    background: #3A0000;
-    border: 1px solid var(--rojo);
-    border-radius: 10px;
-    padding: 16px 20px;
-    margin: 20px 0;
-    display: flex;
-    gap: 14px;
-    align-items: flex-start;
-  }
-  .aviso-icono { font-size: 24px; flex-shrink: 0; }
-  .aviso-titulo { font-size: 13px; font-weight: 600; color: var(--rojo); margin-bottom: 4px; }
-  .aviso-texto { font-size: 13px; color: #CC8888; }
-
-  .consejo {
-    background: #002200;
-    border: 1px solid var(--verde);
-    border-radius: 10px;
-    padding: 16px 20px;
-    margin: 20px 0;
-    display: flex;
-    gap: 14px;
-    align-items: flex-start;
-  }
-  .consejo-icono { font-size: 24px; flex-shrink: 0; }
-  .consejo-titulo { font-size: 13px; font-weight: 600; color: var(--verde); margin-bottom: 4px; }
-  .consejo-texto { font-size: 13px; color: #88CC88; }
-
-  /* ── GRID ── */
-  .grid-opciones { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
-  .opcion-card {
-    background: var(--gris-oscuro);
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    border: 1px solid rgba(255,209,0,0.1);
-  }
-  .opcion-icono { font-size: 32px; margin-bottom: 10px; }
-  .opcion-titulo { font-size: 13px; font-weight: 600; color: var(--texto); margin-bottom: 8px; }
-  .opcion-texto { font-size: 12px; color: var(--texto2); line-height: 1.5; }
-
-  /* ── TABLA ── */
-  .tabla { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
-  .tabla th {
-    background: var(--amarillo);
-    color: var(--negro);
-    padding: 10px 14px;
-    text-align: left;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .tabla td { padding: 10px 14px; border-bottom: 1px solid rgba(255,209,0,0.1); color: var(--texto2); }
-  .tabla tr:last-child td { border-bottom: none; }
-  .tabla tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
-
-  /* ── SEPARADOR ── */
-  .sep { height: 1px; background: rgba(255,209,0,0.1); margin: 40px 0; }
-
-  /* ── URL ── */
-  .url-box {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
+  .seccion-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32pt;
     color: var(--amarillo);
-    background: #111;
-    border: 1px solid rgba(255,209,0,0.3);
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin: 12px 0;
-    word-break: break-all;
+    background: var(--negro);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: 0;
   }
 
-  /* ── BADGE ESTADO ── */
-  .badge {
-    display: inline-block;
-    font-size: 11px;
-    padding: 3px 10px;
-    border-radius: 20px;
+  .seccion-titulo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20pt;
+    letter-spacing: 0.05em;
+    color: var(--negro);
+    text-transform: uppercase;
+  }
+
+  /* ─── SUBSECCIÓN ──────────────────────────────── */
+  h3 {
     font-family: 'IBM Plex Mono', monospace;
+    font-size: 9pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--gris-medio);
+    margin: 20px 0 10px;
+    padding-left: 12px;
+    border-left: 3px solid var(--amarillo);
+  }
+
+  p {
+    margin-bottom: 10px;
+    color: var(--gris-oscuro);
+  }
+
+  /* ─── PASOS ───────────────────────────────────── */
+  .pasos {
+    counter-reset: paso;
+    list-style: none;
+    margin: 12px 0;
+  }
+
+  .pasos li {
+    counter-increment: paso;
+    display: flex;
+    gap: 14px;
+    margin-bottom: 10px;
+    align-items: flex-start;
+  }
+
+  .pasos li::before {
+    content: counter(paso);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9pt;
+    font-weight: 600;
+    color: var(--negro);
+    background: var(--amarillo);
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .pasos li span {
+    color: var(--gris-oscuro);
+    line-height: 1.5;
+  }
+
+  /* ─── LISTA SIMPLE ────────────────────────────── */
+  ul.lista {
+    list-style: none;
+    margin: 10px 0;
+  }
+
+  ul.lista li {
+    padding: 5px 0 5px 20px;
+    position: relative;
+    color: var(--gris-oscuro);
+    border-bottom: 1px solid var(--gris-claro);
+  }
+
+  ul.lista li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--amarillo);
     font-weight: 600;
   }
-  .badge-pend { background: #2A1000; color: #FFB800; }
-  .badge-pres { background: #001A3A; color: #6699FF; }
-  .badge-acep { background: #332B00; color: #FFD100; }
-  .badge-prog { background: #1A0040; color: #BB88FF; }
-  .badge-real { background: #003310; color: #44CC77; }
 
+  /* ─── TABLA ───────────────────────────────────── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 10pt;
+  }
+
+  thead tr {
+    background: var(--negro);
+    color: var(--blanco);
+  }
+
+  thead th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 8px 12px;
+    text-align: left;
+  }
+
+  tbody tr:nth-child(even) {
+    background: var(--gris-claro);
+  }
+
+  tbody td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #DDD;
+    color: var(--gris-oscuro);
+    vertical-align: top;
+  }
+
+  td code, th code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9pt;
+    background: rgba(0,0,0,0.06);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  /* ─── AVISO / NOTA ────────────────────────────── */
+  .aviso {
+    background: #FFF8D6;
+    border-left: 4px solid var(--amarillo);
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 10pt;
+    color: #5A4800;
+  }
+
+  .aviso strong {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 4px;
+    color: #8A6F00;
+  }
+
+  /* ─── CREDENCIALES ────────────────────────────── */
+  .credencial {
+    background: var(--negro);
+    color: var(--blanco);
+    padding: 16px 20px;
+    margin: 14px 0;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+
+  .credencial-rol {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14pt;
+    color: var(--amarillo);
+    letter-spacing: 0.05em;
+    min-width: 80px;
+  }
+
+  .credencial-datos {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9pt;
+    color: #CCC;
+    line-height: 1.8;
+  }
+
+  .credencial-datos span {
+    color: #888;
+    font-size: 8pt;
+  }
+
+  /* ─── FLUJO ───────────────────────────────────── */
+  .flujo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: 14px 0;
+    align-items: center;
+  }
+
+  .flujo-paso {
+    background: var(--gris-claro);
+    border: 1px solid #D0CCC4;
+    padding: 8px 14px;
+    font-size: 9pt;
+    color: var(--negro);
+    white-space: nowrap;
+  }
+
+  .flujo-paso.activo {
+    background: var(--negro);
+    color: var(--amarillo);
+    border-color: var(--negro);
+    font-weight: 600;
+  }
+
+  .flujo-flecha {
+    font-size: 10pt;
+    color: var(--gris-medio);
+    padding: 0 4px;
+  }
+
+  /* ─── FAQ ─────────────────────────────────────── */
+  .faq-item {
+    border-bottom: 1px solid var(--gris-claro);
+    padding: 14px 0;
+  }
+
+  .faq-q {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 10.5pt;
+    color: var(--negro);
+    margin-bottom: 6px;
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+  }
+
+  .faq-q::before {
+    content: 'P';
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14pt;
+    color: var(--amarillo);
+    flex-shrink: 0;
+  }
+
+  .faq-a {
+    font-size: 10pt;
+    color: var(--gris-medio);
+    padding-left: 22px;
+  }
+
+  /* ─── PIE ─────────────────────────────────────── */
+  .pie {
+    background: var(--negro);
+    color: #555;
+    padding: 24px 48px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8pt;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 48px;
+  }
+
+  .pie span { color: var(--amarillo); }
+
+  /* ─── PRINT ───────────────────────────────────── */
   @media print {
-    body { background: white; color: #1C1C1C; }
-    .portada { background: #FFD100; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .seccion { page-break-before: always; }
-    .paso { background: #f5f5f5; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { font-size: 10pt; }
+    .portada { min-height: auto; padding: 36px; }
+    .portada-titulo { font-size: 56pt; }
+    .contenido, .indice { padding: 36px; }
+    .seccion { page-break-inside: avoid; }
+    .aviso, .credencial, .flujo { page-break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+
+    @page {
+      size: A4;
+      margin: 0;
+    }
   }
 </style>
 </head>
@@ -482,731 +464,322 @@
 
 <!-- PORTADA -->
 <div class="portada">
-  <div class="portada-logo">EP</div>
-  <div class="portada-sub">Excavaciones Paco · Sistema de gestión de obras</div>
-  <div class="portada-titulo">Manual<br>de Usuario</div>
-  <div class="portada-desc">Guía completa para el uso diario de la app en obra. Sin tecnicismos.</div>
-  <div class="portada-version">Versión 6.7 · Junio 2026</div>
+  <div class="portada-marca">
+    Excavaciones Paco<br>
+    App v7.3 · Junio 2026
+  </div>
+  <div class="portada-linea"></div>
+  <div class="portada-titulo">Manual<br>de <span>Usuario</span></div>
+  <div class="portada-sub">Guía completa de uso · Versión 7.3</div>
+  <div class="portada-meta">
+    <div class="portada-meta-item">
+      <label>URL de acceso</label>
+      <span>xabiercons.github.io/ObrasPaco/</span>
+    </div>
+    <div class="portada-meta-item">
+      <label>Versión</label>
+      <span>7.3 · Junio 2026</span>
+    </div>
+    <div class="portada-meta-item">
+      <label>Plataforma</label>
+      <span>Chrome / Safari · Móvil y escritorio</span>
+    </div>
+  </div>
 </div>
 
 <!-- ÍNDICE -->
 <div class="indice">
-  <div class="seccion-label">Contenido</div>
   <div class="indice-titulo">Índice</div>
-  <div class="indice-item"><div class="indice-num">01</div><div class="indice-nombre">Iniciar sesión — acceso seguro a la app</div></div>
-  <div class="indice-item"><div class="indice-num">02</div><div class="indice-nombre">Abrir la app y guardar acceso directo en el móvil</div></div>
-  <div class="indice-item"><div class="indice-num">03</div><div class="indice-nombre">Añadir un trabajo nuevo (7 pasos)</div></div>
-  <div class="indice-item"><div class="indice-num">04</div><div class="indice-nombre">Estados de un trabajo — el flujo completo</div></div>
-  <div class="indice-item"><div class="indice-num">05</div><div class="indice-nombre">El listado — ver y gestionar trabajos</div></div>
-  <div class="indice-item"><div class="indice-num">06</div><div class="indice-nombre">El mes — programar trabajos</div></div>
-  <div class="indice-item"><div class="indice-num">07</div><div class="indice-nombre">Vista Hoy — lo que toca hacer hoy</div></div>
-  <div class="indice-item"><div class="indice-num">08</div><div class="indice-nombre">Informes y exportar a Excel</div></div>
-  <div class="indice-item"><div class="indice-num">09</div><div class="indice-nombre">Copia de seguridad — backup completo</div></div>
-  <div class="indice-item"><div class="indice-num">10</div><div class="indice-nombre">Configuración — operarios, máquinas y tipos</div></div>
-  <div class="indice-item"><div class="indice-num">11</div><div class="indice-nombre">Preguntas frecuentes y resolución de problemas</div></div>
+  <ul class="indice-lista">
+    <li><span class="indice-num">01</span><span class="indice-texto">Acceder a la app</span></li>
+    <li><span class="indice-num">02</span><span class="indice-texto">Crear un trabajo nuevo</span></li>
+    <li><span class="indice-num">03</span><span class="indice-texto">Gestionar clientes</span></li>
+    <li><span class="indice-num">04</span><span class="indice-texto">El listado de trabajos</span></li>
+    <li><span class="indice-num">05</span><span class="indice-texto">Programar en el calendario</span></li>
+    <li><span class="indice-num">06</span><span class="indice-texto">Vista Hoy — para el operario</span></li>
+    <li><span class="indice-num">07</span><span class="indice-texto">Marcar trabajo como realizado</span></li>
+    <li><span class="indice-num">08</span><span class="indice-texto">Informes y exportar CSV</span></li>
+    <li><span class="indice-num">09</span><span class="indice-texto">Configuración</span></li>
+    <li><span class="indice-num">10</span><span class="indice-texto">Backup — exportar e importar</span></li>
+    <li><span class="indice-num">11</span><span class="indice-texto">Cerrar sesión</span></li>
+    <li><span class="indice-num">FAQ</span><span class="indice-texto">Preguntas frecuentes</span></li>
+  </ul>
 </div>
 
-<!-- 01 — LOGIN -->
-<div class="seccion">
-  <div class="seccion-header">
-    <div class="seccion-num">01</div>
-    <div class="seccion-info">
-      <div class="seccion-titulo">Iniciar sesión</div>
-      <div class="seccion-desc">La app requiere usuario y contraseña — tus datos están protegidos</div>
+<!-- CONTENIDO -->
+<div class="contenido">
+
+  <!-- 01 -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-num">01</div>
+      <div class="seccion-titulo">Acceder a la app</div>
+    </div>
+    <p>Abre el navegador y ve a la siguiente URL:</p>
+    <div class="aviso">
+      <strong>URL</strong>
+      https://xabiercons.github.io/ObrasPaco/excavaciones_paco_00.html
+    </div>
+    <p>Al abrir la app aparece la pantalla de login. Introduce el email y la contraseña y pulsa <strong>Entrar</strong>.</p>
+
+    <div class="credencial">
+      <div class="credencial-rol">Paco</div>
+      <div class="credencial-datos">
+        <span>Email</span> paco@excavaciones.com<br>
+        <span>Contraseña</span> pacoexcavaciones_2026
+      </div>
+    </div>
+    <div class="credencial">
+      <div class="credencial-rol">Operario</div>
+      <div class="credencial-datos">
+        <span>Email</span> operario@excavaciones.com<br>
+        <span>Contraseña</span> operarioexcavaciones_2026
+      </div>
+    </div>
+
+    <p>Si el email o la contraseña son incorrectos, aparece un mensaje en rojo en la pantalla. <strong>La sesión se mantiene activa</strong> entre recargas — no hace falta volver a hacer login cada vez.</p>
+  </div>
+
+  <!-- 02 -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-num">02</div>
+      <div class="seccion-titulo">Crear un trabajo nuevo</div>
+    </div>
+    <p>Pulsa la pestaña <strong>Nuevo</strong> (primera pestaña). El formulario guía por 7 pasos.</p>
+
+    <h3>Paso 1 — Cliente y nombre de obra</h3>
+    <p>Toca el desplegable y elige el cliente. Si no está, toca <strong>"+ Nuevo cliente…"</strong> para crearlo sin salir del formulario. El campo <strong>Nombre de obra</strong> es opcional — escríbelo o dicta por voz 🎤 (ej: "Desmonte en Santeles").</p>
+
+    <h3>Paso 2 — Ubicación</h3>
+    <p>El GPS activa el mapa automáticamente. Arrastra el marcador para ajustar la posición. La dirección se rellena sola. También puedes dictarla por voz.</p>
+
+    <h3>Pasos 3 y 4 — Tipo de trabajo y Maquinaria</h3>
+    <p>Toca uno o varios tipos y máquinas. También por voz.</p>
+
+    <h3>Paso 5 — Horas estimadas</h3>
+    <p>Ajusta con los botones + y −, o dicta el número por voz.</p>
+
+    <h3>Paso 6 — Urgencia y notas</h3>
+    <p>Selecciona Normal / Alta / Urgente. Añade notas si necesitas (también por voz).</p>
+
+    <h3>Paso 7 — Resumen y guardar</h3>
+    <p>Revisa los datos. Si algo está mal, usa el botón <strong>← Atrás</strong>. Cuando esté correcto, pulsa <strong>Guardar trabajo</strong>. El trabajo se guarda con estado <em>Pendiente presupuestar</em>.</p>
+  </div>
+
+  <!-- 03 -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-num">03</div>
+      <div class="seccion-titulo">Gestionar clientes</div>
+    </div>
+    <p>Los clientes se gestionan en <strong>⚙ Configuración → Clientes</strong>. Cada cliente tiene nombre, teléfono y observaciones.</p>
+    <ul class="lista">
+      <li><strong>Añadir:</strong> rellena nombre (obligatorio), teléfono y observaciones y pulsa + Añadir cliente.</li>
+      <li><strong>Eliminar:</strong> pulsa Eliminar en la ficha del cliente. Los trabajos existentes no se borran.</li>
+      <li><strong>Crear al vuelo:</strong> en el paso 1 del formulario, toca "+ Nuevo cliente…" en el desplegable.</li>
+    </ul>
+  </div>
+
+  <!-- 04 -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-num">04</div>
+      <div class="seccion-titulo">El listado de trabajos</div>
+    </div>
+    <p>La pestaña <strong>Listado</strong> muestra todos los trabajos organizados por maquinaria.</p>
+
+    <h3>Pestañas</h3>
+    <table>
+      <thead><tr><th>Pestaña</th><th>Qué muestra</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Pendientes</strong></td><td>Pendiente presupuestar, Presupuestado, Aceptado</td></tr>
+        <tr><td><strong>Programados</strong></td><td>Trabajos con días asignados en el calendario</td></tr>
+        <tr><td><strong>Realizados</strong></td><td>Trabajos completados — filtrados por mes</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Flujo de estados</h3>
+    <div class="flujo">
+      <div class="flujo-paso">Pendiente presupuestar</div>
+      <div class="flujo-flecha">→</div>
+      <div class="flujo-paso">Presupuestado</div>
+      <div class="flujo-flecha">→</div>
+      <div class="flujo-paso">Aceptado</div>
+      <div class="flujo-flecha">→</div>
+      <div class="flujo-paso activo">Programado</div>
+      <div class="flujo-flecha">→</div>
+      <div class="flujo-paso">Realizado</div>
+    </div>
+
+    <p>En cada tarjeta hay un botón para avanzar al siguiente estado. Los filtros de zona, maquinaria y búsqueda de texto se combinan entre sí.</p>
+  </div>
+
+  <!-- 05 -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-num">05</div>
+      <div class="seccion-titulo">Programar en el calendario</div>
+    </div>
+    <p>La pestaña <strong>Mes</strong> muestra el calendario mensual y la bolsa de trabajos pendientes de programar.</p>
+
+    <h3>Filtro por maquinaria</h3>
+    <p>Encima del calendario hay una barra de filtro. Toca una máquina para ver solo sus trabajos — el resto se atenúa. Toca <strong>Todas</strong> para volver a ver todo.</p>
+
+    <h3>Programar — paso a paso</h3>
+    <ol class="pasos">
+      <li><span>En la bolsa de pendientes (debajo del calendario), toca el trabajo que quieres programar. Se resalta en amarillo.</span></li>
+      <li><span>Toca uno o varios días en el grid del mes. Los días seleccionados se marcan en amarillo. Toca de nuevo para desmarcar.</span></li>
+      <li><span>En la barra inferior: comprueba el nombre del trabajo y los días, y toca los operarios que van a hacer el trabajo (opcional).</span></li>
+      <li><span>Pulsa <strong>✓ Programar</strong>. El trabajo pasa a estado Programado y aparece en el calendario.</span></li>
+    </ol>
+
+    <div class="aviso">
+      <strong>Cancelar sin programar</strong>
+      Pulsa Cancelar en la barra inferior, o toca el mismo trabajo en la bolsa otra vez.
+    </div>
+
+    <h3>Píldoras en el calendario</h3>
+    <p>Cada píldora muestra el nombre de la obra (o el cliente) y las horas previstas. Tócala para ver el detalle completo.</p>
+  </div>
+
+  <!-- 06 -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-num">06</div>
+      <div class="seccion-titulo">Vista Hoy — para el operario</div>
+    </div>
+    <p>La pestaña <strong>Hoy</strong> está pensada para el operario en campo. Selecciona tu nombre en el selector de arriba. La app muestra los trabajos asignados en los próximos 7 días.</p>
+    <ul class="lista">
+      <li><strong>Marcar como realizado</strong> — abre el modal de cierre con horas reales.</li>
+      <li><strong>Registrar jornada parcial</strong> — anota las horas de un día sin cerrar el trabajo.</li>
+    </ul>
+  </div>
+
+  <!-- 07 -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-num">07</div>
+      <div class="seccion-titulo">Marcar trabajo como realizado</div>
+    </div>
+    <p>Desde la tarjeta del trabajo (en Listado o en Vista Hoy), pulsa <strong>✓ Realizado</strong>.</p>
+
+    <h3>En el modal de cierre</h3>
+    <table>
+      <thead><tr><th>Campo</th><th>Qué hacer</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Horas reales</strong></td><td>Ajusta las horas por cada máquina. Pulsa ✕ para quitar una máquina que no se usó. Usa el selector para añadir una que no estaba prevista.</td></tr>
+        <tr><td><strong>Notas de cierre</strong></td><td>Incidencias u observaciones (opcional).</td></tr>
+        <tr><td><strong>Materiales utilizados</strong></td><td>Texto libre — ej: "arena 2 sacos, tubo PVC 6m". Aparece en el CSV (opcional).</td></tr>
+      </tbody>
+    </table>
+
+    <p>Pulsa <strong>Confirmar Realizado</strong>. El trabajo desaparece del calendario y pasa al historial.</p>
+  </div>
+
+  <!-- 08 -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-num">08</div>
+      <div class="seccion-titulo">Informes y exportar CSV</div>
+    </div>
+    <p>En <strong>Listado → tab Realizados</strong>. Por defecto muestra solo el mes actual. Usa ← → para ir a meses anteriores.</p>
+
+    <h3>Exportar CSV</h3>
+    <ol class="pasos">
+      <li><span>Selecciona el rango con <strong>Desde</strong> y <strong>Hasta</strong>.</span></li>
+      <li><span>Pulsa <strong>↓ Exportar CSV</strong>. El archivo se descarga.</span></li>
+    </ol>
+
+    <p>El CSV incluye: Cliente, Obra, Dirección, Zona, Tipo, Maquinaria, Horas previstas, Horas reales, Fecha, Notas de cierre y Materiales. Compatible con Excel.</p>
+
+    <div class="aviso">
+      <strong>CSV individual</strong>
+      También puedes exportar un trabajo individual pulsando el botón ↓ CSV en su tarjeta.
     </div>
   </div>
 
-  <div class="pantalla-wrap">
-    <div style="flex:1">
-      <div class="pasos">
-        <div class="paso">
-          <div class="paso-num">1</div>
-          <div class="paso-body">
-            <div class="paso-titulo">Abre la app</div>
-            <div class="paso-texto">Al entrar verás la pantalla de login. La app no se puede usar sin identificarse primero.</div>
-          </div>
-        </div>
-        <div class="paso naranja">
-          <div class="paso-num">2</div>
-          <div class="paso-body">
-            <div class="paso-titulo">Introduce tu email y contraseña</div>
-            <div class="paso-texto">Escribe el email y la contraseña que te ha facilitado el administrador. Pulsa <strong style="color:var(--texto)">Entrar</strong>.</div>
-          </div>
-        </div>
-        <div class="paso verde">
-          <div class="paso-num">3</div>
-          <div class="paso-body">
-            <div class="paso-titulo">La sesión se guarda automáticamente</div>
-            <div class="paso-texto">No tendrás que volver a introducir la contraseña cada vez. La sesión se mantiene aunque cierres el navegador o reinicies el móvil. Si la sesión caduca, la app te pedirá el login de nuevo.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="consejo" style="margin-top:20px">
-        <div class="consejo-icono">🔒</div>
-        <div>
-          <div class="consejo-titulo">Cerrar sesión</div>
-          <div class="consejo-texto">Si necesitas cerrar la sesión, ve a la pestaña ⚙ Configuración y pulsa <strong style="color:var(--texto)">Cerrar sesión</strong>. Aparece junto al email de tu cuenta activa.</div>
-        </div>
-      </div>
-
-      <div class="aviso" style="margin-top:16px">
-        <div class="aviso-icono">⚠</div>
-        <div>
-          <div class="aviso-titulo">No compartas la contraseña</div>
-          <div class="aviso-texto">Cada usuario debe tener sus propias credenciales. Si alguien más necesita acceso, pide al administrador que le cree una cuenta nueva.</div>
-        </div>
-      </div>
+  <!-- 09 -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-num">09</div>
+      <div class="seccion-titulo">Configuración</div>
     </div>
+    <p>La pestaña <strong>⚙</strong> da acceso a toda la configuración. Los cambios se guardan en la nube automáticamente.</p>
 
-    <div class="pantalla">
-      <div class="pantalla-barra">EXCAVACIONES PACO</div>
-      <div style="text-align:center;padding:16px 8px 8px">
-        <div style="font-size:28px;margin-bottom:6px">🔒</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--amarillo);margin-bottom:14px">Acceso</div>
-        <div style="background:#111;border:1px solid #3A3A3A;border-radius:8px;padding:10px 10px;font-size:9px;color:#666;text-align:left;margin-bottom:8px;font-family:'IBM Plex Mono',monospace">✉ usuario@email.com</div>
-        <div style="background:#111;border:1px solid #3A3A3A;border-radius:8px;padding:10px 10px;font-size:9px;color:#666;text-align:left;margin-bottom:12px;font-family:'IBM Plex Mono',monospace">🔒 ••••••••</div>
-        <div style="background:var(--amarillo);border-radius:8px;padding:10px;font-size:10px;font-weight:700;color:#1C1C1C;text-align:center">ENTRAR</div>
-      </div>
-    </div>
-  </div>
-</div>
+    <table>
+      <thead><tr><th>Sección</th><th>Qué gestiona</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Clientes</strong></td><td>Nombre, teléfono y observaciones. Se seleccionan en el formulario de nuevo trabajo.</td></tr>
+        <tr><td><strong>Operarios</strong></td><td>Se asignan al programar trabajos. Con sinónimos de voz para mejor reconocimiento.</td></tr>
+        <tr><td><strong>Tipos de trabajo</strong></td><td>Excavación, Picado, Carga de escombro... Añadir, archivar, con sinónimos de voz.</td></tr>
+        <tr><td><strong>Maquinaria</strong></td><td>Lista de máquinas. Añadir, archivar, con sinónimos de voz.</td></tr>
+      </tbody>
+    </table>
 
-<!-- 02 — ABRIR LA APP -->
-<div class="seccion">
-  <div class="seccion-header">
-    <div class="seccion-num">02</div>
-    <div class="seccion-info">
-      <div class="seccion-titulo">Abrir la app</div>
-      <div class="seccion-desc">Cómo acceder y guardar el acceso directo en el móvil</div>
+    <div class="aviso">
+      <strong>Dar de baja vs. Eliminar</strong>
+      <strong>Dar de baja</strong>: el elemento deja de aparecer en los formularios pero los trabajos históricos lo conservan. Se puede reactivar. <strong>Eliminar</strong>: borra definitivamente. Solo usar si fue un error al crear.
     </div>
   </div>
 
-  <div class="pantalla-wrap">
-    <div style="flex:1">
-      <div class="pasos">
-        <div class="paso">
-          <div class="paso-num">1</div>
-          <div class="paso-body">
-            <div class="paso-titulo">Abre Chrome en el móvil</div>
-            <div class="paso-texto">Usa Chrome (Android) o Safari (iPhone). Son los navegadores con mejor compatibilidad para el GPS y el micrófono.</div>
-          </div>
-        </div>
-        <div class="paso naranja">
-          <div class="paso-num">2</div>
-          <div class="paso-body">
-            <div class="paso-titulo">Ve a la dirección de la app</div>
-            <div class="url-box">https://xabiercons.github.io/ObrasPaco/excavaciones_paco_00.html</div>
-          </div>
-        </div>
-        <div class="paso verde">
-          <div class="paso-num">3</div>
-          <div class="paso-body">
-            <div class="paso-titulo">Guarda como acceso directo</div>
-            <div class="paso-texto"><strong style="color:var(--texto)">Android:</strong> menú ⋮ → "Añadir a pantalla de inicio".<br><strong style="color:var(--texto)">iPhone:</strong> botón compartir □↑ → "Añadir a pantalla de inicio".<br><br>Aparece como una app más. No hay que instalar nada.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="consejo" style="margin-top:20px">
-        <div class="consejo-icono">☁</div>
-        <div>
-          <div class="consejo-titulo">Los datos están en la nube</div>
-          <div class="consejo-texto">Todo se guarda en Supabase (servidor en internet). Puedes abrir la app desde cualquier móvil u ordenador y verás los mismos datos. Si no hay conexión, la app usa los datos del último acceso.</div>
-        </div>
-      </div>
+  <!-- 10 -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-num">10</div>
+      <div class="seccion-titulo">Backup — exportar e importar</div>
     </div>
-
-    <div class="pantalla">
-      <div class="pantalla-barra">EXCAVACIONES PACO</div>
-      <div class="pantalla-nav">
-        <div class="nav-item activo">+ Nuevo</div>
-        <div class="nav-item">Lista</div>
-        <div class="nav-item">Sem.</div>
-        <div class="nav-item">Hoy</div>
-        <div class="nav-item">⚙</div>
-      </div>
-      <div class="pantalla-step">
-        <div class="step-label">Paso 1 / 7</div>
-        <div class="step-title-sim">Cliente</div>
-        <div class="step-hint-sim">Di el nombre o escríbelo</div>
-        <div class="voice-btn-sim">🎤 Hablar</div>
-        <div class="pantalla-input">Nombre del cliente…</div>
-      </div>
-      <div style="font-size:8px;color:var(--verde);text-align:right;margin-top:8px;font-family:'IBM Plex Mono',monospace">● Sincronizado</div>
-    </div>
-  </div>
-</div>
-
-<!-- 03 — AÑADIR TRABAJO -->
-<div class="seccion">
-  <div class="seccion-header">
-    <div class="seccion-num">03</div>
-    <div class="seccion-info">
-      <div class="seccion-titulo">Añadir un trabajo nuevo</div>
-      <div class="seccion-desc">7 pasos para registrar un trabajo desde obra</div>
-    </div>
+    <p>En la parte inferior de <strong>⚙ Configuración</strong>:</p>
+    <ul class="lista">
+      <li><strong>Exportar JSON</strong>: descarga todos los trabajos en un archivo con fecha. Guárdalo como copia de seguridad.</li>
+      <li><strong>Importar JSON</strong>: carga un archivo de backup anterior. No duplica trabajos que ya existan.</li>
+    </ul>
   </div>
 
-  <div class="pantalla-wrap">
-    <div style="flex:1">
-      <div class="pasos">
-        <div class="paso">
-          <div class="paso-num">1</div>
-          <div class="paso-body">
-            <div class="paso-titulo">Cliente</div>
-            <div class="paso-texto">Di el nombre del cliente por el micrófono o escríbelo. Si el cliente ya existe, la app avisa — puedes seguir igualmente.</div>
-          </div>
-        </div>
-        <div class="paso naranja">
-          <div class="paso-num">2</div>
-          <div class="paso-body">
-            <div class="paso-titulo">Ubicación GPS</div>
-            <div class="paso-texto">Pulsa "Localizar en el mapa". El GPS centra el mapa donde estás. Arrastra el marcador rojo si hay que ajustarlo. Pulsa "Aceptar esta ubicación".</div>
-          </div>
-        </div>
-        <div class="paso">
-          <div class="paso-num">3</div>
-          <div class="paso-body">
-            <div class="paso-titulo">Tipo de trabajo</div>
-            <div class="paso-texto">Toca uno o varios botones: Excavación, Picado, Carga escombro… También puedes hablar: di "excavar" o "picar" y se selecciona solo.</div>
-          </div>
-        </div>
-        <div class="paso">
-          <div class="paso-num">4</div>
-          <div class="paso-body">
-            <div class="paso-titulo">Maquinaria</div>
-            <div class="paso-texto">Selecciona la máquina o máquinas necesarias. Puedes marcar más de una. También funciona por voz: di "volvo" o "minipala".</div>
-          </div>
-        </div>
-        <div class="paso">
-          <div class="paso-num">5</div>
-          <div class="paso-body">
-            <div class="paso-titulo">Horas previstas</div>
-            <div class="paso-texto">Usa los botones + y − para ajustar las horas estimadas. También puedes decir el número por el micrófono.</div>
-          </div>
-        </div>
-        <div class="paso">
-          <div class="paso-num">6</div>
-          <div class="paso-body">
-            <div class="paso-titulo">Urgencia y notas</div>
-            <div class="paso-texto">Elige la prioridad: <strong style="color:var(--amarillo)">Normal</strong>, <strong style="color:var(--naranja)">Alta</strong> o <strong style="color:var(--rojo)">Urgente</strong>. Añade cualquier nota adicional por voz o escrita.</div>
-          </div>
-        </div>
-        <div class="paso verde">
-          <div class="paso-num">7</div>
-          <div class="paso-body">
-            <div class="paso-titulo">Revisar y guardar</div>
-            <div class="paso-texto">Revisa el resumen de todos los datos. Si algo está mal, pulsa "Corregir". Si todo está bien, pulsa "Guardar trabajo". El trabajo queda guardado en la nube al instante.</div>
-          </div>
-        </div>
-      </div>
+  <!-- 11 -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-num">11</div>
+      <div class="seccion-titulo">Cerrar sesión</div>
     </div>
-
-    <div class="pantalla">
-      <div class="pantalla-barra">+ NUEVO TRABAJO</div>
-      <div class="progress-sim">
-        <div class="prog-step-sim done"></div>
-        <div class="prog-step-sim done"></div>
-        <div class="prog-step-sim active"></div>
-        <div class="prog-step-sim"></div>
-        <div class="prog-step-sim"></div>
-        <div class="prog-step-sim"></div>
-        <div class="prog-step-sim"></div>
-      </div>
-      <div class="pantalla-step">
-        <div class="step-label">Paso 3 / 7</div>
-        <div class="step-title-sim">Tipo de trabajo</div>
-        <div class="step-hint-sim">¿Qué hay que hacer?</div>
-        <div class="voice-btn-sim">🎤 Hablar</div>
-        <div class="chips-sim">
-          <div class="chip-sim sel">Excavación</div>
-          <div class="chip-sim">Picado</div>
-          <div class="chip-sim">Zanjas</div>
-          <div class="chip-sim">Carga escombro</div>
-          <div class="chip-sim">Nivelación</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;margin-top:8px">
-        <div style="flex:1;background:#272727;border:1px solid rgba(255,209,0,0.2);border-radius:6px;padding:8px;font-size:9px;color:#aaa;text-align:center">Atrás</div>
-        <div style="flex:2;background:var(--amarillo);border-radius:6px;padding:8px;font-size:9px;font-weight:600;color:#1C1C1C;text-align:center">Siguiente →</div>
-      </div>
-    </div>
+    <p>En <strong>⚙ Configuración</strong>, al final, hay un botón <strong>Cerrar sesión</strong> que muestra el email del usuario activo. Al pulsarlo vuelve a la pantalla de login.</p>
   </div>
 
-  <div class="consejo">
-    <div class="consejo-icono">🎤</div>
-    <div>
-      <div class="consejo-titulo">El micrófono reconoce palabras normales y muestra lo que entiende</div>
-      <div class="consejo-texto">Mientras hablas ves el texto provisional en gris. Cuando confirma, aparece en blanco y debajo muestra en verde lo que seleccionó (✓ Minipala JCB) o en rojo si no lo reconoció. "retro" o "excavadora" selecciona el Volvo giratorio. Los sinónimos se pueden ampliar en Configuración.</div>
-    </div>
-  </div>
-</div>
-
-<!-- 04 — ESTADOS -->
-<div class="seccion">
-  <div class="seccion-header">
-    <div class="seccion-num">04</div>
-    <div class="seccion-info">
-      <div class="seccion-titulo">Estados de un trabajo</div>
-      <div class="seccion-desc">Cada trabajo pasa por estas fases desde que se anota hasta que se termina</div>
-    </div>
-  </div>
-
-  <div class="flujo">
-    <div class="flujo-item">
-      <div class="flujo-punto" style="background:#FFB800"></div>
-      <div class="flujo-nombre">Pendiente presupuestar <span class="badge badge-pend">Pend. presupuesto</span></div>
-      <div class="flujo-desc">Trabajo anotado, todavía sin precio</div>
-    </div>
-    <div class="flujo-flecha">↓</div>
-    <div class="flujo-item">
-      <div class="flujo-punto" style="background:#6699FF"></div>
-      <div class="flujo-nombre">Presupuestado <span class="badge badge-pres">Presupuestado</span></div>
-      <div class="flujo-desc">Precio enviado al cliente</div>
-    </div>
-    <div class="flujo-flecha">↓</div>
-    <div class="flujo-item">
-      <div class="flujo-punto" style="background:#FFD100"></div>
-      <div class="flujo-nombre">Aceptado <span class="badge badge-acep">Aceptado</span></div>
-      <div class="flujo-desc">Cliente ha dicho que sí. Entra en la bolsa a programar</div>
-    </div>
-    <div class="flujo-flecha">↓</div>
-    <div class="flujo-item">
-      <div class="flujo-punto" style="background:#BB88FF"></div>
-      <div class="flujo-nombre">Programado <span class="badge badge-prog">Programado</span></div>
-      <div class="flujo-desc">Asignado a un día y operario concreto</div>
-    </div>
-    <div class="flujo-flecha">↓</div>
-    <div class="flujo-item">
-      <div class="flujo-punto" style="background:#44CC77"></div>
-      <div class="flujo-nombre">Realizado <span class="badge badge-real">Realizado</span></div>
-      <div class="flujo-desc">Trabajo terminado. Sale de la programación</div>
-    </div>
-  </div>
-
-  <div class="sep"></div>
-
-  <div class="seccion-label" style="margin-bottom:14px">Cómo avanzar el estado</div>
-  <div class="pasos">
-    <div class="paso">
-      <div class="paso-body">
-        <div class="paso-titulo">Desde el Listado</div>
-        <div class="paso-texto">Abre "Listado" → encuentra el trabajo → pulsa <strong style="color:var(--amarillo)">"→ Siguiente estado"</strong> para avanzarlo un paso. O pulsa <strong style="color:var(--verde)">"Realizado"</strong> para marcarlo terminado directamente.</div>
-      </div>
-    </div>
-    <div class="paso naranja">
-      <div class="paso-body">
-        <div class="paso-titulo">Desde la vista Hoy (operario)</div>
-        <div class="paso-texto">El operario solo ve su botón <strong style="color:var(--verde)">"Marcar como realizado"</strong>. Un toque, confirma las horas reales, y el trabajo desaparece de su lista.</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 05 — LISTADO -->
-<div class="seccion">
-  <div class="seccion-header">
-    <div class="seccion-num">05</div>
-    <div class="seccion-info">
-      <div class="seccion-titulo">El listado</div>
-      <div class="seccion-desc">Ver, filtrar y gestionar todos los trabajos</div>
-    </div>
-  </div>
-
-  <div class="pantalla-wrap">
-    <div style="flex:1">
-      <div class="pasos">
-        <div class="paso">
-          <div class="paso-body">
-            <div class="paso-titulo">Tres pestañas</div>
-            <div class="paso-texto">
-              <strong style="color:var(--amarillo)">Pendientes</strong> — trabajos sin programar (todos los estados hasta Aceptado).<br>
-              <strong style="color:var(--morado)">Programados</strong> — asignados a días concretos.<br>
-              <strong style="color:var(--verde)">Realizados</strong> — trabajos terminados con horas reales.
-            </div>
-          </div>
-        </div>
-        <div class="paso naranja">
-          <div class="paso-body">
-            <div class="paso-titulo">Filtros</div>
-            <div class="paso-texto">Filtra por zona, por maquinaria, o busca por nombre de cliente o dirección. Los filtros se combinan. Útil para ver, por ejemplo, todos los trabajos del Volvo en Milladoiro.</div>
-          </div>
-        </div>
-        <div class="paso">
-          <div class="paso-body">
-            <div class="paso-titulo">Agrupado por maquinaria</div>
-            <div class="paso-texto">Los trabajos se agrupan automáticamente por máquina. Cada grupo muestra el número de trabajos y el total de horas estimadas.</div>
-          </div>
-        </div>
-        <div class="paso azul">
-          <div class="paso-body">
-            <div class="paso-titulo">Notas colapsables</div>
-            <div class="paso-texto">Las notas de cada trabajo aparecen resumidas. Toca la tarjeta para expandirlas y ver el texto completo.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="pantalla">
-      <div class="pantalla-barra">LISTADO</div>
-      <div style="display:flex;gap:4px;margin-bottom:10px">
-        <div style="flex:1;background:var(--amarillo);border-radius:4px;padding:5px;font-size:8px;font-weight:600;color:#1C1C1C;text-align:center">Pendientes</div>
-        <div style="flex:1;background:#272727;border-radius:4px;padding:5px;font-size:8px;color:#aaa;text-align:center">Programados</div>
-        <div style="flex:1;background:#272727;border-radius:4px;padding:5px;font-size:8px;color:#aaa;text-align:center">Realizados</div>
-      </div>
-      <div style="font-size:8px;color:#888;margin-bottom:8px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.08em">Minipala JCB · 2 trabajos · 10h</div>
-      <div class="pantalla-card">
-        <div class="card-titulo">García — Excavación</div>
-        <div class="card-sub">Milladoiro · 6h</div>
-        <div><span class="card-pill pill-acep">Aceptado</span></div>
-      </div>
-      <div class="pantalla-card">
-        <div class="card-titulo">Pérez — Zanjas</div>
-        <div class="card-sub">Conxo · 4h</div>
-        <div><span class="card-pill pill-pres">Presupuestado</span></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 06 — MES -->
-<div class="seccion">
-  <div class="seccion-header">
-    <div class="seccion-num">06</div>
-    <div class="seccion-info">
-      <div class="seccion-titulo">El mes</div>
-      <div class="seccion-desc">Vista mensual para programar trabajos y ver la carga de cada día</div>
-    </div>
-  </div>
-
-  <div class="pasos">
-    <div class="paso">
-      <div class="paso-num">1</div>
-      <div class="paso-body">
-        <div class="paso-titulo">Navega entre meses</div>
-        <div class="paso-texto">Usa las flechas ← → para moverte entre meses. Ves de un vistazo todo el mes: cada día muestra un punto de color según la carga de trabajo.</div>
-      </div>
-    </div>
-    <div class="paso naranja">
-      <div class="paso-num">2</div>
-      <div class="paso-body">
-        <div class="paso-titulo">Punto de carga por día</div>
-        <div class="paso-texto">Cada día con trabajos tiene un punto en la esquina: <strong style="color:var(--verde)">● verde</strong> (1 trabajo), <strong style="color:var(--naranja)">● naranja</strong> (2-3 trabajos), <strong style="color:var(--rojo)">● rojo</strong> (4 o más). De un vistazo sabes dónde está la carga.</div>
-      </div>
-    </div>
-    <div class="paso">
-      <div class="paso-num">3</div>
-      <div class="paso-body">
-        <div class="paso-titulo">Toca un día para programar</div>
-        <div class="paso-texto">Al tocar cualquier día del mes se abre el modal de programación situado en esa semana, con el día ya preseleccionado. Elige el trabajo de la bolsa, asigna operario y confirma.</div>
-      </div>
-    </div>
-    <div class="paso verde">
-      <div class="paso-num">4</div>
-      <div class="paso-body">
-        <div class="paso-titulo">Bolsa de pendientes</div>
-        <div class="paso-texto">Debajo del grid mensual aparecen todos los trabajos <strong style="color:var(--amarillo)">Aceptados</strong> sin día asignado. Toca cualquiera para abrirlo y programarlo directamente.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="consejo" style="margin-top:24px">
-    <div class="consejo-icono">↩</div>
-    <div>
-      <div class="consejo-titulo">Quitar un trabajo del calendario</div>
-      <div class="consejo-texto">Toca la píldora del trabajo → "Quitar de la programación". Vuelve a la bolsa de pendientes sin perder ningún dato.</div>
-    </div>
-  </div>
-</div>
-
-<!-- 07 — VISTA HOY -->
-<div class="seccion">
-  <div class="seccion-header">
-    <div class="seccion-num">07</div>
-    <div class="seccion-info">
-      <div class="seccion-titulo">Vista Hoy</div>
-      <div class="seccion-desc">Lo que toca hacer hoy y los próximos días — vista del operario</div>
-    </div>
-  </div>
-
-  <div class="pantalla-wrap">
-    <div style="flex:1">
-      <div class="pasos">
-        <div class="paso">
-          <div class="paso-body">
-            <div class="paso-titulo">Selecciona tu nombre</div>
-            <div class="paso-texto">Arriba aparecen los botones con los nombres de los operarios. Toca el tuyo para ver solo tus trabajos del día.</div>
-          </div>
-        </div>
-        <div class="paso naranja">
-          <div class="paso-body">
-            <div class="paso-titulo">7 días a la vista</div>
-            <div class="paso-texto">Ves los trabajos de hoy primero, luego mañana, y los días siguientes. Los días sin trabajos no aparecen.</div>
-          </div>
-        </div>
-        <div class="paso verde">
-          <div class="paso-body">
-            <div class="paso-titulo">Marcar como realizado</div>
-            <div class="paso-texto">Cuando termines un trabajo, pulsa <strong style="color:var(--verde)">"Marcar como realizado"</strong>. Te preguntará las horas reales empleadas. Confirma y desaparece de la lista.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="aviso" style="margin-top:20px">
-        <div class="aviso-icono">⚠</div>
-        <div>
-          <div class="aviso-titulo">Esta acción no se puede deshacer</div>
-          <div class="aviso-texto">Cuando marcas un trabajo como realizado pasa al historial. Asegúrate de que es el trabajo correcto antes de confirmar.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="pantalla">
-      <div class="pantalla-barra">HOY</div>
-      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
-        <div style="background:var(--amarillo);border-radius:20px;padding:4px 10px;font-size:8px;font-weight:600;color:#1C1C1C">Paco</div>
-        <div style="background:#272727;border:1px solid rgba(255,209,0,0.2);border-radius:20px;padding:4px 10px;font-size:8px;color:#aaa">Oper. 2</div>
-      </div>
-      <div style="font-size:8px;font-family:'IBM Plex Mono',monospace;color:var(--amarillo);text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid rgba(255,209,0,0.3);padding-bottom:5px;margin-bottom:8px">HOY</div>
-      <div class="pantalla-card" style="border-left-color:var(--rojo)">
-        <div class="card-titulo">García — Excavación</div>
-        <div class="card-sub">Milladoiro · Minipala JCB · 6h</div>
-        <div class="pantalla-btn verde" style="margin-top:8px">✓ Marcar como realizado</div>
-      </div>
-      <div style="font-size:8px;font-family:'IBM Plex Mono',monospace;color:#666;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid rgba(255,209,0,0.1);padding-bottom:5px;margin:10px 0 8px">MAÑANA</div>
-      <div class="pantalla-card">
-        <div class="card-titulo">Rodríguez — Picado</div>
-        <div class="card-sub">Conxo · Manual · 4h</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 08 — INFORMES -->
-<div class="seccion">
-  <div class="seccion-header">
-    <div class="seccion-num">08</div>
-    <div class="seccion-info">
-      <div class="seccion-titulo">Informes y exportar</div>
-      <div class="seccion-desc">Consultar trabajos realizados y exportar a Excel por fechas</div>
-    </div>
-  </div>
-
-  <div class="pasos">
-    <div class="paso">
-      <div class="paso-num">1</div>
-      <div class="paso-body">
-        <div class="paso-titulo">Ve a Listado → pestaña Realizados</div>
-        <div class="paso-texto">Aquí aparecen todos los trabajos terminados con sus horas reales (en verde) y las notas de cierre.</div>
-      </div>
-    </div>
-    <div class="paso naranja">
-      <div class="paso-num">2</div>
-      <div class="paso-body">
-        <div class="paso-titulo">Elige el rango de fechas</div>
-        <div class="paso-texto">En la parte superior del panel verás dos selectores: <strong style="color:var(--texto)">Desde</strong> y <strong style="color:var(--texto)">Hasta</strong>. Elige las fechas del periodo que quieres exportar.</div>
-      </div>
-    </div>
-    <div class="paso verde">
-      <div class="paso-num">3</div>
-      <div class="paso-body">
-        <div class="paso-titulo">Pulsa "Exportar CSV"</div>
-        <div class="paso-texto">Se descarga un archivo compatible con Excel. Se abre directamente con Excel o Numbers. Contiene cliente, dirección, tipo, maquinaria, horas previstas, horas reales y notas.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="consejo" style="margin-top:24px">
-    <div class="consejo-icono">📊</div>
-    <div>
-      <div class="consejo-titulo">CSV individual por trabajo</div>
-      <div class="consejo-texto">En cada tarjeta de trabajo realizado hay también un botón para exportar ese trabajo concreto. Útil para enviar el detalle de un trabajo específico.</div>
-    </div>
-  </div>
-</div>
-
-<!-- 09 — BACKUP -->
-<div class="seccion">
-  <div class="seccion-header">
-    <div class="seccion-num">09</div>
-    <div class="seccion-info">
-      <div class="seccion-titulo">Copia de seguridad</div>
-      <div class="seccion-desc">Los datos están en la nube — backup extra para mayor seguridad</div>
-    </div>
-  </div>
-
-  <div class="consejo">
-    <div class="consejo-icono">☁</div>
-    <div>
-      <div class="consejo-titulo">Los datos ya están en la nube</div>
-      <div class="consejo-texto">A diferencia de versiones anteriores, todos los datos se guardan en Supabase (servidor online). Si cambias de móvil o se pierde, los datos siguen ahí. Aun así, hacer backup periódico es una buena práctica.</div>
-    </div>
-  </div>
-
-  <div class="seccion-label" style="margin:28px 0 14px">Cuándo hacer backup manual</div>
-  <table class="tabla">
-    <thead>
-      <tr><th>Situación</th><th>Hacer backup</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>Final de cada mes</td><td style="color:var(--verde)">Recomendado</td></tr>
-      <tr><td>Antes de una actualización importante</td><td style="color:var(--verde)">Recomendado</td></tr>
-      <tr><td>Si se acumulan muchos trabajos realizados</td><td style="color:var(--naranja)">Opcional</td></tr>
-    </tbody>
-  </table>
-
-  <div class="seccion-label" style="margin:28px 0 14px">Cómo exportar el backup completo</div>
-  <div class="pasos">
-    <div class="paso">
-      <div class="paso-num">1</div>
-      <div class="paso-body">
-        <div class="paso-titulo">Abre el Listado</div>
-        <div class="paso-texto">Baja hasta el final de la página — hay una sección de Backup separada de los informes.</div>
-      </div>
-    </div>
-    <div class="paso">
-      <div class="paso-num">2</div>
-      <div class="paso-body">
-        <div class="paso-titulo">Pulsa "Exportar datos (JSON)"</div>
-        <div class="paso-texto">Se descarga un archivo con la fecha de hoy en el nombre. Contiene todos los trabajos.</div>
-      </div>
-    </div>
-    <div class="paso verde">
-      <div class="paso-num">3</div>
-      <div class="paso-body">
-        <div class="paso-titulo">Guárdalo en un lugar seguro</div>
-        <div class="paso-texto">Envíatelo por WhatsApp, súbelo a Google Drive, o guárdalo en el ordenador. Este archivo permite restaurar todos los datos si fuera necesario.</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 10 — CONFIGURACIÓN -->
-<div class="seccion">
-  <div class="seccion-header">
-    <div class="seccion-num">10</div>
-    <div class="seccion-info">
-      <div class="seccion-titulo">Configuración ⚙</div>
-      <div class="seccion-desc">Gestionar operarios, tipos de trabajo y maquinaria</div>
-    </div>
-  </div>
-
-  <div class="pasos">
-    <div class="paso">
-      <div class="paso-body">
-        <div class="paso-titulo">Operarios</div>
-        <div class="paso-texto">Añade o gestiona los nombres de los operarios. Tres botones por cada uno:<br>
-        — <strong style="color:var(--texto)">Dar de baja</strong>: el operario deja de aparecer en los desplegables pero sus trabajos históricos quedan intactos.<br>
-        — <strong style="color:var(--verde)">Dar de alta</strong>: lo reactiva.<br>
-        — <strong style="color:var(--rojo)">Eliminar</strong>: lo borra definitivamente (pide confirmación).</div>
-      </div>
-    </div>
-    <div class="paso naranja">
-      <div class="paso-body">
-        <div class="paso-titulo">Tipos de trabajo y maquinaria</div>
-        <div class="paso-texto">Igual que los operarios. Puedes añadir nuevos tipos de trabajo o máquinas, darlos de baja temporalmente, o eliminarlos. Los cambios se guardan en la nube al instante.</div>
-      </div>
-    </div>
-    <div class="paso azul">
-      <div class="paso-body">
-        <div class="paso-titulo">Sinónimos de voz</div>
-        <div class="paso-texto">Cada tipo y máquina puede tener palabras alternativas que el micrófono reconoce. Por ejemplo, "retro" o "giratorio" para el Volvo. Añade aquí las palabras que uses habitualmente.</div>
-      </div>
-    </div>
-    <div class="paso rojo">
-      <div class="paso-body">
-        <div class="paso-titulo">Restaurar listas por defecto</div>
-        <div class="paso-texto">Borra todo lo configurado y vuelve a los valores originales de fábrica. Los trabajos guardados no se borran. Úsalo solo si hay algún problema grave con la configuración.</div>
-      </div>
-    </div>
-    <div class="paso morado">
-      <div class="paso-body">
-        <div class="paso-titulo">Cerrar sesión</div>
-        <div class="paso-texto">Al final de la pantalla de Configuración aparece tu email activo y el botón <strong style="color:var(--texto)">Cerrar sesión</strong>. Úsalo si compartes el dispositivo o quieres cambiar de usuario. La próxima vez que abras la app pedirá el login de nuevo.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="aviso" style="margin-top:24px">
-    <div class="aviso-icono">⚠</div>
-    <div>
-      <div class="aviso-titulo">Eliminar es definitivo</div>
-      <div class="aviso-texto">El botón "Eliminar" borra el elemento de la nube para siempre. Si solo quieres que no aparezca en los formularios, usa "Dar de baja" en su lugar.</div>
-    </div>
-  </div>
-</div>
-
-<!-- 11 — PREGUNTAS FRECUENTES -->
-<div class="seccion">
-  <div class="seccion-header">
-    <div class="seccion-num">11</div>
-    <div class="seccion-info">
+  <!-- FAQ -->
+  <div class="seccion">
+    <div class="seccion-header">
+      <div class="seccion-num" style="font-size:18pt">FAQ</div>
       <div class="seccion-titulo">Preguntas frecuentes</div>
-      <div class="seccion-desc">Problemas habituales y cómo resolverlos</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">¿La app funciona sin internet?</div>
+      <div class="faq-a">No para guardar ni sincronizar. Sin cobertura los datos no se guardan en la nube. La app puede mostrar los últimos datos cargados pero no registrar trabajos nuevos.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">¿Desde qué dispositivo puedo usarla?</div>
+      <div class="faq-a">Desde cualquier móvil, tablet u ordenador con Chrome o Safari. La misma URL, los mismos datos en todos los dispositivos.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">¿Qué pasa si cierro la app a mitad de un trabajo?</div>
+      <div class="faq-a">Los datos del formulario se pierden si no se ha guardado. Los trabajos ya guardados en Supabase no se pierden nunca.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">¿Puedo usar la voz en todos los campos?</div>
+      <div class="faq-a">En nombre de obra, dirección, tipo de trabajo, maquinaria, horas y notas. No en cliente (usa el selector).</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">El calendario tarda en cargar la primera vez del día.</div>
+      <div class="faq-a">El plan gratuito de Supabase pausa el servidor tras 7 días sin uso. La primera petición del día puede tardar 1-2 minutos. A partir de ahí va rápido.</div>
     </div>
   </div>
 
-  <div class="pasos">
-    <div class="paso azul">
-      <div class="paso-body">
-        <div class="paso-titulo">¿Cómo confirmo acciones como eliminar o cerrar sesión?</div>
-        <div class="paso-texto">La app muestra un modal de confirmación propio (no el de tu navegador). Para acciones definitivas como eliminar un trabajo u operario, el botón de confirmar aparece en rojo. Para acciones reversibles como cambiar estado o desprogramar, aparece en amarillo. Siempre puedes cancelar.</div>
-      </div>
-    </div>
-    <div class="paso morado">
-      <div class="paso-body">
-        <div class="paso-titulo">Me pide el login cada vez que abro la app</div>
-        <div class="paso-texto">La sesión se guarda automáticamente y debería mantenerse. Si se pide de nuevo, puede que haya caducado (esto es normal tras un período largo sin usar) o que hayas cerrado sesión manualmente. Introduce el email y contraseña y continuarás donde lo dejaste.</div>
-      </div>
-    </div>
-    <div class="paso">
-      <div class="paso-body">
-        <div class="paso-titulo">La app dice "Sin conexión — datos locales"</div>
-        <div class="paso-texto">No hay internet en ese momento. La app sigue funcionando con los datos del último acceso. En cuanto vuelva la conexión, se sincroniza solo. No se pierden datos.</div>
-      </div>
-    </div>
-    <div class="paso naranja">
-      <div class="paso-body">
-        <div class="paso-titulo">El GPS no me localiza bien</div>
-        <div class="paso-texto">Asegúrate de que el navegador tiene permiso para acceder a la ubicación (lo pregunta la primera vez). Si el marcador no está en el sitio exacto, arrástralo con el dedo hasta el punto correcto antes de aceptar.</div>
-      </div>
-    </div>
-    <div class="paso">
-      <div class="paso-body">
-        <div class="paso-titulo">El micrófono no me entiende</div>
-        <div class="paso-texto">Habla despacio y claro. Asegúrate de que el navegador tiene permiso de micrófono. Si dice una palabra equivocada, pulsa el botón de hablar de nuevo — no suma, sustituye.</div>
-      </div>
-    </div>
-    <div class="paso">
-      <div class="paso-body">
-        <div class="paso-titulo">La app no se actualiza después de subir cambios</div>
-        <div class="paso-texto">Añade <strong style="color:var(--amarillo)">?v2</strong> (o ?v3, ?v4…) al final de la URL y recarga. Esto fuerza al navegador a coger la versión nueva.</div>
-      </div>
-    </div>
-    <div class="paso verde">
-      <div class="paso-body">
-        <div class="paso-titulo">¿Dónde puedo ver la app desde el ordenador?</div>
-        <div class="paso-texto">En cualquier navegador, ve a la misma URL:<br>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--amarillo)">https://xabiercons.github.io/ObrasPaco/excavaciones_paco_00.html</span><br>
-        Los datos son los mismos que en el móvil porque están en la nube.</div>
-      </div>
-    </div>
-    <div class="paso azul">
-      <div class="paso-body">
-        <div class="paso-titulo">Supabase tarda en arrancar</div>
-        <div class="paso-texto">El plan gratuito de Supabase se "duerme" si no se usa en 7 días. La primera carga después de ese periodo puede tardar 1-2 minutos. Es normal — luego funciona con normalidad.</div>
-      </div>
-    </div>
-  </div>
+</div>
 
-  <div class="sep"></div>
-
-  <div style="text-align:center;padding:40px 20px">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--amarillo);margin-bottom:12px">¿Algo no funciona?</div>
-    <div style="font-size:14px;color:var(--texto2);margin-bottom:8px">Contacta con el desarrollador de la app:</div>
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--texto)">github.com/xabiercons</div>
-  </div>
+<!-- PIE -->
+<div class="pie">
+  <div>Excavaciones Paco · Manual de usuario</div>
+  <div>Versión <span>7.3</span> · Junio 2026</div>
 </div>
 
 </body>
