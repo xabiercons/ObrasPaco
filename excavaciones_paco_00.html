@@ -615,6 +615,8 @@
     <!-- Nombre de obra -->
     <div style="margin-top:12px">
       <div style="font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Nombre de obra (opcional)</div>
+      <button class="voice-btn" id="vbtn-obra" onclick="startVoice('obra', 'vbtn-obra', 'vres-obra')">🎤 Hablar</button>
+      <div class="voice-result" id="vres-obra"></div>
       <input type="text" id="f-obra" placeholder="Ej: Desmonte en Santeles…" oninput="syncField('obra', this.value)">
     </div>
 
@@ -1771,6 +1773,10 @@ function processVoice(field, texto) {
       return { ok: true, msg: form.horas + 'h registradas' };
     }
     return { ok: false, msg: 'No se detectó número de horas' };
+  } else if(field==='obra') {
+    form.obra = texto;
+    document.getElementById('f-obra').value = texto;
+    return { ok: true, msg: 'Nombre de obra registrado' };
   } else if(field==='notas') {
     form.notas = texto;
     document.getElementById('f-notas').value = texto;
