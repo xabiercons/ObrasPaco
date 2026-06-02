@@ -2202,7 +2202,7 @@ function renderMes() {
       pill.className = 'mes-pill-mini' + (urg === 'urgente' ? ' urgente' : urg === 'alta' ? ' alta' : '');
       const nombre = (t.obra || t.cliente || 'Trabajo').split(/[-,]/)[0].trim().slice(0, 10);
       const hrsText = t.horas ? ' '+t.horas+'h' : '';
-      pill.innerHTML = '<span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+nombre+'</span><span style="display:block;font-size:7px;opacity:0.65;font-family:'Courier New',monospace">'+hrsText+'</span>';
+      pill.innerHTML = '<span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+nombre+'</span><span style="display:block;font-size:7px;opacity:0.65;font-family:monospace">'+hrsText+'</span>';
       pill.onclick = (e) => { e.stopPropagation(); abrirDetalle(t.id); };
       pillsWrap.appendChild(pill);
     });
