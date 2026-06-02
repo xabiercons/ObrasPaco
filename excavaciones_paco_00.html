@@ -208,6 +208,7 @@
   .bolsa-count { background: var(--accent); color: #1C1C1C; border-radius: 20px; padding: 1px 8px; font-size: 10px; }
   .bolsa-trabajo { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: border-color 0.15s; }
   .bolsa-trabajo:active { opacity: 0.85; }
+  .bolsa-trabajo.bolsa-activo { border-left-color: #FFD100; background: #332B00; }
   .bolsa-trabajo.urgente { border-left-color: #FF4444; }
   .bolsa-trabajo.alta { border-left-color: #FFA500; }
   .bolsa-info { flex: 1; min-width: 0; }
@@ -235,6 +236,8 @@
   .mes-carga.libre { background: #44CC77; }
   .mes-carga.media { background: #FFA500; }
   .mes-carga.lleno { background: #FF4444; }
+  .mes-dia.prog-sel { border: 2px solid #FFD100 !important; background: #332B00 !important; }
+  .mes-dia.prog-disponible:hover { border-color: rgba(255,209,0,0.5); cursor: pointer; }
 
   /* ── CLIENTES ── */
   .cliente-selector-wrap { margin-bottom: 10px; }
@@ -281,17 +284,13 @@
   .dia-btn.sel { background: var(--accent); color: #1C1C1C; border-color: var(--accent); font-weight: bold; }
   .dia-btn:active { opacity: 0.8; }
   .operarios-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
-  .op-chip { padding: 8px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; background: var(--card); color: var(--text2); transition: all 0.15s; }
+  .op-chip { padding: 8px 14px; border: 1px solid rgba(255,209,0,0.4); border-radius: 20px; font-size: 13px; cursor: pointer; background: #222; color: #FFFFFF; transition: all 0.15s; }
   .op-chip.selected { background: var(--accent); color: #1C1C1C; border-color: var(--accent); }
   .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
   .modal-cancel { flex: 1; padding: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text2); font-size: 14px; cursor: pointer; font-family: Georgia, serif; }
   .modal-confirm { flex: 2; padding: 13px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-family: Georgia, serif; font-weight: bold; }
 
-  /* Navegación semana dentro del modal programar */
-  .modal-semana-nav { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
-  .modal-sem-flecha { width: 38px; height: 38px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .modal-sem-flecha:active { background: var(--accent); color: #1C1C1C; }
-  .modal-sem-label { flex: 1; text-align: center; font-size: 12px; color: var(--text2); font-family: 'Courier New', monospace; }
+
 
   /* Detail modal */
   .detail-field { padding: 9px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
@@ -468,18 +467,39 @@
     <button class="nav-flecha" onclick="cambiarMes(1)">&#8594;</button>
   </div>
 
+  <!-- Filtro maquinaria -->
+  <div id="mes-filtro-maq" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
+
   <!-- Cabecera días semana -->
   <div class="mes-grid-header" id="mes-grid-header"></div>
 
   <!-- Grid mensual -->
   <div class="mes-grid" id="mes-grid"></div>
 
-  <!-- Bolsa de pendientes (igual que en semana) -->
+  <!-- Instrucción modo programación -->
+  <div id="mes-prog-hint" style="display:none;padding:8px 12px;background:#332B00;border:1px solid rgba(255,209,0,0.4);border-radius:8px;font-size:12px;color:#C9A800;font-family:'Courier New',monospace;margin-bottom:8px;text-align:center">
+    Toca uno o más días en el calendario
+  </div>
+
+  <!-- Bolsa de pendientes -->
   <div class="bolsa-header">
     <span>Pendientes de programar</span>
     <span class="bolsa-count" id="bolsa-count">0</span>
   </div>
   <div id="bolsa-trabajos"></div>
+
+  <!-- Barra de confirmación — aparece al seleccionar trabajo + días -->
+  <div id="barra-programar" style="display:none;position:sticky;bottom:0;background:#272727;border-top:2px solid #FFD100;padding:12px 16px 20px;margin:0 -16px;">
+    <div style="font-size:10px;color:#FFD100;font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Programando</div>
+    <div style="font-size:14px;color:#FFF;margin-bottom:4px" id="bprog-nombre"></div>
+    <div style="font-size:11px;color:#C9A800;font-family:'Courier New',monospace;margin-bottom:10px" id="bprog-dias">Sin días seleccionados</div>
+    <div style="font-size:10px;color:#888;font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Operarios <span style="color:#555">(opcional)</span></div>
+    <div id="bprog-operarios" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="cancelarProgramacion()" style="flex:1;padding:12px;border:1px solid #444;border-radius:8px;background:none;color:#888;font-size:13px;cursor:pointer;font-family:Georgia,serif">Cancelar</button>
+      <button onclick="confirmarProgramar()" style="flex:2;padding:12px;background:#FFD100;color:#1C1C1C;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;font-family:Georgia,serif">✓ Programar</button>
+    </div>
+  </div>
 
 </div>
 
@@ -504,25 +524,7 @@
   <div id="op-contenido"></div>
 
 </div>
-<div class="modal-overlay" id="modal-programar">
-  <div class="modal-sheet">
-    <div class="modal-title" id="mprog-titulo">Programar trabajo</div>
-    <div class="modal-sub" id="mprog-sub"></div>
-    <div class="modal-label">Día</div>
-    <div class="modal-semana-nav">
-      <button class="modal-sem-flecha" onclick="modalCambiarSemana(-1)">&#8592;</button>
-      <span class="modal-sem-label" id="modal-sem-titulo"></span>
-      <button class="modal-sem-flecha" onclick="modalCambiarSemana(1)">&#8594;</button>
-    </div>
-    <div class="dias-selector" id="dias-selector"></div>
-    <div class="modal-label">Operarios</div>
-    <div class="operarios-wrap" id="operarios-wrap"></div>
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="cerrarModal('modal-programar')">Cancelar</button>
-      <button class="modal-confirm" onclick="confirmarProgramar()">Programar</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- Modal: detalle trabajo programado -->
 <div class="modal-overlay" id="modal-detalle">
@@ -608,6 +610,12 @@
         <span class="cs-arrow">▼</span>
       </button>
       <div class="cliente-dropdown" id="cs-dropdown"></div>
+    </div>
+
+    <!-- Nombre de obra -->
+    <div style="margin-top:12px">
+      <div style="font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Nombre de obra (opcional)</div>
+      <input type="text" id="f-obra" placeholder="Ej: Desmonte en Santeles…" oninput="syncField('obra', this.value)">
     </div>
 
     <!-- Formulario inline para nuevo cliente -->
@@ -1216,7 +1224,7 @@ let OPERARIOS = getOperariosActivos(); // Solo activos — para asignación en m
 // ════════════════════════════════════════════════════════
 
 // Datos del formulario en curso (se resetean al guardar)
-let form = { cliente:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
+let form = { cliente:'', obra:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
 // Paso actual del formulario de 7 pasos (1-7)
 let stepActual = 1;
 // Pestaña activa en el listado: 'pendientes', 'programados' o 'realizados'
@@ -1303,6 +1311,7 @@ async function loadTrab() {
       try { row.jornadasParciales = JSON.parse(row.jornadas_parciales || '[]'); } catch(e) { row.jornadasParciales = []; }
       try { row.horasReales = JSON.parse(row.horas_reales || 'null'); } catch(e) { row.horasReales = null; }
       row.materiales = row.materiales || '';
+      row.obra = row.obra || '';
       row.fechaCreacion = row.fecha_creacion;
       row.maquinaria = row.maquinarias.join(', ');
       row.tipo = row.tipos.join(', ');
@@ -1389,6 +1398,7 @@ function trabajoToRow(t) {
   return {
     id: t.id,
     cliente: t.cliente || '',
+    obra: t.obra || '',
     direccion: t.direccion || '',
     zona: t.zona || '',
     lat: t.lat || null,
@@ -1843,7 +1853,7 @@ async function guardarTrabajo() {
 
 // Limpia el formulario y lo vuelve al estado inicial (paso 1, valores vacíos)
 function resetForm() {
-  form = { cliente:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
+  form = { cliente:'', obra:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
   // Reset selector cliente
   const csSelected = document.getElementById('cs-selected');
   if (csSelected) csSelected.textContent = 'Seleccionar cliente…';
@@ -1852,7 +1862,7 @@ function resetForm() {
   const csNuevo = document.getElementById('cs-nuevo-wrap');
   if (csNuevo) csNuevo.classList.remove('show');
   _clienteDropdownOpen = false;
-  ['f-cliente','f-direccion','f-zona','f-notas'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['f-obra','f-direccion','f-zona','f-notas'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   ['vres-1','vres-2','vres-3','vres-4','vres-5','vres-6'].forEach(id=>{ const el=document.getElementById(id); if(el){el.className='voice-result';el.textContent='';} });
   document.getElementById('horas-display').textContent = '4';
   setUrgencia('Normal');
@@ -1990,6 +2000,7 @@ function renderListado() {
       const next = NEXT_ESTADO[t.estado];
       // Extrae el cliente real: primera frase hasta guión o coma, máx 40 chars
       const clienteCorto = (t.cliente||'Sin cliente').split(/[—\-,]/)[0].trim().slice(0,40);
+      const obraCorta = t.obra ? ' · '+t.obra.slice(0,30) : '';
       // Tipos como texto corto
       const tiposCorto = (t.tipos&&t.tipos.length) ? t.tipos.join(', ') : (t.tipo||'Sin tipo');
       // Notas o texto completo del cliente si hay diferencia
@@ -2009,7 +2020,7 @@ function renderListado() {
       html+=`<div class="trabajo-card" id="tc-${t.id}">
         <div class="tc-top">
           <div style="min-width:0;flex:1">
-            <div class="tc-titulo">${clienteCorto} — ${tiposCorto}</div>
+            <div class="tc-titulo">${clienteCorto}${obraCorta} — ${tiposCorto}</div>
             <div class="tc-dir">📍 ${t.direccion||'Sin dirección'}${t.zona?' · '+t.zona:''}</div>
           </div>
           <span class="status-pill ${scls}">${t.estado}</span>
@@ -2079,9 +2090,15 @@ function showView(name) {
 // ════════════════════════════════════════════════════════
 
 let mesOffset = 0; // 0 = mes actual, -1 = anterior, +1 = siguiente
+let mesFiltroMaq = ''; // '' = todas
 
 function cambiarMes(dir) {
   mesOffset += dir;
+  renderMes();
+}
+
+function setMesFiltroMaq(maq) {
+  mesFiltroMaq = mesFiltroMaq === maq ? '' : maq; // toggle
   renderMes();
 }
 
@@ -2097,6 +2114,22 @@ function renderMes() {
   const mesesNombre = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   document.getElementById('mes-titulo').textContent = mesesNombre[mes] + ' ' + anyo;
 
+  // Filtro maquinaria
+  const maqDisponibles = [...new Set(getTrab()
+    .filter(t => t.diasProgramados && t.diasProgramados.length > 0 && t.estado !== 'Realizado')
+    .flatMap(t => t.maquinarias || []))].sort();
+  const filtroEl = document.getElementById('mes-filtro-maq');
+  if (filtroEl) {
+    let fhtml = '<span style="font-size:10px;color:#555;font-family:'Courier New',monospace;align-self:center;margin-right:2px">Filtro:</span>';
+    fhtml += '<div style="font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,209,0,0.3);cursor:pointer;font-family:'Courier New',monospace;background:'+(mesFiltroMaq===''?'#FFD100':'#222')+';color:'+(mesFiltroMaq===''?'#1C1C1C':'#888')+'" onclick="setMesFiltroMaq('')">Todas</div>';
+    maqDisponibles.forEach(m => {
+      const activo = mesFiltroMaq === m;
+      fhtml += '<div style="font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,209,0,'+(activo?'0.8':'0.3')+');cursor:pointer;font-family:'Courier New',monospace;background:'+(activo?'#332B00':'#222')+';color:'+(activo?'#FFD100':'#888')+'" onclick="setMesFiltroMaq(''+m.replace(/'/g,"\\'")+'')">'+m+'</div>';
+    });
+    filtroEl.innerHTML = fhtml;
+    filtroEl.style.display = maqDisponibles.length > 0 ? 'flex' : 'none';
+  }
+
   // Cabecera días
   const header = document.getElementById('mes-grid-header');
   header.innerHTML = '';
@@ -2110,13 +2143,12 @@ function renderMes() {
   const trabajos = getTrab();
   const hoyISO = fechaISO(new Date());
 
-  // Primer lunes del grid (puede ser del mes anterior)
   const primerDow = primer.getDay() === 0 ? 6 : primer.getDay() - 1;
   const inicio = new Date(primer);
   inicio.setDate(1 - primerDow);
   inicio.setHours(0,0,0,0);
 
-  const ultimo = new Date(anyo, mes + 1, 0); // Último día del mes
+  const ultimo = new Date(anyo, mes + 1, 0);
 
   const grid = document.getElementById('mes-grid');
   grid.innerHTML = '';
@@ -2127,17 +2159,24 @@ function renderMes() {
     const esMes = cursor.getMonth() === mes;
     const esHoy = iso === hoyISO;
 
+    // Todos los trabajos del día
     const trabajosDia = trabajos.filter(t =>
       t.diasProgramados && t.diasProgramados.includes(iso) && t.estado !== 'Realizado'
     );
+    // Trabajos visibles según filtro (para píldoras y carga)
+    const trabajosVis = mesFiltroMaq
+      ? trabajosDia.filter(t => (t.maquinarias||[]).includes(mesFiltroMaq))
+      : trabajosDia;
+    // Trabajos atenuados (tienen fecha pero no coinciden con filtro)
+    const trabajosDim = mesFiltroMaq ? trabajosDia.filter(t => !(t.maquinarias||[]).includes(mesFiltroMaq)) : [];
 
     const cel = document.createElement('div');
     cel.className = 'mes-dia' + (esMes ? '' : ' otro-mes') + (esHoy ? ' hoy-mes' : '');
 
-    // Punto de carga
-    if (trabajosDia.length > 0 && esMes) {
+    // Punto de carga (basado en trabajos visibles)
+    if (trabajosVis.length > 0 && esMes) {
       const carga = document.createElement('div');
-      carga.className = 'mes-carga ' + (trabajosDia.length >= 4 ? 'lleno' : trabajosDia.length >= 2 ? 'media' : 'libre');
+      carga.className = 'mes-carga ' + (trabajosVis.length >= 4 ? 'lleno' : trabajosVis.length >= 2 ? 'media' : 'libre');
       cel.appendChild(carga);
     }
 
@@ -2147,43 +2186,54 @@ function renderMes() {
     num.textContent = cursor.getDate();
     cel.appendChild(num);
 
-    // Píldoras (máx 2)
+    // Píldoras (máx 2 visibles + atenuadas)
     const pillsWrap = document.createElement('div');
     pillsWrap.className = 'mes-dia-pills';
-    trabajosDia.slice(0, 2).forEach(t => {
+    const mostrar = trabajosVis.slice(0, 2);
+    mostrar.forEach(t => {
       const pill = document.createElement('div');
       const urg = (t.urgencia || '').toLowerCase();
       pill.className = 'mes-pill-mini' + (urg === 'urgente' ? ' urgente' : urg === 'alta' ? ' alta' : '');
-      pill.textContent = (t.cliente || 'Trabajo').split(/[-,]/)[0].trim().slice(0, 11);
+      const nombre = (t.obra || t.cliente || 'Trabajo').split(/[-,]/)[0].trim().slice(0, 10);
+      const hrsText = t.horas ? ' '+t.horas+'h' : '';
+      pill.innerHTML = '<span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+nombre+'</span><span style="display:block;font-size:7px;opacity:0.65;font-family:'Courier New',monospace">'+hrsText+'</span>';
       pill.onclick = (e) => { e.stopPropagation(); abrirDetalle(t.id); };
       pillsWrap.appendChild(pill);
     });
-    if (trabajosDia.length > 2) {
+    // Atenuadas (filtro activo, no coinciden)
+    if (mesFiltroMaq && trabajosDim.length > 0 && trabajosVis.length < 2) {
+      trabajosDim.slice(0, 2 - trabajosVis.length).forEach(t => {
+        const pill = document.createElement('div');
+        pill.className = 'mes-pill-mini';
+        pill.style.opacity = '0.25';
+        pill.textContent = (t.obra || t.cliente || 'Trabajo').split(/[-,]/)[0].trim().slice(0, 10);
+        pill.onclick = (e) => { e.stopPropagation(); abrirDetalle(t.id); };
+        pillsWrap.appendChild(pill);
+      });
+    }
+    const totalMas = trabajosDia.length > 2 ? trabajosDia.length - 2 : 0;
+    if (totalMas > 0) {
       const mas = document.createElement('div');
       mas.className = 'mes-mas-mini';
-      mas.textContent = '+' + (trabajosDia.length - 2) + ' más';
+      mas.textContent = '+' + totalMas + ' más';
       pillsWrap.appendChild(mas);
     }
     cel.appendChild(pillsWrap);
 
-    // Tocar día del mes actual → abre modal de programar situado en esa semana
-    // abrirModalProgramar recibe la fecha del día tocado y calcula el offset internamente
     if (esMes) {
-      const diaCapturado = new Date(cursor); // capturar valor del bucle
-      cel.onclick = () => {
-        const pendientes = getTrab().filter(t =>
-          t.estado !== 'Realizado' && (!t.diasProgramados || t.diasProgramados.length === 0)
-        );
-        if (pendientes.length > 0) {
-          abrirModalProgramar(pendientes[0].id, diaCapturado);
-        }
-      };
+      const isoCapturado = iso;
+      if (progTrabajoId) {
+        // Modo programación activa: días clicables para seleccionar/deseleccionar
+        const selProg = progDias.includes(isoCapturado);
+        if (selProg) cel.classList.add('prog-sel');
+        else cel.classList.add('prog-disponible');
+        cel.onclick = (e) => { e.stopPropagation(); toggleDiaProg(isoCapturado); };
+      }
+      // Sin modo programación: click en celda vacía no hace nada (las píldoras abren detalle)
     }
 
     grid.appendChild(cel);
     cursor.setDate(cursor.getDate() + 1);
-
-    // Parar cuando hemos superado el último día del mes y completado la semana
     if (cursor > ultimo && cursor.getDay() === 1) break;
   }
 
@@ -2310,16 +2360,20 @@ function renderBolsa() {
   bolsa.innerHTML = '';
   pendientes.forEach(t => {
     const urg = (t.urgencia || '').toLowerCase();
+    const esActivo = String(t.id) === String(progTrabajoId);
     const div = document.createElement('div');
-    div.className = 'bolsa-trabajo' + (urg === 'urgente' ? ' urgente' : urg === 'alta' ? ' alta' : '');
-    div.innerHTML = '<div class="bolsa-info"><div class="bolsa-cliente">' + (t.cliente || 'Sin cliente') + '</div>'
+    div.className = 'bolsa-trabajo' + (urg === 'urgente' ? ' urgente' : urg === 'alta' ? ' alta' : '') + (esActivo ? ' bolsa-activo' : '');
+    const nombreMostrar = t.obra ? t.obra + ' · ' + (t.cliente || '') : (t.cliente || 'Sin cliente');
+    div.innerHTML = '<div class="bolsa-info">'
+      + '<div class="bolsa-cliente">' + nombreMostrar + '</div>'
       + '<div class="bolsa-dir">' + (t.direccion || 'Sin dirección') + '</div>'
       + '<div class="bolsa-meta">'
       + (t.tipos || []).map(x => '<span class="bolsa-chip">' + x + '</span>').join('')
       + (t.maquinarias || []).map(x => '<span class="bolsa-chip">⚙ ' + x + '</span>').join('')
       + (t.horas ? '<span class="bolsa-chip">⏱ ' + t.horas + 'h</span>' : '')
-      + '</div></div><div class="bolsa-btn">+</div>';
-    div.onclick = () => abrirModalProgramar(t.id);
+      + '</div></div>'
+      + '<div class="bolsa-btn" style="color:' + (esActivo ? '#FFD100' : '#555') + '">' + (esActivo ? '●' : '+') + '</div>';
+    div.onclick = () => activarProgramacion(t.id);
     bolsa.appendChild(div);
   });
 }
@@ -2329,129 +2383,122 @@ function renderBolsa() {
 // Estado compartido por el modal de programar y la vista Mes
 // ════════════════════════════════════════════════════════
 
-let modalTrabajoId = null;  // ID del trabajo abierto en el modal (programar o detalle)
-let diasSelModal = [];      // Días seleccionados en el modal de programar (fechas ISO)
-let operariosSelModal = []; // Operarios seleccionados en el modal de programar
+let modalTrabajoId = null;  // ID del trabajo abierto en modales de detalle/realizado
 
 // Nombres cortos y largos de los días (índice 0 = lunes, 6 = domingo)
 const DIAS_CORTO = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const DIAS_LARGO = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 
-// OPERARIOS viene de CONFIG (declarado arriba junto a CONFIG)
-
-// Calcula el lunes de la semana desplazada por 'offset' semanas desde fechaBase (por defecto hoy)
-// fechaBase es opcional — si no se pasa, usa la fecha actual
-// Esto permite calcular lunes relativos a cualquier fecha, no solo a hoy
-function getLunes(offset, fechaBase) {
-  const base = fechaBase ? new Date(fechaBase) : new Date();
-  const dow = base.getDay() === 0 ? 6 : base.getDay() - 1;
-  const lunes = new Date(base);
-  lunes.setDate(base.getDate() - dow + offset * 7);
-  lunes.setHours(0,0,0,0);
-  return lunes;
-}
-
-// Convierte un objeto Date a string 'YYYY-MM-DD' usando la hora LOCAL del dispositivo
-// (no UTC, para evitar desfase en España UTC+1/UTC+2)
+// Convierte un objeto Date a string 'YYYY-MM-DD' usando hora LOCAL (evita desfase UTC)
 function fechaISO(d) {
   const mm = String(d.getMonth()+1).padStart(2,'0');
   const dd = String(d.getDate()).padStart(2,'0');
   return d.getFullYear()+'-'+mm+'-'+dd;
 }
 
-// Formatea el rango de la semana para mostrar en el título (ej: "26 may — 1 jun 2026")
-function formatoSemana(lunes) {
-  const dom = new Date(lunes); dom.setDate(lunes.getDate()+6);
-  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  return lunes.getDate()+' '+meses[lunes.getMonth()]+' — '+dom.getDate()+' '+meses[dom.getMonth()]+' '+dom.getFullYear();
+// ════════════════════════════════════════════════════════
+// PROGRAMACIÓN EN VISTA MES
+// Estado de la sesión de programación activa
+// ════════════════════════════════════════════════════════
+let progTrabajoId = null;      // ID del trabajo que se está programando
+let progDias = [];             // Días seleccionados (ISO strings)
+let progOperarios = [];        // Operarios seleccionados
+
+// Activa un trabajo para programar desde la bolsa
+function activarProgramacion(id) {
+  if (progTrabajoId === id) {
+    // Segundo toque en el mismo trabajo → cancelar
+    cancelarProgramacion();
+    return;
+  }
+  progTrabajoId = id;
+  progDias = [];
+  progOperarios = [];
+  renderBolsa();
+  renderMes();
+  actualizarBarraProgramar();
 }
 
-let modalSemanaOffset = 0; // Offset de semana dentro del modal (independiente del calendario)
+// Cancela la programación en curso
+function cancelarProgramacion() {
+  progTrabajoId = null;
+  progDias = [];
+  progOperarios = [];
+  renderBolsa();
+  renderMes();
+  document.getElementById('barra-programar').style.display = 'none';
+  document.getElementById('mes-prog-hint').style.display = 'none';
+}
 
-// ════════════════════════════════════════════════════════
-// MODAL PROGRAMAR — Asigna un trabajo a uno o varios días y operarios
-// Tiene su propia navegación de semana independiente del calendario
-// ════════════════════════════════════════════════════════
-// fechaInicio (opcional): Date — si se pasa, el modal arranca en la semana que contiene ese día
-function abrirModalProgramar(id, fechaInicio) {
-  modalTrabajoId = id;
-  diasSelModal = fechaInicio ? [fechaISO(fechaInicio)] : []; // Pre-selecciona el día tocado si viene
-  operariosSelModal = [];
-  // Calcular offset de semana a partir de fechaInicio (o semana actual si no se pasa)
-  const hoyLunes = getLunes(0);
-  const lunesDestino = getLunes(0, fechaInicio || new Date());
-  modalSemanaOffset = Math.round((lunesDestino - hoyLunes) / (7 * 24 * 60 * 60 * 1000));
-  const t = getTrab().find(x=>String(x.id)===String(id));
-  if(!t) return;
+// Marca o desmarca un día en la vista mes (solo en modo programación activa)
+function toggleDiaProg(iso) {
+  if (!progTrabajoId) return;
+  if (progDias.includes(iso)) {
+    progDias = progDias.filter(d => d !== iso);
+  } else {
+    progDias.push(iso);
+  }
+  renderMes();
+  actualizarBarraProgramar();
+}
 
-  document.getElementById('mprog-titulo').textContent = t.cliente || 'Sin cliente';
-  document.getElementById('mprog-sub').textContent = (t.direccion||'') + (t.horas ? ' · ' + t.horas + 'h previstas' : '');
+// Actualiza la barra de confirmación con el estado actual
+function actualizarBarraProgramar() {
+  const barra = document.getElementById('barra-programar');
+  const hint = document.getElementById('mes-prog-hint');
+  if (!progTrabajoId) { barra.style.display = 'none'; hint.style.display = 'none'; return; }
 
-  // Construye los chips de operarios
-  const opWrap = document.getElementById('operarios-wrap');
+  const t = getTrab().find(x => String(x.id) === String(progTrabajoId));
+  if (!t) return;
+
+  hint.style.display = progDias.length === 0 ? 'block' : 'none';
+  barra.style.display = 'block';
+
+  // Nombre del trabajo
+  const nombre = (t.obra || t.cliente || 'Sin cliente') + (t.obra ? ' · ' + t.cliente : '');
+  document.getElementById('bprog-nombre').textContent = nombre;
+
+  // Días seleccionados
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const diasTexto = progDias.length === 0
+    ? 'Sin días seleccionados — toca el calendario'
+    : progDias.sort().map(iso => {
+        const d = new Date(iso + 'T12:00');
+        return DIAS_CORTO[d.getDay() === 0 ? 6 : d.getDay() - 1] + ' ' + d.getDate() + ' ' + meses[d.getMonth()];
+      }).join(' · ');
+  document.getElementById('bprog-dias').textContent = '📅 ' + diasTexto;
+
+  // Chips de operarios
+  const opWrap = document.getElementById('bprog-operarios');
   opWrap.innerHTML = '';
   OPERARIOS.forEach(op => {
     const chip = document.createElement('div');
-    chip.className = 'op-chip';
+    const sel = progOperarios.includes(op);
+    chip.style.cssText = 'padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;font-family:Georgia,serif;border:1px solid '+(sel?'#FFD100':'rgba(255,209,0,0.4)')+';background:'+(sel?'#FFD100':'#222')+';color:'+(sel?'#1C1C1C':'#FFF');
     chip.textContent = op;
     chip.onclick = () => {
-      chip.classList.toggle('selected');
-      if(operariosSelModal.includes(op)) operariosSelModal = operariosSelModal.filter(x=>x!==op);
-      else operariosSelModal.push(op);
+      if (progOperarios.includes(op)) progOperarios = progOperarios.filter(x => x !== op);
+      else progOperarios.push(op);
+      actualizarBarraProgramar();
     };
     opWrap.appendChild(chip);
   });
-
-  renderDiasModal(); // Dibuja los 7 días de la semana inicial
-  document.getElementById('modal-programar').classList.add('show');
 }
 
-// Dibuja los 7 botones de día correspondientes a la semana del modal
-function renderDiasModal() {
-  const lunes = getLunes(modalSemanaOffset);
-  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  const dom = new Date(lunes); dom.setDate(lunes.getDate()+6);
-  // Título de la semana: "26 may — 1 jun"
-  document.getElementById('modal-sem-titulo').textContent =
-    lunes.getDate()+' '+meses[lunes.getMonth()]+' — '+dom.getDate()+' '+meses[dom.getMonth()];
-
-  const diasSel = document.getElementById('dias-selector');
-  diasSel.innerHTML = '';
-  for(let i=0; i<7; i++) {
-    const dia = new Date(lunes); dia.setDate(lunes.getDate()+i);
-    const iso = fechaISO(dia);
-    const btn = document.createElement('button');
-    btn.className = 'dia-btn' + (diasSelModal.includes(iso) ? ' sel' : '');
-    btn.innerHTML = '<div>'+DIAS_CORTO[i]+'</div><div style="font-size:13px;margin-top:2px">'+dia.getDate()+'</div>';
-    btn.onclick = () => toggleDiaModal(iso, btn);
-    diasSel.appendChild(btn);
-  }
-}
-
-// Cambia la semana visible dentro del modal y redibuja los días
-function modalCambiarSemana(dir) {
-  modalSemanaOffset += dir;
-  renderDiasModal();
-}
-
-// Marca o desmarca un día en el modal de programar
-function toggleDiaModal(iso, btn) {
-  btn.classList.toggle('sel');
-  if(diasSelModal.includes(iso)) diasSelModal = diasSelModal.filter(x=>x!==iso);
-  else diasSelModal.push(iso);
-}
-
-// Confirma la programación: guarda días y operarios en el trabajo y cambia estado a Programado
+// Confirma la programación desde la vista mes
 async function confirmarProgramar() {
-  if(diasSelModal.length === 0) { showToast('Selecciona al menos un día'); return; }
-  const trabajos = getTrab();
-  const t = trabajos.find(x=>String(x.id)===String(modalTrabajoId));
-  if(!t) return;
-  t.diasProgramados = diasSelModal;
-  t.operarios = operariosSelModal;
+  if (progDias.length === 0) { showToast('Toca uno o más días en el calendario'); return; }
+  if (progOperarios.length === 0) {
+    const ok = await showConfirm('¿Programar sin asignar operario?', 'El trabajo quedará programado pero sin operario asignado.');
+    if (!ok) return;
+  }
+  const t = getTrab().find(x => String(x.id) === String(progTrabajoId));
+  if (!t) return;
+  t.diasProgramados = progDias;
+  t.operarios = progOperarios;
   t.estado = 'Programado';
-  cerrarModal('modal-programar');
   showToast('Guardando...');
+  cancelarProgramacion();
   await updateTrab(t);
   await loadTrab();
   renderMes();
@@ -2469,6 +2516,7 @@ function abrirDetalle(id) {
   if(!t) return;
   document.getElementById('mdet-titulo').textContent = t.cliente || 'Sin cliente';
   const campos = [
+    ['Obra', t.obra||'—'],
     ['Dirección', t.direccion||'—'],
     ['Trabajo', (t.tipos||[]).join(', ')||'—'],
     ['Maquinaria', (t.maquinarias||[]).join(', ')||'—'],
@@ -2516,25 +2564,55 @@ function abrirModalRealizado() {
   abrirModalRealizadoPorId(modalTrabajoId);
 }
 
+// Maquinaria editable en el modal Realizado
+let _mrealMaquinas = []; // array de nombres editables
+
+function renderMrealMaquinas() {
+  const t = getTrab().find(x=>String(x.id)===String(modalTrabajoId));
+  let html = '';
+  _mrealMaquinas.forEach((m, i) => {
+    html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="flex:1;font-size:13px;color:#C9A800">${m}</span>
+      <input type="number" id="mreal-horas-${i}" min="0" max="24" step="0.5" value="${t&&t.horas?t.horas:4}"
+        style="width:72px;text-align:center;padding:8px;background:#1C1C1C;border:1px solid rgba(255,209,0,0.3);border-radius:8px;color:#FFD100;font-size:15px">
+      <span style="font-size:12px;color:#7A6600">h</span>
+      <button onclick="mrealQuitarMaq(${i})" style="background:none;border:none;color:#FF4444;font-size:18px;cursor:pointer;padding:4px" title="Quitar">✕</button>
+    </div>`;
+  });
+  // Selector para añadir máquina
+  const todasMaq = getMaqActiva().filter(m => !_mrealMaquinas.includes(m));
+  if (todasMaq.length > 0) {
+    html += `<div style="display:flex;gap:8px;margin-top:6px">
+      <select id="mreal-add-maq" style="flex:1;padding:8px;background:#1C1C1C;border:1px solid rgba(255,209,0,0.3);border-radius:8px;color:#888;font-size:13px">
+        <option value="">+ Añadir máquina…</option>
+        ${todasMaq.map(m=>`<option value="${m}">${m}</option>`).join('')}
+      </select>
+      <button onclick="mrealAddMaq()" style="padding:8px 14px;background:#332B00;color:#FFD100;border:1px solid rgba(255,209,0,0.4);border-radius:8px;font-size:13px;cursor:pointer">Añadir</button>
+    </div>`;
+  }
+  document.getElementById('mreal-maquinas').innerHTML = html;
+}
+
+function mrealQuitarMaq(idx) {
+  _mrealMaquinas.splice(idx, 1);
+  renderMrealMaquinas();
+}
+
+function mrealAddMaq() {
+  const sel = document.getElementById('mreal-add-maq');
+  if (!sel || !sel.value) return;
+  _mrealMaquinas.push(sel.value);
+  renderMrealMaquinas();
+}
+
 // Abre el modal de horas reales para un trabajo concreto
 function abrirModalRealizadoPorId(id) {
   const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
   modalTrabajoId = id;
-  // Nombre del trabajo
-  document.getElementById('mreal-nombre').textContent = (t.cliente||'Sin cliente') + ' — ' + (t.direccion||'Sin dirección');
-  // Construir campos de horas por máquina
-  const maquinas = t.maquinarias && t.maquinarias.length ? t.maquinarias : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
-  let html = '';
-  maquinas.forEach((m,i) => {
-    html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <span style="flex:1;font-size:13px;color:#C9A800">${m}</span>
-      <input type="number" id="mreal-horas-${i}" min="0" max="24" step="0.5" value="${t.horas||4}"
-        style="width:80px;text-align:center;padding:8px;background:#1C1C1C;border:1px solid rgba(255,209,0,0.3);border-radius:8px;color:#FFD100;font-size:15px">
-      <span style="font-size:12px;color:#7A6600">h</span>
-    </div>`;
-  });
-  document.getElementById('mreal-maquinas').innerHTML = html;
+  document.getElementById('mreal-nombre').textContent = (t.cliente||'Sin cliente') + ' — ' + (t.obra||t.direccion||'Sin dirección');
+  _mrealMaquinas = t.maquinarias && t.maquinarias.length ? [...t.maquinarias] : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
+  renderMrealMaquinas();
   document.getElementById('mreal-notas').value = '';
   document.getElementById('mreal-materiales').value = '';
   cerrarModal('modal-detalle');
@@ -2546,13 +2624,14 @@ async function confirmarRealizado() {
   const trabajos = getTrab();
   const t = trabajos.find(x=>String(x.id)===String(modalTrabajoId));
   if(!t) return;
-  // Recoger horas reales por máquina
-  const maquinas = t.maquinarias && t.maquinarias.length ? t.maquinarias : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
+  // Recoger horas reales por máquina (usando la lista editable _mrealMaquinas)
   const horasReales = {};
-  maquinas.forEach((m,i) => {
-    const v = parseFloat(document.getElementById(`mreal-horas-${i}`).value) || 0;
+  _mrealMaquinas.forEach((m, i) => {
+    const v = parseFloat(document.getElementById(`mreal-horas-${i}`)?.value) || 0;
     horasReales[m] = v;
   });
+  // Actualizar maquinarias del trabajo si han cambiado
+  if (_mrealMaquinas.length > 0) t.maquinarias = [..._mrealMaquinas];
   t.estado = 'Realizado';
   t.diasProgramados = [];
   t.horasReales = horasReales;
@@ -2659,13 +2738,14 @@ function limpiarRango() {
 function descargarCSV(trabajos, nombreArchivo) {
   const filas = [];
   // Cabecera
-  filas.push(['Cliente','Dirección','Zona','Tipo de trabajo','Maquinaria','Horas previstas','Horas reales','Fecha realización','Notas cierre','Materiales'].join(';'));
+  filas.push(['Cliente','Obra','Dirección','Zona','Tipo de trabajo','Maquinaria','Horas previstas','Horas reales','Fecha realización','Notas cierre','Materiales'].join(';'));
   trabajos.forEach(t => {
     const horasReales = t.horasReales
       ? Object.entries(t.horasReales).map(([m,h])=>`${m}: ${h}h`).join(' | ')
       : '—';
     filas.push([
       t.cliente||'',
+      t.obra||'',
       t.direccion||'',
       t.zona||'',
       (t.tipos||[]).join(', ')||t.tipo||'',
