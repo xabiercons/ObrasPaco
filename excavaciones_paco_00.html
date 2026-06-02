@@ -236,6 +236,28 @@
   .mes-carga.media { background: #FFA500; }
   .mes-carga.lleno { background: #FF4444; }
 
+  /* ── CLIENTES ── */
+  .cliente-selector-wrap { margin-bottom: 10px; }
+  .cliente-selector-btn { width: 100%; padding: 13px 14px; background: #1C1C1C; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; color: var(--text); cursor: pointer; text-align: left; font-family: Georgia, serif; display: flex; align-items: center; justify-content: space-between; }
+  .cliente-selector-btn:focus { border-color: var(--accent); outline: none; }
+  .cliente-selector-btn .cs-arrow { color: var(--accent); font-size: 12px; }
+  .cliente-dropdown { display: none; background: #2A2A2A; border: 1px solid var(--border); border-radius: var(--radius-sm); max-height: 220px; overflow-y: auto; margin-top: 4px; }
+  .cliente-dropdown.show { display: block; }
+  .cliente-drop-item { padding: 11px 14px; font-size: 14px; cursor: pointer; border-bottom: 1px solid rgba(255,209,0,0.08); color: var(--text); }
+  .cliente-drop-item:last-child { border-bottom: none; }
+  .cliente-drop-item:active, .cliente-drop-item:hover { background: var(--accent-light); color: var(--accent); }
+  .cliente-drop-item.nuevo { color: var(--accent); font-style: italic; }
+  .cliente-nuevo-inline { display: none; margin-top: 8px; }
+  .cliente-nuevo-inline.show { display: block; }
+  .cfg-clientes-wrap { }
+  .cfg-cliente-chip { background: #2E2E2E; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; }
+  .cfg-cliente-nombre { font-size: 14px; color: var(--text); font-weight: bold; margin-bottom: 3px; }
+  .cfg-cliente-tel { font-size: 12px; color: var(--accent2); font-family: 'Courier New', monospace; }
+  .cfg-cliente-obs { font-size: 11px; color: var(--text3); margin-top: 3px; font-style: italic; }
+  .cfg-cliente-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .cfg-cliente-btn { font-size: 11px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; background: none; color: var(--text2); cursor: pointer; font-family: Georgia, serif; }
+  .cfg-cliente-btn.del { color: var(--danger); border-color: var(--danger); }
+
   /* ── MODAL CONFIRMACIÓN ── */
   .modal-confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
   .modal-confirm-overlay.show { display: flex; }
@@ -527,6 +549,9 @@
     <div class="modal-label" style="margin-top:16px">Notas de cierre (opcional)</div>
     <textarea id="mreal-notas" placeholder="Incidencias, observaciones..." style="min-height:60px"></textarea>
 
+    <div class="modal-label" style="margin-top:16px">Materiales utilizados (opcional)</div>
+    <textarea id="mreal-materiales" placeholder="Ej: arena 2 sacos, tubo PVC 6m, hormigón 0.5m³..." style="min-height:60px"></textarea>
+
     <div style="background:#1C1C1C;border:1px solid rgba(255,209,0,0.2);border-radius:8px;padding:12px;margin-top:14px;font-size:12px;color:#7A6600;font-family:'Courier New',monospace">
       Esta acción moverá el trabajo al historial de Realizados.
     </div>
@@ -574,14 +599,26 @@
   <div class="step-card" id="step-1">
     <div class="step-number">Paso 1 / 7</div>
     <div class="step-title">Cliente</div>
-    <div class="step-hint">Di el nombre del cliente o escríbelo</div>
-    <button class="voice-btn" id="vbtn-1" onclick="startVoice('cliente', 'vbtn-1', 'vres-1')">🎤 Hablar</button>
-    <div class="voice-result" id="vres-1"></div>
-    <div class="divider">— o escribe —</div>
-    <input type="text" id="f-cliente" placeholder="Nombre del cliente…" oninput="syncField('cliente', this.value); checkClienteDuplicado(this.value)">
-    <div id="aviso-cliente" style="display:none;margin-top:8px;padding:10px 12px;background:rgba(255,209,0,0.1);border:1px solid rgba(255,209,0,0.4);border-radius:8px;font-size:12px;color:#C9A800;font-family:'Courier New',monospace">
-      ⚠ Ya existe un trabajo con este cliente. Considera añadir un apellido o lugar para distinguirlo.
+    <div class="step-hint">Selecciona un cliente existente o crea uno nuevo</div>
+
+    <!-- Selector desplegable de clientes -->
+    <div class="cliente-selector-wrap">
+      <button class="cliente-selector-btn" id="cs-btn" onclick="toggleClienteDropdown()">
+        <span id="cs-selected">Seleccionar cliente…</span>
+        <span class="cs-arrow">▼</span>
+      </button>
+      <div class="cliente-dropdown" id="cs-dropdown"></div>
     </div>
+
+    <!-- Formulario inline para nuevo cliente -->
+    <div class="cliente-nuevo-inline" id="cs-nuevo-wrap">
+      <div style="font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Nuevo cliente</div>
+      <input type="text" id="cs-nuevo-nombre" placeholder="Nombre del cliente…" style="margin-bottom:8px">
+      <input type="tel" id="cs-nuevo-tel" placeholder="Teléfono (opcional)…" style="margin-bottom:8px">
+      <textarea id="cs-nuevo-obs" placeholder="Observaciones (opcional)…" style="min-height:56px;margin-bottom:8px"></textarea>
+      <button class="btn-next" onclick="guardarClienteNuevo()" style="margin-top:0">✓ Guardar cliente</button>
+    </div>
+
     <div class="btn-row">
       <button class="btn-next" onclick="nextStep(1)" id="next-1">Siguiente →</button>
     </div>
@@ -749,6 +786,20 @@
   <div class="cfg-wrap">
     <div class="cfg-title">⚙ Configuración</div>
     <div class="cfg-info">Los cambios se guardan automáticamente y se aplican de inmediato.</div>
+
+    <!-- CLIENTES -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">🏢 Clientes</div>
+      <div class="cfg-info" style="margin-bottom:10px">Clientes habituales. Se seleccionan al crear un trabajo.</div>
+      <div class="cfg-clientes-wrap" id="cfg-clientes"></div>
+      <div style="background:#1C1C1C;border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-top:10px">
+        <div style="font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Nuevo cliente</div>
+        <input class="cfg-input" id="inp-cliente-nombre" type="text" placeholder="Nombre del cliente…" maxlength="60" style="margin-bottom:8px;width:100%">
+        <input class="cfg-input" id="inp-cliente-tel" type="tel" placeholder="Teléfono (opcional)…" maxlength="20" style="margin-bottom:8px;width:100%">
+        <textarea id="inp-cliente-obs" placeholder="Observaciones (opcional)…" style="min-height:52px;margin-bottom:8px;width:100%"></textarea>
+        <button class="cfg-btn-add" style="width:100%" onclick="cfgAddCliente()">+ Añadir cliente</button>
+      </div>
+    </div>
 
     <!-- OPERARIOS -->
     <div class="cfg-section">
@@ -991,6 +1042,7 @@ const OPERARIOS_DEFAULT = [
 // Cache en memoria — se carga al inicio desde Supabase
 let _cfgCache = null;         // { tipos:[], maquinaria:[], sinonimos:{} }
 let _operariosCfgCache = null; // [{nombre, activo, sinonimos:[]}]
+let _clientesCache = null;     // [{id, nombre, telefono, observaciones}]
 
 // ── SUPABASE CONFIG HELPERS ──────────────────────────────
 
@@ -1016,14 +1068,17 @@ function _buildSinonimosObj(tipos, maquinaria) {
 // Carga configuración desde Supabase al iniciar la app
 async function loadConfig() {
   try {
-    const [rTipos, rMaq, rOps] = await Promise.all([
+    const [rTipos, rMaq, rOps, rClients] = await Promise.all([
       fetch(`${SUPA_URL}/rest/v1/tipos_trabajo?order=id.asc`, {headers: SUPA_HEADERS}),
       fetch(`${SUPA_URL}/rest/v1/maquinaria?order=id.asc`, {headers: SUPA_HEADERS}),
-      fetch(`${SUPA_URL}/rest/v1/operarios?order=id.asc`, {headers: SUPA_HEADERS})
+      fetch(`${SUPA_URL}/rest/v1/operarios?order=id.asc`, {headers: SUPA_HEADERS}),
+      fetch(`${SUPA_URL}/rest/v1/clientes?order=nombre.asc`, {headers: SUPA_HEADERS})
     ]);
     const tipos = _rowsToItems(await rTipos.json());
     const maquinaria = _rowsToItems(await rMaq.json());
     const operarios = _rowsToItems(await rOps.json());
+    const clientesRaw = await rClients.json();
+    _clientesCache = Array.isArray(clientesRaw) ? clientesRaw : [];
 
     // Si las tablas están vacías, insertar los valores por defecto
     if (tipos.length === 0) {
@@ -1063,6 +1118,10 @@ async function loadConfig() {
       const r = JSON.parse(localStorage.getItem('cfg_operarios'));
       _operariosCfgCache = Array.isArray(r) ? r : OPERARIOS_DEFAULT.map(o=>({...o}));
     } catch(e2) { _operariosCfgCache = OPERARIOS_DEFAULT.map(o=>({...o})); }
+    try {
+      const r = JSON.parse(localStorage.getItem('cfg_clientes'));
+      _clientesCache = Array.isArray(r) ? r : [];
+    } catch(e2) { _clientesCache = []; }
   }
 }
 
@@ -1243,6 +1302,7 @@ async function loadTrab() {
       try { row.operarios = JSON.parse(row.operarios || '[]'); } catch(e) { row.operarios = []; }
       try { row.jornadasParciales = JSON.parse(row.jornadas_parciales || '[]'); } catch(e) { row.jornadasParciales = []; }
       try { row.horasReales = JSON.parse(row.horas_reales || 'null'); } catch(e) { row.horasReales = null; }
+      row.materiales = row.materiales || '';
       row.fechaCreacion = row.fecha_creacion;
       row.maquinaria = row.maquinarias.join(', ');
       row.tipo = row.tipos.join(', ');
@@ -1345,7 +1405,8 @@ function trabajoToRow(t) {
     operarios: JSON.stringify(t.operarios || []),
     jornadas_parciales: JSON.stringify(t.jornadasParciales || []),
     horas_reales: JSON.stringify(t.horasReales || null),
-    notas_cierre: t.notasCierre || ''
+    notas_cierre: t.notasCierre || '',
+    materiales: t.materiales || ''
   };
 }
 
@@ -1387,7 +1448,7 @@ function showStep(n) {
 
 // Valida el paso actual antes de avanzar. Si falta algo, muestra aviso.
 function nextStep(current) {
-  if(current===1 && !form.cliente.trim()) { showToast('Indica el nombre del cliente'); return; }
+  if(current===1 && !form.cliente.trim()) { showToast('Selecciona o crea un cliente'); return; }
   if(current===2 && !form.direccion.trim()) { showToast('Indica la dirección o usa el GPS'); return; }
   if(current===3 && (!form.tipos || form.tipos.length===0)) { showToast('Selecciona al menos un tipo de trabajo'); return; }
   if(current===4 && (!form.maquinarias || form.maquinarias.length===0)) { showToast('Selecciona al menos una máquina'); return; }
@@ -1783,6 +1844,14 @@ async function guardarTrabajo() {
 // Limpia el formulario y lo vuelve al estado inicial (paso 1, valores vacíos)
 function resetForm() {
   form = { cliente:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
+  // Reset selector cliente
+  const csSelected = document.getElementById('cs-selected');
+  if (csSelected) csSelected.textContent = 'Seleccionar cliente…';
+  const csDropdown = document.getElementById('cs-dropdown');
+  if (csDropdown) csDropdown.classList.remove('show');
+  const csNuevo = document.getElementById('cs-nuevo-wrap');
+  if (csNuevo) csNuevo.classList.remove('show');
+  _clienteDropdownOpen = false;
   ['f-cliente','f-direccion','f-zona','f-notas'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   ['vres-1','vres-2','vres-3','vres-4','vres-5','vres-6'].forEach(id=>{ const el=document.getElementById(id); if(el){el.className='voice-result';el.textContent='';} });
   document.getElementById('horas-display').textContent = '4';
@@ -1935,6 +2004,7 @@ function renderListado() {
         const lineas = Object.entries(t.horasReales).map(([m,h])=>`${m}: <strong>${h}h</strong>`).join(' · ');
         horasRealesHtml = `<div style="margin-top:6px;font-size:12px;color:#44CC77;font-family:'Courier New',monospace">✓ Horas reales: ${lineas}</div>`;
         if(t.notasCierre) horasRealesHtml += `<div style="font-size:11px;color:#7A6600;margin-top:2px">Cierre: ${t.notasCierre}</div>`;
+        if(t.materiales) horasRealesHtml += `<div style="font-size:11px;color:#888;margin-top:2px">🔧 Materiales: ${t.materiales}</div>`;
       }
       html+=`<div class="trabajo-card" id="tc-${t.id}">
         <div class="tc-top">
@@ -2466,6 +2536,7 @@ function abrirModalRealizadoPorId(id) {
   });
   document.getElementById('mreal-maquinas').innerHTML = html;
   document.getElementById('mreal-notas').value = '';
+  document.getElementById('mreal-materiales').value = '';
   cerrarModal('modal-detalle');
   document.getElementById('modal-realizado').classList.add('show');
 }
@@ -2486,6 +2557,7 @@ async function confirmarRealizado() {
   t.diasProgramados = [];
   t.horasReales = horasReales;
   t.notasCierre = document.getElementById('mreal-notas').value.trim();
+  t.materiales = document.getElementById('mreal-materiales').value.trim();
   t.fechaRealizado = new Date().toISOString().slice(0,10);
   cerrarModal('modal-realizado');
   showToast('Guardando...');
@@ -2587,7 +2659,7 @@ function limpiarRango() {
 function descargarCSV(trabajos, nombreArchivo) {
   const filas = [];
   // Cabecera
-  filas.push(['Cliente','Dirección','Zona','Tipo de trabajo','Maquinaria','Horas previstas','Horas reales','Fecha realización','Notas cierre'].join(';'));
+  filas.push(['Cliente','Dirección','Zona','Tipo de trabajo','Maquinaria','Horas previstas','Horas reales','Fecha realización','Notas cierre','Materiales'].join(';'));
   trabajos.forEach(t => {
     const horasReales = t.horasReales
       ? Object.entries(t.horasReales).map(([m,h])=>`${m}: ${h}h`).join(' | ')
@@ -2601,7 +2673,8 @@ function descargarCSV(trabajos, nombreArchivo) {
       t.horas||0,
       horasReales,
       t.fechaRealizado||t.fecha||'',
-      t.notasCierre||''
+      t.notasCierre||'',
+      t.materiales||''
     ].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(';'));
   });
   const csv = '\uFEFF' + filas.join('\n'); // BOM para que Excel lo abra bien
@@ -2761,6 +2834,150 @@ function opMarcarRealizado(id) {
 }
 
 
+// ════════════════════════════════════════════════════════
+// CLIENTES — Gestión de clientes habituales
+// ════════════════════════════════════════════════════════
+
+function getClientes() { return _clientesCache || []; }
+
+async function _saveClienteSupabase(cliente) {
+  const body = { nombre: cliente.nombre, telefono: cliente.telefono||'', observaciones: cliente.observaciones||'' };
+  if (cliente.id) {
+    await fetch(`${SUPA_URL}/rest/v1/clientes?id=eq.${cliente.id}`, {
+      method: 'PATCH', headers: { ...SUPA_HEADERS, 'Prefer': 'return=minimal' }, body: JSON.stringify(body)
+    });
+  } else {
+    const res = await fetch(`${SUPA_URL}/rest/v1/clientes`, {
+      method: 'POST', headers: { ...SUPA_HEADERS, 'Prefer': 'return=representation' }, body: JSON.stringify(body)
+    });
+    const rows = await res.json();
+    if (rows && rows[0]) cliente.id = rows[0].id;
+  }
+  localStorage.setItem('cfg_clientes', JSON.stringify(_clientesCache));
+}
+
+// Añade un cliente desde la sección de configuración
+async function cfgAddCliente() {
+  const nombre = document.getElementById('inp-cliente-nombre').value.trim();
+  if (!nombre) { showToast('Escribe el nombre del cliente'); return; }
+  if (getClientes().some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) { showToast('Ya existe ese cliente'); return; }
+  const nuevo = { nombre, telefono: document.getElementById('inp-cliente-tel').value.trim(), observaciones: document.getElementById('inp-cliente-obs').value.trim() };
+  if (!_clientesCache) _clientesCache = [];
+  _clientesCache.push(nuevo);
+  _clientesCache.sort((a,b) => a.nombre.localeCompare(b.nombre));
+  await _saveClienteSupabase(nuevo);
+  ['inp-cliente-nombre','inp-cliente-tel','inp-cliente-obs'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  renderConfig();
+  showToast('✓ Cliente añadido');
+}
+
+// Elimina un cliente de Supabase
+async function cfgEliminarCliente(id) {
+  const c = getClientes().find(x => String(x.id) === String(id));
+  if (!c) return;
+  if (!await showConfirm(`¿Eliminar "${c.nombre}"?`, 'No se borran sus trabajos.', true)) return;
+  try {
+    await fetch(`${SUPA_URL}/rest/v1/clientes?id=eq.${id}`, { method: 'DELETE', headers: SUPA_HEADERS });
+  } catch(e) { showToast('Error al eliminar'); return; }
+  _clientesCache = _clientesCache.filter(x => String(x.id) !== String(id));
+  localStorage.setItem('cfg_clientes', JSON.stringify(_clientesCache));
+  renderConfig();
+  showToast('✓ Eliminado');
+}
+
+// Renderiza la lista de clientes en Configuración
+function renderCfgClientes() {
+  const wrap = document.getElementById('cfg-clientes');
+  if (!wrap) return;
+  const clientes = getClientes();
+  if (clientes.length === 0) {
+    wrap.innerHTML = '<span style="color:#555;font-size:12px">Sin clientes. Añade el primero abajo.</span>';
+    return;
+  }
+  wrap.innerHTML = clientes.map(c => `
+    <div class="cfg-cliente-chip">
+      <div class="cfg-cliente-nombre">${c.nombre}</div>
+      ${c.telefono ? `<div class="cfg-cliente-tel">📞 ${c.telefono}</div>` : ''}
+      ${c.observaciones ? `<div class="cfg-cliente-obs">${c.observaciones}</div>` : ''}
+      <div class="cfg-cliente-actions">
+        <button class="cfg-cliente-btn del" onclick="cfgEliminarCliente(${c.id})">Eliminar</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── SELECTOR DE CLIENTE EN FORMULARIO ──────────────────────
+
+let _clienteDropdownOpen = false;
+
+function toggleClienteDropdown() {
+  _clienteDropdownOpen = !_clienteDropdownOpen;
+  const dd = document.getElementById('cs-dropdown');
+  if (_clienteDropdownOpen) {
+    buildClienteDropdown();
+    dd.classList.add('show');
+  } else {
+    dd.classList.remove('show');
+  }
+}
+
+function buildClienteDropdown() {
+  const dd = document.getElementById('cs-dropdown');
+  const clientes = getClientes();
+  let html = clientes.map(c => `
+    <div class="cliente-drop-item" onclick="seleccionarCliente(${c.id})">
+      <strong>${c.nombre}</strong>${c.telefono ? `<span style="font-size:11px;color:#888;margin-left:8px">${c.telefono}</span>` : ''}
+    </div>`).join('');
+  html += `<div class="cliente-drop-item nuevo" onclick="mostrarNuevoClienteInline()">+ Nuevo cliente…</div>`;
+  dd.innerHTML = html;
+}
+
+function seleccionarCliente(id) {
+  const c = getClientes().find(x => String(x.id) === String(id));
+  if (!c) return;
+  form.cliente = c.nombre;
+  document.getElementById('cs-selected').textContent = c.nombre;
+  document.getElementById('cs-dropdown').classList.remove('show');
+  document.getElementById('cs-nuevo-wrap').classList.remove('show');
+  _clienteDropdownOpen = false;
+}
+
+function mostrarNuevoClienteInline() {
+  document.getElementById('cs-dropdown').classList.remove('show');
+  document.getElementById('cs-nuevo-wrap').classList.add('show');
+  _clienteDropdownOpen = false;
+  document.getElementById('cs-nuevo-nombre').focus();
+}
+
+async function guardarClienteNuevo() {
+  const nombre = document.getElementById('cs-nuevo-nombre').value.trim();
+  if (!nombre) { showToast('Escribe el nombre del cliente'); return; }
+  const nuevo = {
+    nombre,
+    telefono: document.getElementById('cs-nuevo-tel').value.trim(),
+    observaciones: document.getElementById('cs-nuevo-obs').value.trim()
+  };
+  if (!_clientesCache) _clientesCache = [];
+  // Comprobar duplicado
+  if (_clientesCache.some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) {
+    // Seleccionar el existente
+    const existe = _clientesCache.find(c => c.nombre.toLowerCase() === nombre.toLowerCase());
+    seleccionarCliente(existe.id);
+    document.getElementById('cs-nuevo-wrap').classList.remove('show');
+    showToast('Cliente ya existe — seleccionado');
+    return;
+  }
+  showToast('Guardando cliente…');
+  _clientesCache.push(nuevo);
+  _clientesCache.sort((a,b) => a.nombre.localeCompare(b.nombre));
+  await _saveClienteSupabase(nuevo);
+  // Seleccionar el recién creado
+  form.cliente = nombre;
+  document.getElementById('cs-selected').textContent = nombre;
+  document.getElementById('cs-nuevo-wrap').classList.remove('show');
+  ['cs-nuevo-nombre','cs-nuevo-tel','cs-nuevo-obs'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  showToast('✓ Cliente guardado y seleccionado');
+}
+
 updateProgress();   // Dibuja la barra de progreso del formulario
 
 // Arranque: comprueba autenticación primero
@@ -2773,6 +2990,7 @@ checkAuth();
 // ════════════════════════════════════════════════════════
 
 function renderConfig() {
+  renderCfgClientes();
   renderCfgOperarios(getOperariosCfg(), 'cfg-operarios');
   const c = getCfg();
   renderCfgToggleList('tipos', c.tipos, 'cfg-tipos');
