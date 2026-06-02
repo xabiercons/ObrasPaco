@@ -2120,11 +2120,17 @@ function renderMes() {
     .flatMap(t => t.maquinarias || []))].sort();
   const filtroEl = document.getElementById('mes-filtro-maq');
   if (filtroEl) {
-    let fhtml = '<span style="font-size:10px;color:#555;font-family:'Courier New',monospace;align-self:center;margin-right:2px">Filtro:</span>';
-    fhtml += '<div style="font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,209,0,0.3);cursor:pointer;font-family:'Courier New',monospace;background:'+(mesFiltroMaq===''?'#FFD100':'#222')+';color:'+(mesFiltroMaq===''?'#1C1C1C':'#888')+'" onclick="setMesFiltroMaq('')">Todas</div>';
+    const fstyle = (bg, color, border) => `font-size:10px;padding:4px 10px;border-radius:20px;cursor:pointer;font-family:monospace;border:1px solid ${border};background:${bg};color:${color}`;
+    let fhtml = '<span style="font-size:10px;color:#555;font-family:monospace;align-self:center;margin-right:2px">Filtro:</span>';
+    const bgTodas = mesFiltroMaq === '' ? '#FFD100' : '#222';
+    const colTodas = mesFiltroMaq === '' ? '#1C1C1C' : '#888';
+    fhtml += `<div style="${fstyle(bgTodas, colTodas, 'rgba(255,209,0,0.3)')}" onclick="setMesFiltroMaq('')">Todas</div>`;
     maqDisponibles.forEach(m => {
       const activo = mesFiltroMaq === m;
-      fhtml += '<div style="font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,209,0,'+(activo?'0.8':'0.3')+');cursor:pointer;font-family:'Courier New',monospace;background:'+(activo?'#332B00':'#222')+';color:'+(activo?'#FFD100':'#888')+'" onclick="setMesFiltroMaq(''+m.replace(/'/g,"\\'")+'')">'+m+'</div>';
+      const bg = activo ? '#332B00' : '#222';
+      const col = activo ? '#FFD100' : '#888';
+      const brd = activo ? 'rgba(255,209,0,0.8)' : 'rgba(255,209,0,0.3)';
+      fhtml += `<div style="${fstyle(bg, col, brd)}" onclick="setMesFiltroMaq('${m.replace(/'/g, "&apos;")}')">` + m + '</div>';
     });
     filtroEl.innerHTML = fhtml;
     filtroEl.style.display = maqDisponibles.length > 0 ? 'flex' : 'none';
