@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Excavaciones Paco v6</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
 
@@ -404,6 +405,9 @@
 .login-spinner { font-size: 13px; color: var(--text3); font-family: 'Courier New', monospace; margin-top: 12px; text-align: center; }
 .btn-cerrar-sesion { width: 100%; padding: 12px; background: var(--danger-light); color: var(--danger); border: 1px solid var(--danger); border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-family: Georgia, serif; margin-top: 4px; }
 .btn-cerrar-sesion:active { opacity: 0.85; }
+  .resumen-input { flex:1; background:#1C1C1C; border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:13px; padding:5px 8px; font-family:Georgia,serif; min-width:0; }
+  .resumen-input:focus { outline:none; border-color:var(--accent); }
+  select.resumen-input, textarea.resumen-input { cursor:pointer; }
 </style>
 </head>
 <body>
@@ -790,6 +794,7 @@
         <input type="date" id="informe-hasta" style="flex:1;padding:6px;background:#272727;border:1px solid rgba(255,209,0,0.3);border-radius:6px;color:#FFD100;font-size:13px" onchange="renderListado()">
       </div>
       <button onclick="exportarInformeCSV()" style="padding:8px 14px;background:#FFD100;color:#1C1C1C;border:none;border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;white-space:nowrap">↓ Exportar CSV</button>
+      <button onclick="enviarInformePorEmail()" style="padding:8px 14px;background:transparent;color:#FFD100;border:1px solid rgba(255,209,0,0.4);border-radius:6px;font-size:12px;font-weight:bold;cursor:pointer;white-space:nowrap">✉ Email</button>
       <button onclick="limpiarRango()" style="padding:8px 10px;background:transparent;color:#7A6600;border:1px solid rgba(255,209,0,0.2);border-radius:6px;font-size:12px;cursor:pointer">✕</button>
     </div>
     <div id="informe-resumen" style="margin-top:8px;font-size:11px;color:#C9A800;font-family:'Courier New',monospace"></div>
@@ -869,6 +874,52 @@
       <div class="cfg-section-title">🔒 Sesión</div>
       <div class="cfg-info" id="cfg-usuario-info" style="margin-bottom:10px"></div>
       <button class="btn-cerrar-sesion" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MODAL: EDITAR TRABAJO
+════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modal-editar" onclick="if(event.target===this)cerrarModal('modal-editar')">
+  <div class="modal-box" style="max-width:480px;width:95%">
+    <div class="modal-title">✏ Editar trabajo</div>
+    <div id="modal-editar-content" style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+      <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Cliente</label>
+        <input class="cfg-input" id="ed-cliente" type="text" style="width:100%;margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Nombre obra</label>
+        <input class="cfg-input" id="ed-obra" type="text" style="width:100%;margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Dirección</label>
+        <input class="cfg-input" id="ed-direccion" type="text" style="width:100%;margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Zona</label>
+        <input class="cfg-input" id="ed-zona" type="text" style="width:100%;margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Tipo de trabajo</label>
+        <input class="cfg-input" id="ed-tipo" type="text" placeholder="Ej: Excavación, Picado" style="width:100%;margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Maquinaria</label>
+        <input class="cfg-input" id="ed-maquinaria" type="text" placeholder="Ej: Minipala JCB" style="width:100%;margin-top:4px"></div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1"><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Horas previstas</label>
+          <input class="cfg-input" id="ed-horas" type="number" min="1" max="24" style="width:100%;margin-top:4px"></div>
+        <div style="flex:1"><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Urgencia</label>
+          <select class="cfg-input" id="ed-urgencia" style="width:100%;margin-top:4px">
+            <option>Normal</option><option>Alta</option><option>Urgente</option>
+          </select></div>
+      </div>
+      <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Estado</label>
+        <select class="cfg-input" id="ed-estado" style="width:100%;margin-top:4px">
+          <option>Pendiente presupuestar</option>
+          <option>Presupuestado</option>
+          <option>Aceptado</option>
+          <option>Programado</option>
+          <option>En curso</option>
+          <option>Realizado</option>
+        </select></div>
+      <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Notas</label>
+        <textarea class="cfg-input" id="ed-notas" style="width:100%;min-height:60px;resize:vertical;margin-top:4px"></textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn-back" style="flex:1" onclick="cerrarModal('modal-editar')">Cancelar</button>
+      <button class="btn-guardar" style="flex:2;margin:0" onclick="guardarEdicionTrabajo()">✓ Guardar cambios</button>
     </div>
   </div>
 </div>
@@ -1727,7 +1778,7 @@ function startVoice(field, btnId, resId) {
 
     // Solo procesar cuando hay texto final nuevo
     if(finalNuevo.trim()) {
-      textoAcumulado = finalTexto.trim();
+      textoAcumulado = (textoAcumulado ? textoAcumulado + ' ' : '') + finalNuevo.trim();
       const resultado = processVoice(field, textoAcumulado);
       // Mostrar feedback de resultado bajo el texto reconocido
       if(resultado && resultado.ok) {
@@ -1829,20 +1880,24 @@ function matchSinonimo(field, texto, chipsId) {
 // RESUMEN — Paso 7: muestra todos los datos del formulario para revisión
 // ════════════════════════════════════════════════════════
 function buildResumen() {
-  const campos = [
-    ['Cliente', form.cliente || '—'],
-    ['Dirección', form.direccion || '—'],
-    ['Zona', form.zona || '—'],
-    ['GPS', form.lat ? `${form.lat}, ${form.lng}` : 'No capturado'],
-    ['Tipo', (form.tipos&&form.tipos.length) ? form.tipos.join(', ') : '—'],
-    ['Maquinaria', (form.maquinarias&&form.maquinarias.length) ? form.maquinarias.join(', ') : '—'],
-    ['Horas', form.horas + 'h'],
-    ['Urgencia', form.urgencia],
-    ['Notas', form.notas || '—'],
-  ];
-  document.getElementById('resumen-content').innerHTML = campos.map(([k,v])=>
-    `<div class="resumen-field"><span class="resumen-key">${k}</span><span class="resumen-val">${v}</span></div>`
-  ).join('');
+  document.getElementById('resumen-content').innerHTML = `
+    <div class="resumen-field"><span class="resumen-key">Cliente</span><input class="resumen-input" id="re-cliente" value="${(form.cliente||'').replace(/"/g,'&quot;')}" oninput="form.cliente=this.value"></div>
+    <div class="resumen-field"><span class="resumen-key">Nombre obra</span><input class="resumen-input" id="re-obra" value="${(form.obra||'').replace(/"/g,'&quot;')}" oninput="form.obra=this.value"></div>
+    <div class="resumen-field"><span class="resumen-key">Dirección</span><input class="resumen-input" id="re-dir" value="${(form.direccion||'').replace(/"/g,'&quot;')}" oninput="form.direccion=this.value"></div>
+    <div class="resumen-field"><span class="resumen-key">Zona</span><input class="resumen-input" id="re-zona" value="${(form.zona||'').replace(/"/g,'&quot;')}" oninput="form.zona=this.value"></div>
+    <div class="resumen-field"><span class="resumen-key">GPS</span><span class="resumen-val" style="font-size:11px">${form.lat ? form.lat+', '+form.lng : 'No capturado'}</span></div>
+    <div class="resumen-field"><span class="resumen-key">Tipo</span><input class="resumen-input" id="re-tipo" value="${((form.tipos&&form.tipos.length)?form.tipos.join(', '):'').replace(/"/g,'&quot;')}" oninput="form.tipos=this.value.split(',').map(x=>x.trim()).filter(Boolean)"></div>
+    <div class="resumen-field"><span class="resumen-key">Maquinaria</span><input class="resumen-input" id="re-maq" value="${((form.maquinarias&&form.maquinarias.length)?form.maquinarias.join(', '):'').replace(/"/g,'&quot;')}" oninput="form.maquinarias=this.value.split(',').map(x=>x.trim()).filter(Boolean)"></div>
+    <div class="resumen-field"><span class="resumen-key">Horas</span><input class="resumen-input" id="re-horas" type="number" min="1" max="24" value="${form.horas||4}" oninput="form.horas=parseInt(this.value)||4"></div>
+    <div class="resumen-field"><span class="resumen-key">Urgencia</span>
+      <select class="resumen-input" id="re-urgencia" onchange="form.urgencia=this.value">
+        <option ${form.urgencia==='Normal'?'selected':''}>Normal</option>
+        <option ${form.urgencia==='Alta'?'selected':''}>Alta</option>
+        <option ${form.urgencia==='Urgente'?'selected':''}>Urgente</option>
+      </select>
+    </div>
+    <div class="resumen-field" style="flex-direction:column;align-items:flex-start"><span class="resumen-key" style="margin-bottom:4px">Notas</span><textarea class="resumen-input" style="width:100%;min-height:60px;resize:vertical" oninput="form.notas=this.value">${form.notas||''}</textarea></div>
+  `;
 }
 
 // ════════════════════════════════════════════════════════
@@ -2075,7 +2130,12 @@ function renderListado() {
         <div class="tc-top">
           <div style="min-width:0;flex:1">
             <div class="tc-titulo">${clienteCorto}${obraCorta} — ${tiposCorto}</div>
-            <div class="tc-dir">📍 ${t.direccion||'Sin dirección'}${t.zona?' · '+t.zona:''}</div>
+            <div class="tc-dir">📍 ${t.lat&&t.lng
+            ? `<a href="https://maps.google.com/?q=${t.lat},${t.lng}" target="_blank" style="color:var(--text2);text-decoration:underline;text-underline-offset:2px">${t.direccion||'Sin dirección'}</a>`
+            : t.direccion
+              ? `<a href="https://maps.google.com/?q=${encodeURIComponent(t.direccion)}" target="_blank" style="color:var(--text2);text-decoration:underline;text-underline-offset:2px">${t.direccion}</a>`
+              : 'Sin dirección'
+          }${t.zona?' · '+t.zona:''}</div>
           </div>
           <span class="status-pill ${scls}">${t.estado}</span>
         </div>
@@ -2090,6 +2150,7 @@ function renderListado() {
           ${next?`<button class="tc-btn" onclick="cambiarEstado(${t.id},'${next}')">→ ${next}</button>`:''}
           ${t.estado!=='Realizado'?`<button class="tc-btn realizado" onclick="cambiarEstado(${t.id},'Realizado')">✓ Realizado</button>`:''}
           ${t.estado==='Realizado'?`<button class="tc-btn" onclick="exportarTrabajoCSV(${t.id})" style="color:#44CC77;border-color:#44CC77">↓ CSV</button>`:''}
+          <button class="tc-btn" onclick="abrirEditarTrabajo(${t.id})" style="color:#FFD100;border-color:#FFD100">✏ Editar</button>
           <button class="tc-btn" onclick="eliminar(${t.id})" style="margin-left:auto;color:var(--danger)">Borrar</button>
         </div>
       </div>`;
@@ -2122,6 +2183,117 @@ async function eliminar(id) {
   if(!await showConfirm('¿Eliminar este trabajo?', 'Esta acción no se puede deshacer.', true)) return;
   await deleteTrab(id);
   renderListado();
+}
+
+// ════════════════════════════════════════════════════════
+// EDITAR TRABAJO EXISTENTE
+// ════════════════════════════════════════════════════════
+
+let _editandoId = null;
+
+function abrirEditarTrabajo(id) {
+  const t = getTrab().find(x=>String(x.id)===String(id));
+  if(!t) return;
+  _editandoId = id;
+  document.getElementById('ed-cliente').value = t.cliente||'';
+  document.getElementById('ed-obra').value = t.obra||'';
+  document.getElementById('ed-direccion').value = t.direccion||'';
+  document.getElementById('ed-zona').value = t.zona||'';
+  document.getElementById('ed-tipo').value = (t.tipos&&t.tipos.length) ? t.tipos.join(', ') : (t.tipo||'');
+  document.getElementById('ed-maquinaria').value = (t.maquinarias&&t.maquinarias.length) ? t.maquinarias.join(', ') : (t.maquinaria||'');
+  document.getElementById('ed-horas').value = t.horas||4;
+  document.getElementById('ed-urgencia').value = t.urgencia||'Normal';
+  document.getElementById('ed-estado').value = t.estado||'Pendiente presupuestar';
+  document.getElementById('ed-notas').value = t.notas||'';
+  document.getElementById('modal-editar').classList.remove('hidden');
+}
+
+async function guardarEdicionTrabajo() {
+  const trabajos = getTrab();
+  const t = trabajos.find(x=>String(x.id)===String(_editandoId));
+  if(!t) return;
+  const tiposArr = document.getElementById('ed-tipo').value.split(',').map(x=>x.trim()).filter(Boolean);
+  const maqArr = document.getElementById('ed-maquinaria').value.split(',').map(x=>x.trim()).filter(Boolean);
+  t.cliente = document.getElementById('ed-cliente').value.trim();
+  t.obra = document.getElementById('ed-obra').value.trim();
+  t.direccion = document.getElementById('ed-direccion').value.trim();
+  t.zona = document.getElementById('ed-zona').value.trim();
+  t.tipos = tiposArr;
+  t.tipo = tiposArr.join(', ');
+  t.maquinarias = maqArr;
+  t.maquinaria = maqArr.join(', ');
+  t.horas = parseInt(document.getElementById('ed-horas').value)||4;
+  t.urgencia = document.getElementById('ed-urgencia').value;
+  t.estado = document.getElementById('ed-estado').value;
+  t.notas = document.getElementById('ed-notas').value.trim();
+  showToast('Guardando...');
+  await updateTrab(t);
+  cerrarModal('modal-editar');
+  renderListado();
+  showToast('✓ Trabajo actualizado');
+}
+
+// ════════════════════════════════════════════════════════
+// ENVIAR CSV POR EMAIL (EmailJS — gratuito, sin backend)
+// Para activar: crear cuenta en emailjs.com, crear servicio + plantilla
+// y sustituir los 3 valores de abajo.
+// ════════════════════════════════════════════════════════
+
+const EMAILJS_SERVICE_ID  = 'TU_SERVICE_ID';   // ← sustituir
+const EMAILJS_TEMPLATE_ID = 'TU_TEMPLATE_ID';  // ← sustituir
+const EMAILJS_PUBLIC_KEY  = 'TU_PUBLIC_KEY';   // ← sustituir
+
+function enviarInformePorEmail() {
+  const trabajos = getTrab().filter(t=>ESTADOS_REALIZADOS.includes(t.estado));
+  const rango = _getRangoMesRealizados();
+  const filtrados = trabajos.filter(t=>{
+    const f = t.fechaRealizado||t.fecha||'';
+    return f >= rango.desde && f <= rango.hasta;
+  });
+  if(filtrados.length===0) { showToast('No hay trabajos en este mes'); return; }
+
+  const totalHorasReales = filtrados.reduce((acc,t)=>{
+    if(t.horasReales) Object.values(t.horasReales).forEach(h=>acc+=Number(h)||0);
+    return acc;
+  }, 0);
+  const totalHorasPrev = filtrados.reduce((a,b)=>a+(b.horas||0),0);
+
+  const sep  = '═'.repeat(40);
+  const lin  = '─'.repeat(40);
+
+  let cuerpo = '';
+  cuerpo += `INFORME EXCAVACIONES PACO — ${rango.titulo.toUpperCase()}%0D%0A`;
+  cuerpo += `${sep}%0D%0A`;
+  cuerpo += `Trabajos realizados: ${filtrados.length}   Horas previstas: ${totalHorasPrev}h   Horas reales: ${totalHorasReales}h%0D%0A`;
+  cuerpo += `${sep}%0D%0A`;
+
+  filtrados.forEach((t, i) => {
+    const horasR = t.horasReales
+      ? Object.entries(t.horasReales).map(([m,h])=>`${m}: ${h}h`).join(' | ')
+      : '—';
+    const tipos   = (t.tipos&&t.tipos.length) ? t.tipos.join(', ') : (t.tipo||'—');
+    const maqs    = (t.maquinarias&&t.maquinarias.length) ? t.maquinarias.join(', ') : (t.maquinaria||'—');
+    cuerpo += `%0D%0A─── ${i+1} / ${filtrados.length} ${'─'.repeat(32)}%0D%0A`;
+    cuerpo += `Cliente:      ${t.cliente||'—'}%0D%0A`;
+    cuerpo += `Obra:         ${t.obra||'—'}%0D%0A`;
+    cuerpo += `Dirección:    ${t.direccion||'—'}%0D%0A`;
+    cuerpo += `Zona:         ${t.zona||'—'}%0D%0A`;
+    cuerpo += `Tipo:         ${tipos}%0D%0A`;
+    cuerpo += `Maquinaria:   ${maqs}%0D%0A`;
+    cuerpo += `Horas prev.:  ${t.horas||0}h%0D%0A`;
+    cuerpo += `Horas reales: ${horasR}%0D%0A`;
+    cuerpo += `Fecha:        ${t.fechaRealizado||t.fecha||'—'}%0D%0A`;
+    cuerpo += `Notas:        ${t.notasCierre||t.notas||'—'}%0D%0A`;
+    cuerpo += `Materiales:   ${t.materiales||'—'}%0D%0A`;
+  });
+
+  cuerpo += `%0D%0A${sep}%0D%0A`;
+  cuerpo += `Generado por Excavaciones Paco App`;
+
+  const asunto = encodeURIComponent(`Informe Excavaciones Paco — ${rango.titulo}`);
+  const mailto = `mailto:pmartinezpa75@hotmail.com?subject=${asunto}&body=${cuerpo}`;
+  window.location.href = mailto;
+  showToast('✉ Abriendo correo…');
 }
 
 // ════════════════════════════════════════════════════════
