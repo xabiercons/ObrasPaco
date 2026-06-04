@@ -338,7 +338,7 @@
   .detail-field:last-child { border-bottom: none; }
   .detail-key { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.05em; min-width: 80px; padding-top: 2px; }
   .detail-val { font-size: 14px; color: var(--text); text-align: right; }
-  .btn-realizado-modal { width: 100%; padding: 15px; background: #003310; color: #44CC77; border: 1px solid #44CC77; border-radius: var(--radius-sm); font-size: 15px; cursor: pointer; font-family: Georgia, serif; margin-top: 14px; }
+  .btn-realizado-modal { width: 100%; padding: 15px; background: #16A34A; color: #FFFFFF; border: 2px solid #16A34A; border-radius: var(--radius-sm); font-size: 15px; cursor: pointer; font-family: Georgia, serif; margin-top: 14px; }
   .btn-realizado-modal:active { opacity: 0.85; }
   .btn-desprogramar { width: 100%; padding: 12px; background: none; color: var(--danger); border: 1px solid var(--danger); border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; font-family: Georgia, serif; margin-top: 8px; }
 
@@ -360,7 +360,7 @@
   .op-chip-item { font-size: 11px; padding: 3px 9px; border-radius: 12px; border: 1.5px solid #999; color: var(--text2); font-family: 'Courier New', monospace; }
   .op-horas { font-size: 12px; color: var(--text3); margin-bottom: 12px; }
   .op-notas { font-size: 12px; color: var(--text3); background: var(--card); border-radius: 6px; padding: 8px 10px; border-left: 2px solid var(--border); font-style: italic; margin-bottom: 12px; }
-  .btn-op-realizado { width: 100%; padding: 16px; background: var(--success-bg); color: var(--success); border: 2px solid var(--success); border-radius: var(--radius-sm); font-size: 16px; cursor: pointer; font-family: Georgia, serif; letter-spacing: 0.02em; }
+  .btn-op-realizado { width: 100%; padding: 16px; background: #16A34A; color: #FFFFFF; border: 2px solid #16A34A; border-radius: var(--radius-sm); font-size: 16px; cursor: pointer; font-family: Georgia, serif; letter-spacing: 0.02em; }
   .btn-op-realizado:active { opacity: 0.85; }
   .op-dia-header { font-size: 12px; color: var(--text2); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
   .op-dia-header.op-dia-hoy { color: var(--accent); border-bottom-color: var(--accent); }
@@ -2295,7 +2295,7 @@ function renderListado() {
           ${t.estado!=='Realizado'?`<button class="tc-btn realizado" onclick="cambiarEstado(${t.id},'Realizado')">✓ Realizado</button>`:''}
           ${t.estado==='Realizado'?`<button class="tc-btn" onclick="exportarTrabajoCSV(${t.id})" style="color:#44CC77;border-color:#44CC77">↓ CSV</button>`:''}
           ${t.estado==='Realizado'?`<button class="tc-btn" onclick="enviarTrabajoEmail(${t.id})" style="color:#FFD100;border-color:rgba(255,209,0,0.4)">✉ Email</button>`:''}
-          <button class="tc-btn" onclick="abrirEditarTrabajo(${t.id})" style="color:#FFD100;border-color:#FFD100">✏ Editar</button>
+          <button class="tc-btn" onclick="abrirEditarTrabajo(${t.id})" style="background:var(--nav-bg);color:var(--text-inv);border-color:var(--nav-bg)">✏ Editar</button>
           <button class="tc-btn" onclick="eliminar(${t.id})" style="margin-left:auto;color:var(--danger)">Borrar</button>
         </div>
       </div>`;
@@ -3392,7 +3392,7 @@ function renderOperario() {
         ${hayNotas ? `<div class="op-notas">${t.notas}</div>` : ''}
         <div style="display:flex;gap:8px;margin-top:8px">
           <button class="btn-op-realizado" style="flex:1" onclick="opMarcarRealizado(${t.id})">✓ Marcar como realizado</button>
-          <button style="flex:0 0 auto;padding:10px 14px;background:transparent;border:1px solid rgba(255,209,0,0.4);border-radius:8px;color:#FFD100;font-size:13px;cursor:pointer" onclick="abrirEditarTrabajo(${t.id})">✏</button>
+          <button style="flex:0 0 auto;padding:10px 14px;background:var(--nav-bg);border:1px solid var(--nav-bg);border-radius:8px;color:var(--text-inv);font-size:13px;cursor:pointer" onclick="abrirEditarTrabajo(${t.id})">✏</button>
         </div>
       </div>`;
     });
