@@ -38,7 +38,7 @@
 
   /* NAV TABS */
   .nav { display: flex; background: var(--card); border-bottom: 1px solid var(--border); }
-  .nav-tab { flex: 1; padding: 12px 4px; text-align: center; font-size: 17px; color: #CCCCCC; cursor: pointer; border: none; background: none; font-family: 'Courier New', monospace; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 2px solid transparent; transition: all 0.2s; font-weight: bold; }
+  .nav-tab { flex: 1; padding: 12px 4px; text-align: center; font-size: 17px; color: #555; cursor: pointer; border: none; background: none; font-family: 'Courier New', monospace; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 2px solid transparent; transition: all 0.2s; font-weight: bold; }
   .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; } .nav { background: #ffffff; }
 
   /* VIEWS */
@@ -81,7 +81,7 @@
   input::placeholder, textarea::placeholder { color: #aaa; }
   input:focus, textarea:focus, select:focus { border-color: var(--accent); }
   textarea { min-height: 80px; resize: none; }
-  .modal-label { font-size: 11px; color: #AAAAAA; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; margin-top: 4px; }
+  .modal-label { font-size: 11px; color: #555; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; margin-top: 4px; }
 
   /* SELECTOR CHIPS */
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
@@ -568,7 +568,7 @@
     <div class="modal-label" style="margin-top:16px">Materiales utilizados (opcional)</div>
     <textarea id="mreal-materiales" placeholder="Ej: arena 2 sacos, tubo PVC 6m, hormigón 0.5m³..." style="min-height:60px"></textarea>
 
-    <div style="background:#ffffff;border:1px solid rgba(255,209,0,0.2);border-radius:8px;padding:12px;margin-top:14px;font-size:12px;color:#7A6600;font-family:'Courier New',monospace">
+    <div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:8px;padding:12px;margin-top:14px;font-size:12px;color:#92400E;font-family:'Courier New',monospace">
       Esta acción moverá el trabajo al historial de Realizados.
     </div>
 
@@ -2527,14 +2527,14 @@ function renderMes() {
   if (filtroEl) {
     const fstyle = (bg, color, border) => `font-size:10px;padding:4px 10px;border-radius:20px;cursor:pointer;font-family:monospace;border:1px solid ${border};background:${bg};color:${color}`;
     let fhtml = '<span style="font-size:10px;color:#555;font-family:monospace;align-self:center;margin-right:2px">Filtro:</span>';
-    const bgTodas = mesFiltroMaq === '' ? '#FFD100' : '#222';
-    const colTodas = mesFiltroMaq === '' ? '#1C1C1C' : '#888';
-    fhtml += `<div style="${fstyle(bgTodas, colTodas, 'rgba(255,209,0,0.3)')}" onclick="setMesFiltroMaq('')">Todas</div>`;
+    const bgTodas = mesFiltroMaq === '' ? '#FFD100' : '#f0f0f0';
+    const colTodas = mesFiltroMaq === '' ? '#1C1C1C' : '#444';
+    fhtml += `<div style="${fstyle(bgTodas, colTodas, mesFiltroMaq===''?'#FFD100':'#ccc')}" onclick="setMesFiltroMaq('')">Todas</div>`;
     maqDisponibles.forEach(m => {
       const activo = mesFiltroMaq === m;
-      const bg = activo ? '#332B00' : '#222';
-      const col = activo ? '#FFD100' : '#888';
-      const brd = activo ? 'rgba(255,209,0,0.8)' : 'rgba(255,209,0,0.3)';
+      const bg = activo ? '#1a1a1a' : '#f0f0f0';
+      const col = activo ? '#FFD100' : '#444';
+      const brd = activo ? '#1a1a1a' : '#ccc';
       fhtml += `<div style="${fstyle(bg, col, brd)}" onclick="setMesFiltroMaq('${m.replace(/'/g, "&apos;")}')">` + m + '</div>';
     });
     filtroEl.innerHTML = fhtml;
@@ -2997,22 +2997,21 @@ function renderMrealMaquinas() {
   let html = '';
   _mrealMaquinas.forEach((m, i) => {
     html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <span style="flex:1;font-size:13px;color:#C9A800">${m}</span>
+      <span style="flex:1;font-size:13px;color:#111;font-weight:500">${m}</span>
       <input type="number" id="mreal-horas-${i}" min="0" max="24" step="0.5" value="${t&&t.horas?t.horas:4}"
-        style="width:72px;text-align:center;padding:8px;background:#ffffff;border:1px solid rgba(255,209,0,0.3);border-radius:8px;color:#FFD100;font-size:15px">
-      <span style="font-size:12px;color:#7A6600">h</span>
-      <button onclick="mrealQuitarMaq(${i})" style="background:none;border:none;color:#FF4444;font-size:18px;cursor:pointer;padding:4px" title="Quitar">✕</button>
+        style="width:72px;text-align:center;padding:8px;background:#fff;border:1.5px solid #ccc;border-radius:8px;color:#111;font-size:15px">
+      <span style="font-size:12px;color:#555">h</span>
+      <button onclick="mrealQuitarMaq(${i})" style="background:none;border:none;color:#DC2626;font-size:18px;cursor:pointer;padding:4px" title="Quitar">✕</button>
     </div>`;
   });
-  // Selector para añadir máquina
   const todasMaq = getMaqActiva().filter(m => !_mrealMaquinas.includes(m));
   if (todasMaq.length > 0) {
     html += `<div style="display:flex;gap:8px;margin-top:6px">
-      <select id="mreal-add-maq" style="flex:1;padding:8px;background:#ffffff;border:1px solid rgba(255,209,0,0.3);border-radius:8px;color:#FFFFFF;font-size:13px">
+      <select id="mreal-add-maq" style="flex:1;padding:8px;background:#fff;border:1.5px solid #ccc;border-radius:8px;color:#111;font-size:13px">
         <option value="">+ Añadir máquina…</option>
         ${todasMaq.map(m=>`<option value="${m}">${m}</option>`).join('')}
       </select>
-      <button onclick="mrealAddMaq()" style="padding:8px 14px;background: #f0f0f0;color:#FFD100;border:1px solid rgba(255,209,0,0.4);border-radius:8px;font-size:13px;cursor:pointer">Añadir</button>
+      <button onclick="mrealAddMaq()" style="padding:8px 14px;background:#f5f5f5;color:#333;border:1px solid #ccc;border-radius:8px;font-size:13px;cursor:pointer">Añadir</button>
     </div>`;
   }
   document.getElementById('mreal-maquinas').innerHTML = html;
