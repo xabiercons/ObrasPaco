@@ -293,6 +293,11 @@ const AppState = {
 
   // ── UI ────────────────────────────────────────────────
   clienteDropdownOpen: false, // true si el dropdown de clientes está abierto
+
+  // ── Chips de edición ──────────────────────────────────
+  edTipos: [],       // tipos seleccionados en modal editar
+  edMaquinarias: [], // maquinarias seleccionadas en modal editar
+  edOperarios: [],   // operarios seleccionados en modal editar
 };
 
 const CONFIG_DEFAULT = {
@@ -1673,6 +1678,41 @@ async function guardarEdicionCliente() {
 
 
 // Abre el modal de edición de un trabajo existente con sus datos cargados
+// ════════════════════════════════════════════════════════
+// CHIPS DE EDICIÓN — Tipo, Maquinaria y Operarios
+// ════════════════════════════════════════════════════════
+
+function edRenderChips(containerId, items, selected, toggleFn) {
+  const wrap = document.getElementById(containerId);
+  if(!wrap) return;
+  wrap.innerHTML = items.map(item => {
+    const activo = selected.includes(item);
+    return `<span onclick="${toggleFn}('${item.replace(/'/g,"\'")}')"
+      style="display:inline-flex;align-items:center;padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:1.5px solid;transition:all .15s;
+      ${activo
+        ? 'background:var(--accent);color:var(--accent-dark);border-color:var(--accent);font-weight:600'
+        : 'background:transparent;color:var(--text2);border-color:var(--border)'}">${item}</span>`;
+  }).join('');
+}
+
+function edToggleTipo(val) {
+  if(AppState.edTipos.includes(val)) AppState.edTipos = AppState.edTipos.filter(x=>x!==val);
+  else AppState.edTipos.push(val);
+  edRenderChips('ed-tipos-chips', getTiposActivos(), AppState.edTipos, 'edToggleTipo');
+}
+
+function edToggleMaq(val) {
+  if(AppState.edMaquinarias.includes(val)) AppState.edMaquinarias = AppState.edMaquinarias.filter(x=>x!==val);
+  else AppState.edMaquinarias.push(val);
+  edRenderChips('ed-maq-chips', getMaqActiva(), AppState.edMaquinarias, 'edToggleMaq');
+}
+
+function edToggleOp(val) {
+  if(AppState.edOperarios.includes(val)) AppState.edOperarios = AppState.edOperarios.filter(x=>x!==val);
+  else AppState.edOperarios.push(val);
+  edRenderChips('ed-ops-chips', getOperariosActivos(), AppState.edOperarios, 'edToggleOp');
+}
+
 function abrirEditarTrabajo(id) {
   const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
@@ -1681,8 +1721,13 @@ function abrirEditarTrabajo(id) {
   document.getElementById('ed-obra').value = t.obra||'';
   document.getElementById('ed-direccion').value = t.direccion||'';
   document.getElementById('ed-zona').value = t.zona||'';
-  document.getElementById('ed-tipo').value = (t.tipos&&t.tipos.length) ? t.tipos.join(', ') : (t.tipo||'');
-  document.getElementById('ed-maquinaria').value = (t.maquinarias&&t.maquinarias.length) ? t.maquinarias.join(', ') : (t.maquinaria||'');
+  // Chips de tipo, maquinaria y operarios
+  AppState.edTipos = t.tipos && t.tipos.length ? [...t.tipos] : (t.tipo ? t.tipo.split(',').map(x=>x.trim()).filter(Boolean) : []);
+  AppState.edMaquinarias = t.maquinarias && t.maquinarias.length ? [...t.maquinarias] : (t.maquinaria ? t.maquinaria.split(',').map(x=>x.trim()).filter(Boolean) : []);
+  AppState.edOperarios = t.operarios && t.operarios.length ? [...t.operarios] : [];
+  edRenderChips('ed-tipos-chips', getTiposActivos(), AppState.edTipos, 'edToggleTipo');
+  edRenderChips('ed-maq-chips', getMaqActiva(), AppState.edMaquinarias, 'edToggleMaq');
+  edRenderChips('ed-ops-chips', getOperariosActivos(), AppState.edOperarios, 'edToggleOp');
   document.getElementById('ed-horas').value = t.horas||4;
   document.getElementById('ed-urgencia').value = t.urgencia||'Normal';
   document.getElementById('ed-estado').value = t.estado||'Pendiente presupuestar';
@@ -1700,8 +1745,8 @@ async function guardarEdicionTrabajo() {
   const trabajos = getTrab();
   const t = trabajos.find(x=>String(x.id)===String(AppState.editandoId));
   if(!t) return;
-  const tiposArr = document.getElementById('ed-tipo').value.split(',').map(x=>x.trim()).filter(Boolean);
-  const maqArr = document.getElementById('ed-maquinaria').value.split(',').map(x=>x.trim()).filter(Boolean);
+  const tiposArr = [...AppState.edTipos];
+  const maqArr = [...AppState.edMaquinarias];
   t.cliente = document.getElementById('ed-cliente').value.trim();
   t.obra = document.getElementById('ed-obra').value.trim();
   t.direccion = document.getElementById('ed-direccion').value.trim();
@@ -1710,6 +1755,7 @@ async function guardarEdicionTrabajo() {
   t.tipo = tiposArr.join(', ');
   t.maquinarias = maqArr;
   t.maquinaria = maqArr.join(', ');
+  t.operarios = [...AppState.edOperarios];
   t.horas = parseInt(document.getElementById('ed-horas').value)||4;
   t.urgencia = document.getElementById('ed-urgencia').value;
   t.estado = document.getElementById('ed-estado').value;

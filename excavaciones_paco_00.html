@@ -486,10 +486,18 @@
         <input class="cfg-input" id="ed-direccion" type="text" style="width:100%;margin-top:4px"></div>
       <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Zona</label>
         <input class="cfg-input" id="ed-zona" type="text" style="width:100%;margin-top:4px"></div>
-      <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Tipo de trabajo</label>
-        <input class="cfg-input" id="ed-tipo" type="text" placeholder="Ej: Excavación, Picado" style="width:100%;margin-top:4px"></div>
-      <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Maquinaria</label>
-        <input class="cfg-input" id="ed-maquinaria" type="text" placeholder="Ej: Minipala JCB" style="width:100%;margin-top:4px"></div>
+      <div>
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Tipo de trabajo</label>
+        <div id="ed-tipos-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Maquinaria</label>
+        <div id="ed-maq-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Operarios</label>
+        <div id="ed-ops-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+      </div>
       <div style="display:flex;gap:10px">
         <div style="flex:1"><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Horas previstas</label>
           <input class="cfg-input" id="ed-horas" type="number" min="1" max="24" style="width:100%;margin-top:4px"></div>
