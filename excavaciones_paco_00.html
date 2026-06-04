@@ -507,14 +507,20 @@
           <option>En curso</option>
           <option>Realizado</option>
         </select></div>
-      <div>
-        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Fechas programadas</label>
-        <div id="ed-fechas-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:28px"></div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <input type="date" id="ed-fecha-picker" class="cfg-input" style="flex:1;margin:0">
-          <button onclick="edFechaAdd()" style="padding:8px 14px;background:var(--accent);color:var(--accent-dark);border:none;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:Georgia,serif;white-space:nowrap">+ Añadir</button>
+      <div id="ed-fechas-bloque">
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Fecha programada</label>
+        <div id="ed-fecha-actual-wrap" style="display:flex;align-items:center;gap:8px;background:var(--chip-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-top:6px">
+          <span style="font-size:13px;color:var(--text3)">📅</span>
+          <span id="ed-fecha-actual-label" style="font-size:14px;color:var(--text);flex:1">—</span>
+          <span style="font-size:11px;color:var(--text3)">actual</span>
         </div>
-        <div style="font-size:10px;color:var(--text3);margin-top:4px">Sin fechas → el trabajo vuelve a la bolsa para reprogramar</div>
+        <div style="text-align:center;font-size:16px;color:var(--text3);margin:4px 0">↓</div>
+        <label style="font-size:11px;color:var(--text3);letter-spacing:.06em">Nueva fecha</label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <input type="date" id="ed-fecha-picker" class="cfg-input" style="flex:1;margin:0">
+          <button onclick="edFechaCambiar()" style="padding:8px 14px;background:var(--accent);color:var(--accent-dark);border:none;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:Georgia,serif;white-space:nowrap">Cambiar</button>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">Solo fechas desde hoy · Sin fecha → vuelve a la bolsa para reprogramar desde el calendario</div>
       </div>
       <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Notas</label>
         <textarea class="cfg-input" id="ed-notas" style="width:100%;min-height:60px;resize:vertical;margin-top:4px"></textarea></div>
