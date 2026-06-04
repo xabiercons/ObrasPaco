@@ -1522,6 +1522,10 @@ function showStep(n) {
   stepActual = n;
   updateProgress();
   if(n===7) buildResumen();
+  // Limpiar cualquier feedback de voz y toasts al cambiar de paso
+  document.querySelectorAll('.voice-result').forEach(el => el.innerHTML = '');
+  const toast = document.getElementById('toast');
+  if(toast) { toast.textContent = ''; toast.classList.remove('show'); }
 }
 
 // Valida el paso actual antes de avanzar. Si falta algo, muestra aviso.
@@ -1835,9 +1839,23 @@ function resetVoiceBtn(btn, field) {
 function processVoice(field, texto) {
   const t = texto.toLowerCase();
   if(field==='cliente') {
-    form.cliente = texto;
-    document.getElementById('f-cliente').value = texto;
-    return { ok: true, msg: 'Cliente registrado' };
+    // Buscar si coincide con un cliente existente (por nombre o sinónimo)
+    const clientesActuales = getClientes();
+    const tLow = texto.toLowerCase().trim();
+    const match = clientesActuales.find(c =>
+      c.nombre.toLowerCase().includes(tLow) || tLow.includes(c.nombre.toLowerCase())
+    );
+    if(match) {
+      form.cliente = match.nombre;
+      document.getElementById('cs-selected').textContent = match.nombre;
+      const dd = document.getElementById('cs-dropdown');
+      if(dd) dd.classList.remove('show');
+      _clienteDropdownOpen = false;
+      return { ok: true, msg: 'Cliente: ' + match.nombre };
+    } else {
+      // No encontrado — mostrar lo dictado como aviso
+      return { ok: false, msg: 'No se encontró "' + texto + '" en clientes. Selecciónalo manualmente.' };
+    }
   } else if(field==='direccion') {
     form.direccion = texto;
     document.getElementById('f-direccion').value = texto;
@@ -1847,13 +1865,29 @@ function processVoice(field, texto) {
   } else if(field==='maquinaria') {
     return matchSinonimo('maquinarias', t, 'chips-maq');
   } else if(field==='horas') {
-    const nums = t.match(/\d+/);
-    if(nums) {
-      form.horas = parseInt(nums[0]);
+    // Convertir palabras numéricas a dígitos
+    const NUMWORDS = {'una':1,'un':1,'dos':2,'tres':3,'cuatro':4,'cinco':5,
+      'seis':6,'siete':7,'ocho':8,'nueve':9,'diez':10,'once':11,'doce':12,
+      'trece':13,'catorce':14,'quince':15,'dieciséis':16,'diecisiete':17,
+      'dieciocho':18,'diecinueve':19,'veinte':20};
+    let numStr = t.replace(/horas?|h\b/g,'').trim();
+    // Primero buscar dígito
+    let num = null;
+    const digitMatch = numStr.match(/\d+/);
+    if(digitMatch) {
+      num = parseInt(digitMatch[0]);
+    } else {
+      // Buscar palabra numérica
+      for(const [word, val] of Object.entries(NUMWORDS)) {
+        if(numStr.includes(word)) { num = val; break; }
+      }
+    }
+    if(num && num >= 1 && num <= 24) {
+      form.horas = num;
       document.getElementById('horas-display').textContent = form.horas;
       return { ok: true, msg: form.horas + 'h registradas' };
     }
-    return { ok: false, msg: 'No se detectó número de horas' };
+    return { ok: false, msg: 'No se detectó número de horas. Di por ejemplo "tres horas" o "5 horas"' };
   } else if(field==='obra') {
     form.obra = texto;
     document.getElementById('f-obra').value = texto;
@@ -1913,7 +1947,30 @@ function buildResumen() {
       </select>
     </div>
     <div class="resumen-field" style="flex-direction:column;align-items:flex-start"><span class="resumen-key" style="margin-bottom:4px">Notas</span><textarea class="resumen-input" style="width:100%;min-height:60px;resize:vertical" oninput="form.notas=this.value">${form.notas||''}</textarea></div>
-  `;
+    <div class="resumen-field" style="flex-direction:column;align-items:flex-start">
+      <span class="resumen-key" style="margin-bottom:6px">Operario (opcional)</span>
+      <div style="display:flex;flex-wrap:wrap;gap:6px" id="re-operarios-chips">
+        ${getOperariosCfg().filter(o=>o.activo!==false).map(o=>`
+          <button onclick="toggleOperarioResumen('${o.nombre}',this)"
+            style="padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:${(form.operarios||[]).includes(o.nombre)?'var(--accent)':'transparent'};color:${(form.operarios||[]).includes(o.nombre)?'#1C1C1C':'var(--text2)'};transition:all .15s">
+            ${o.nombre}
+          </button>`).join('')}
+      </div>
+    </div>
+  \`;
+}
+
+function toggleOperarioResumen(nombre, btn) {
+  if(!form.operarios) form.operarios = [];
+  if(form.operarios.includes(nombre)) {
+    form.operarios = form.operarios.filter(o=>o!==nombre);
+    btn.style.background = 'transparent';
+    btn.style.color = 'var(--text2)';
+  } else {
+    form.operarios.push(nombre);
+    btn.style.background = 'var(--accent)';
+    btn.style.color = '#1C1C1C';
+  }
 }
 
 // ════════════════════════════════════════════════════════
@@ -2449,7 +2506,7 @@ function renderMes() {
       const nombre = (t.obra || t.cliente || 'Trabajo').split(/[-,]/)[0].trim().slice(0, 10);
       const hrsText = t.horas ? ' '+t.horas+'h' : '';
       pill.innerHTML = '<span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+nombre+'</span><span style="display:block;font-size:7px;opacity:0.65;font-family:monospace">'+hrsText+'</span>';
-      pill.onclick = (e) => { e.stopPropagation(); abrirDetalle(t.id); };
+      pill.onclick = (e) => { e.stopPropagation(); if(progTrabajoId) toggleDiaProg(isoCapturado); else abrirDetalle(t.id); };
       pillsWrap.appendChild(pill);
     });
     // Atenuadas (filtro activo, no coinciden)
@@ -2459,7 +2516,7 @@ function renderMes() {
         pill.className = 'mes-pill-mini';
         pill.style.opacity = '0.25';
         pill.textContent = (t.obra || t.cliente || 'Trabajo').split(/[-,]/)[0].trim().slice(0, 10);
-        pill.onclick = (e) => { e.stopPropagation(); abrirDetalle(t.id); };
+        pill.onclick = (e) => { e.stopPropagation(); if(progTrabajoId) toggleDiaProg(isoCapturado); else abrirDetalle(t.id); };
         pillsWrap.appendChild(pill);
       });
     }
@@ -2685,6 +2742,9 @@ function cancelarProgramacion() {
 // Marca o desmarca un día en la vista mes (solo en modo programación activa)
 function toggleDiaProg(iso) {
   if (!progTrabajoId) return;
+  // Bloquear días pasados
+  const hoy = fechaISO(new Date());
+  if (iso < hoy) { showToast('No se puede programar en días pasados'); return; }
   if (progDias.includes(iso)) {
     progDias = progDias.filter(d => d !== iso);
   } else {
