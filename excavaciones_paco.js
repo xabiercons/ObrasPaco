@@ -256,23 +256,23 @@ const AppState = {
   // ── Formulario nuevo trabajo ──────────────────────────
   form: { cliente:'', obra:'', direccion:'', zona:'', lat:null, lng:null,
           tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' },
-  AppState.stepActual: 1,
+  stepActual: 1,
 
   // ── Listado ───────────────────────────────────────────
-  AppState.ltabActual: 'pendientes',
-  AppState.realizadosMesOffset: 0,     // 0 = mes actual, -1 = anterior...
+  ltabActual: 'pendientes',
+  realizadosMesOffset: 0,     // 0 = mes actual, -1 = anterior...
 
   // ── Calendario mes ────────────────────────────────────
-  AppState.mesOffset: 0,               // 0 = mes actual, -1 = anterior, +1 = siguiente
-  AppState.mesFiltroMaq: '',           // '' = todas las máquinas
+  mesOffset: 0,               // 0 = mes actual, -1 = anterior, +1 = siguiente
+  mesFiltroMaq: '',           // '' = todas las máquinas
 
   // ── Programación ─────────────────────────────────────
-  AppState.progTrabajoId: null,        // ID del trabajo en modo programación activa
-  AppState.progDias: [],               // Días seleccionados (ISO strings)
-  AppState.progOperarios: [],          // Operarios seleccionados
+  progTrabajoId: null,        // ID del trabajo en modo programación activa
+  progDias: [],               // Días seleccionados (ISO strings)
+  progOperarios: [],          // Operarios seleccionados
 
   // ── Modales ───────────────────────────────────────────
-  AppState.modalTrabajoId: null,       // ID del trabajo abierto en modal detalle/realizado
+  modalTrabajoId: null,       // ID del trabajo abierto en modal detalle/realizado
   editandoId: null,           // ID del trabajo que se está editando
   editandoClienteId: null,    // ID del cliente que se está editando
   edFecha: '',                // Fecha programada en edición (ISO string)
@@ -280,16 +280,16 @@ const AppState = {
   confirmResolve: null,       // Promise resolver del modal de confirmación
 
   // ── Mapa ──────────────────────────────────────────────
-  AppState.mapaLeaflet: null,          // Instancia del mapa Leaflet
-  AppState.marcador: null,             // Marcador arrastrable
-  AppState.coordsTemp: { lat: null, lng: null }, // Coordenadas antes de aceptar
+  mapaLeaflet: null,          // Instancia del mapa Leaflet
+  marcador: null,             // Marcador arrastrable
+  coordsTemp: { lat: null, lng: null }, // Coordenadas antes de aceptar
 
   // ── Voz ───────────────────────────────────────────────
-  AppState.recognition: null,          // Instancia Web Speech API
-  AppState.listening: false,           // true mientras el micrófono está activo
+  recognition: null,          // Instancia Web Speech API
+  listening: false,           // true mientras el micrófono está activo
 
   // ── Vista operario ────────────────────────────────────
-  AppState.opSeleccionado: null,       // Nombre del operario activo en vista Hoy
+  opSeleccionado: null,       // Nombre del operario activo en vista Hoy
 
   // ── UI ────────────────────────────────────────────────
   clienteDropdownOpen: false, // true si el dropdown de clientes está abierto
@@ -2270,8 +2270,8 @@ function actualizarBarraProgramar() {
         const d = new Date(iso + 'T12:00');
         return DIAS_CORTO[d.getDay() === 0 ? 6 : d.getDay() - 1] + ' ' + d.getDate() + ' ' + meses[d.getMonth()];
       }).join(' · ');
-  const bAppState.progDias = document.getElementById('bprog-dias');
-  if(bAppState.progDias) bAppState.progDias.textContent = '📅 ' + diasTexto;
+  const bProgDias = document.getElementById('bprog-dias');
+  if(bProgDias) bProgDias.textContent = '📅 ' + diasTexto;
 
   // Chips de operarios
   const opWrap = document.getElementById('bprog-operarios');
