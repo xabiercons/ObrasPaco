@@ -542,6 +542,7 @@
     <button class="btn-desprogramar" onclick="desprogramarDesdeDetalle()">↩ Quitar de la semana</button>
     <div class="modal-actions" style="margin-top:12px">
       <button class="modal-cancel" style="flex:1" onclick="cerrarModal('modal-detalle')">Cerrar</button>
+      <button class="modal-confirm" style="flex:1;background:transparent;color:#FFD100;border:1px solid rgba(255,209,0,0.4)" onclick="cerrarModal('modal-detalle');abrirEditarTrabajo(modalTrabajoId)">✏ Editar</button>
     </div>
   </div>
 </div>
@@ -1738,6 +1739,21 @@ function aceptarMapa() {
 // field: qué campo rellena ('cliente', 'tipo', 'maquinaria', 'notas'...)
 // btnId: ID del botón que cambia de texto al activarse
 // resId: ID del div donde se muestra la transcripción
+// Genera un enlace a Google Maps para una dirección o coordenadas
+function mapsLink(t) {
+  if(t.lat && t.lng) return `https://maps.google.com/?q=${t.lat},${t.lng}`;
+  if(t.direccion) return `https://maps.google.com/?q=${encodeURIComponent(t.direccion)}`;
+  return null;
+}
+
+// Genera el HTML del enlace "Cómo llegar" para usar en cualquier vista
+function mapsHtml(t, estilo) {
+  const url = mapsLink(t);
+  if(!url) return '';
+  const base = 'display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#4A9EFF;text-decoration:none;';
+  return `<a href="${url}" target="_blank" style="${base}${estilo||''}">🗺 Cómo llegar</a>`;
+}
+
 function startVoice(field, btnId, resId) {
   if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     showToast('Reconocimiento de voz no disponible. Usa Chrome en Android.');
@@ -2130,12 +2146,10 @@ function renderListado() {
         <div class="tc-top">
           <div style="min-width:0;flex:1">
             <div class="tc-titulo">${clienteCorto}${obraCorta} — ${tiposCorto}</div>
-            <div class="tc-dir">📍 ${t.lat&&t.lng
-            ? `<a href="https://maps.google.com/?q=${t.lat},${t.lng}" target="_blank" style="color:var(--text2);text-decoration:underline;text-underline-offset:2px">${t.direccion||'Sin dirección'}</a>`
-            : t.direccion
-              ? `<a href="https://maps.google.com/?q=${encodeURIComponent(t.direccion)}" target="_blank" style="color:var(--text2);text-decoration:underline;text-underline-offset:2px">${t.direccion}</a>`
-              : 'Sin dirección'
-          }${t.zona?' · '+t.zona:''}</div>
+            <div class="tc-dir">${mapsLink(t)
+            ? `<a href="${mapsLink(t)}" target="_blank" style="color:#4A9EFF;text-decoration:none">📍 ${t.direccion||'Sin dirección'}${t.zona?' · '+t.zona:''} — Cómo llegar →</a>`
+            : `📍 ${t.direccion||'Sin dirección'}${t.zona?' · '+t.zona:''}`
+          }</div>
           </div>
           <span class="status-pill ${scls}">${t.estado}</span>
         </div>
@@ -2239,9 +2253,9 @@ async function guardarEdicionTrabajo() {
 // y sustituir los 3 valores de abajo.
 // ════════════════════════════════════════════════════════
 
-const EMAILJS_SERVICE_ID  = 'TU_SERVICE_ID';   // ← sustituir
-const EMAILJS_TEMPLATE_ID = 'TU_TEMPLATE_ID';  // ← sustituir
-const EMAILJS_PUBLIC_KEY  = 'TU_PUBLIC_KEY';   // ← sustituir
+const EMAILJS_SERVICE_ID  = 'service_5ubpuil';
+const EMAILJS_TEMPLATE_ID = 'template_u0p0jym';
+const EMAILJS_PUBLIC_KEY  = 'up9JeR0IBI7TJyS33';
 
 function enviarInformePorEmail() {
   const trabajos = getTrab().filter(t=>ESTADOS_REALIZADOS.includes(t.estado));
@@ -2258,42 +2272,48 @@ function enviarInformePorEmail() {
   }, 0);
   const totalHorasPrev = filtrados.reduce((a,b)=>a+(b.horas||0),0);
 
-  const sep  = '═'.repeat(40);
-  const lin  = '─'.repeat(40);
+  const sep = '════════════════════════════════════════';
+  const lin = '────────────────────────────────────────';
 
   let cuerpo = '';
-  cuerpo += `INFORME EXCAVACIONES PACO — ${rango.titulo.toUpperCase()}%0D%0A`;
-  cuerpo += `${sep}%0D%0A`;
-  cuerpo += `Trabajos realizados: ${filtrados.length}   Horas previstas: ${totalHorasPrev}h   Horas reales: ${totalHorasReales}h%0D%0A`;
-  cuerpo += `${sep}%0D%0A`;
+  cuerpo += `INFORME EXCAVACIONES PACO — ${rango.titulo.toUpperCase()}\n`;
+  cuerpo += `${sep}\n`;
+  cuerpo += `Trabajos realizados: ${filtrados.length}   Horas previstas: ${totalHorasPrev}h   Horas reales: ${totalHorasReales}h\n`;
+  cuerpo += `${sep}\n`;
 
   filtrados.forEach((t, i) => {
     const horasR = t.horasReales
       ? Object.entries(t.horasReales).map(([m,h])=>`${m}: ${h}h`).join(' | ')
       : '—';
-    const tipos   = (t.tipos&&t.tipos.length) ? t.tipos.join(', ') : (t.tipo||'—');
-    const maqs    = (t.maquinarias&&t.maquinarias.length) ? t.maquinarias.join(', ') : (t.maquinaria||'—');
-    cuerpo += `%0D%0A─── ${i+1} / ${filtrados.length} ${'─'.repeat(32)}%0D%0A`;
-    cuerpo += `Cliente:      ${t.cliente||'—'}%0D%0A`;
-    cuerpo += `Obra:         ${t.obra||'—'}%0D%0A`;
-    cuerpo += `Dirección:    ${t.direccion||'—'}%0D%0A`;
-    cuerpo += `Zona:         ${t.zona||'—'}%0D%0A`;
-    cuerpo += `Tipo:         ${tipos}%0D%0A`;
-    cuerpo += `Maquinaria:   ${maqs}%0D%0A`;
-    cuerpo += `Horas prev.:  ${t.horas||0}h%0D%0A`;
-    cuerpo += `Horas reales: ${horasR}%0D%0A`;
-    cuerpo += `Fecha:        ${t.fechaRealizado||t.fecha||'—'}%0D%0A`;
-    cuerpo += `Notas:        ${t.notasCierre||t.notas||'—'}%0D%0A`;
-    cuerpo += `Materiales:   ${t.materiales||'—'}%0D%0A`;
+    const tipos = (t.tipos&&t.tipos.length) ? t.tipos.join(', ') : (t.tipo||'—');
+    const maqs  = (t.maquinarias&&t.maquinarias.length) ? t.maquinarias.join(', ') : (t.maquinaria||'—');
+    cuerpo += `\n─── ${i+1} / ${filtrados.length} ───────────────────────────────────\n`;
+    cuerpo += `Cliente:      ${t.cliente||'—'}\n`;
+    cuerpo += `Obra:         ${t.obra||'—'}\n`;
+    cuerpo += `Dirección:    ${t.direccion||'—'}\n`;
+    cuerpo += `Zona:         ${t.zona||'—'}\n`;
+    cuerpo += `Tipo:         ${tipos}\n`;
+    cuerpo += `Maquinaria:   ${maqs}\n`;
+    cuerpo += `Horas prev.:  ${t.horas||0}h\n`;
+    cuerpo += `Horas reales: ${horasR}\n`;
+    cuerpo += `Fecha:        ${t.fechaRealizado||t.fecha||'—'}\n`;
+    cuerpo += `Notas:        ${t.notasCierre||t.notas||'—'}\n`;
+    cuerpo += `Materiales:   ${t.materiales||'—'}\n`;
   });
 
-  cuerpo += `%0D%0A${sep}%0D%0A`;
+  cuerpo += `\n${sep}\n`;
   cuerpo += `Generado por Excavaciones Paco App`;
 
-  const asunto = encodeURIComponent(`Informe Excavaciones Paco — ${rango.titulo}`);
-  const mailto = `mailto:pmartinezpa75@hotmail.com?subject=${asunto}&body=${cuerpo}`;
-  window.location.href = mailto;
-  showToast('✉ Abriendo correo…');
+  showToast('Enviando informe…');
+
+  emailjs.init(EMAILJS_PUBLIC_KEY);
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    to_email: 'xabitrash@gmail.com', // PRUEBA — cambiar a pmartinezpa75@hotmail.com cuando funcione
+    mes: rango.titulo,
+    cuerpo: cuerpo
+  })
+  .then(() => showToast('✓ Informe enviado a Paco'))
+  .catch(e => { console.error(e); showToast('✗ Error al enviar. Revisa la consola.'); });
 }
 
 // ════════════════════════════════════════════════════════
@@ -2749,7 +2769,7 @@ function abrirDetalle(id) {
   document.getElementById('mdet-titulo').textContent = t.cliente || 'Sin cliente';
   const campos = [
     ['Obra', t.obra||'—'],
-    ['Dirección', t.direccion||'—'],
+    ['Dirección', t.direccion ? (mapsLink(t) ? `<a href="${mapsLink(t)}" target="_blank" style="color:#4A9EFF;text-decoration:none">📍 ${t.direccion} — Cómo llegar →</a>` : t.direccion) : '—'],
     ['Trabajo', (t.tipos||[]).join(', ')||'—'],
     ['Maquinaria', (t.maquinarias||[]).join(', ')||'—'],
     ['Horas previstas', t.horas ? t.horas+'h' : '—'],
@@ -3114,7 +3134,10 @@ function renderOperario() {
       const hayNotas = t.notas && t.notas.trim().length > 0;
       html += `<div class="op-trabajo-card ${urg === 'urgente' ? 'urgente' : urg === 'alta' ? 'alta' : ''}">
         <div class="op-cliente">${clienteCorto}</div>
-        <div class="op-dir">📍 ${t.direccion || 'Sin dirección'}${t.zona ? ' · ' + t.zona : ''}</div>
+        <div class="op-dir">${mapsLink(t)
+          ? `<a href="${mapsLink(t)}" target="_blank" style="color:#4A9EFF;text-decoration:none">📍 ${t.direccion||'Sin dirección'}${t.zona?' · '+t.zona:''} — Cómo llegar →</a>`
+          : `📍 ${t.direccion||'Sin dirección'}${t.zona?' · '+t.zona:''}`
+        }</div>
         <div class="op-chips">
           ${tiposCorto ? `<span class="op-chip-item">${tiposCorto}</span>` : ''}
           ${maqCorto ? `<span class="op-chip-item">⚙ ${maqCorto}</span>` : ''}
@@ -3122,7 +3145,10 @@ function renderOperario() {
           ${urg !== 'normal' ? `<span class="op-chip-item" style="color:${urg==='urgente'?'#FF6666':'#FFA500'}">${t.urgencia}</span>` : ''}
         </div>
         ${hayNotas ? `<div class="op-notas">${t.notas}</div>` : ''}
-        <button class="btn-op-realizado" onclick="opMarcarRealizado(${t.id})">✓ Marcar como realizado</button>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn-op-realizado" style="flex:1" onclick="opMarcarRealizado(${t.id})">✓ Marcar como realizado</button>
+          <button style="flex:0 0 auto;padding:10px 14px;background:transparent;border:1px solid rgba(255,209,0,0.4);border-radius:8px;color:#FFD100;font-size:13px;cursor:pointer" onclick="abrirEditarTrabajo(${t.id})">✏</button>
+        </div>
       </div>`;
     });
   });
