@@ -885,7 +885,7 @@
      MODAL: EDITAR TRABAJO
 ════════════════════════════════════════ -->
 <!-- Modal editar cliente -->
-<div class="modal-overlay hidden" id="modal-editar-cliente" onclick="if(event.target===this)cerrarModal('modal-editar-cliente')">
+<div class="modal-overlay" id="modal-editar-cliente" onclick="if(event.target===this)cerrarModal('modal-editar-cliente')">
   <div class="modal-box" style="max-width:420px;width:95%">
     <div class="modal-title">✏ Editar cliente</div>
     <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
@@ -903,7 +903,7 @@
   </div>
 </div>
 
-<div class="modal-overlay hidden" id="modal-editar" onclick="if(event.target===this)cerrarModal('modal-editar')">
+<div class="modal-overlay" id="modal-editar" onclick="if(event.target===this)cerrarModal('modal-editar')">
   <div class="modal-box" style="max-width:480px;width:95%">
     <div class="modal-title">✏ Editar trabajo</div>
     <div id="modal-editar-content" style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
@@ -2254,6 +2254,7 @@ function renderListado() {
           ${next?`<button class="tc-btn" onclick="cambiarEstado(${t.id},'${next}')">→ ${next}</button>`:''}
           ${t.estado!=='Realizado'?`<button class="tc-btn realizado" onclick="cambiarEstado(${t.id},'Realizado')">✓ Realizado</button>`:''}
           ${t.estado==='Realizado'?`<button class="tc-btn" onclick="exportarTrabajoCSV(${t.id})" style="color:#44CC77;border-color:#44CC77">↓ CSV</button>`:''}
+          ${t.estado==='Realizado'?`<button class="tc-btn" onclick="enviarTrabajoEmail(${t.id})" style="color:#FFD100;border-color:rgba(255,209,0,0.4)">✉ Email</button>`:''}
           <button class="tc-btn" onclick="abrirEditarTrabajo(${t.id})" style="color:#FFD100;border-color:#FFD100">✏ Editar</button>
           <button class="tc-btn" onclick="eliminar(${t.id})" style="margin-left:auto;color:var(--danger)">Borrar</button>
         </div>
@@ -2302,7 +2303,7 @@ function abrirEditarCliente(id) {
   document.getElementById('ec-nombre').value = c.nombre||'';
   document.getElementById('ec-tel').value = c.telefono||'';
   document.getElementById('ec-obs').value = c.observaciones||'';
-  document.getElementById('modal-editar-cliente').classList.remove('hidden');
+  document.getElementById('modal-editar-cliente').classList.add('show');
 }
 
 async function guardarEdicionCliente() {
@@ -2353,7 +2354,7 @@ function abrirEditarTrabajo(id) {
   document.getElementById('ed-urgencia').value = t.urgencia||'Normal';
   document.getElementById('ed-estado').value = t.estado||'Pendiente presupuestar';
   document.getElementById('ed-notas').value = t.notas||'';
-  document.getElementById('modal-editar').classList.remove('hidden');
+  document.getElementById('modal-editar').classList.add('show');
 }
 
 async function guardarEdicionTrabajo() {
@@ -2614,6 +2615,13 @@ function renderMes() {
         if (selProg) cel.classList.add('prog-sel');
         else cel.classList.add('prog-disponible');
         cel.onclick = (e) => { e.stopPropagation(); toggleDiaProg(isoCapturado); };
+        // Overlay transparente para capturar tap en móvil por encima de las píldoras
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:absolute;inset:0;z-index:10;cursor:pointer';
+        overlay.addEventListener('click', (e) => { e.stopPropagation(); toggleDiaProg(isoCapturado); });
+        overlay.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); toggleDiaProg(isoCapturado); });
+        cel.style.position = 'relative';
+        cel.appendChild(overlay);
       }
       // Sin modo programación: click en celda vacía no hace nada (las píldoras abren detalle)
     }
@@ -3162,6 +3170,46 @@ function exportarTrabajoCSV(id) {
   if(!t) return;
   const nombre = (t.cliente||'trabajo').replace(/[^a-zA-Z0-9áéíóúñ\s]/g,'').trim().slice(0,30);
   descargarCSV([t], `${nombre}_${t.fechaRealizado||t.fecha||'sin-fecha'}.csv`);
+}
+
+// Envía un trabajo individual por email
+function enviarTrabajoEmail(id) {
+  const t = getTrab().find(x=>String(x.id)===String(id));
+  if(!t) return;
+  const horasR = t.horasReales
+    ? Object.entries(t.horasReales).map(([m,h])=>`${m}: ${h}h`).join(' | ')
+    : '—';
+  const tipos = (t.tipos&&t.tipos.length) ? t.tipos.join(', ') : (t.tipo||'—');
+  const maqs  = (t.maquinarias&&t.maquinarias.length) ? t.maquinarias.join(', ') : (t.maquinaria||'—');
+  const sep = '════════════════════════════════════════';
+
+  let cuerpo = '';
+  cuerpo += `TRABAJO REALIZADO — EXCAVACIONES PACO\n`;
+  cuerpo += `${sep}\n`;
+  cuerpo += `Cliente:      ${t.cliente||'—'}\n`;
+  cuerpo += `Obra:         ${t.obra||'—'}\n`;
+  cuerpo += `Dirección:    ${t.direccion||'—'}\n`;
+  cuerpo += `Zona:         ${t.zona||'—'}\n`;
+  cuerpo += `Tipo:         ${tipos}\n`;
+  cuerpo += `Maquinaria:   ${maqs}\n`;
+  cuerpo += `Horas prev.:  ${t.horas||0}h\n`;
+  cuerpo += `Horas reales: ${horasR}\n`;
+  cuerpo += `Fecha:        ${t.fechaRealizado||t.fecha||'—'}\n`;
+  cuerpo += `Notas:        ${t.notasCierre||t.notas||'—'}\n`;
+  cuerpo += `Materiales:   ${t.materiales||'—'}\n`;
+  cuerpo += `${sep}\n`;
+  cuerpo += `Generado por Excavaciones Paco App`;
+
+  const asunto = `Trabajo realizado: ${t.cliente||''}${t.obra?' — '+t.obra:''}`;
+  showToast('Enviando…');
+  emailjs.init(EMAILJS_PUBLIC_KEY);
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    to_email: 'xabitrash@gmail.com',
+    mes: t.fechaRealizado||t.fecha||'',
+    cuerpo: cuerpo
+  })
+  .then(()=>showToast('✓ Trabajo enviado por email'))
+  .catch(e=>{ console.error(e); showToast('✗ Error al enviar'); });
 }
 
 // Exporta el informe del rango de fechas actual como CSV
