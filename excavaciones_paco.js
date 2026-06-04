@@ -71,7 +71,7 @@
  * ║  · Supabase: fetch nativo REST sin SDK                      ║
  * ║  · IDs: siempre comparar con String() — Supabase devuelve   ║
  * ║    strings, JS genera numbers                               ║
- * ║  · Auth: JWT en localStorage clave "supa_session"           ║
+ * ║  · Auth: JWT en localStorage clave "supaAppState.session"           ║
  * ║  · RLS activo: política solo_auth para rol authenticated    ║
  * ║  · GPS requiere HTTPS (GitHub Pages lo garantiza)           ║
  * ║  · Voz requiere HTTPS y Chrome/Edge en Android              ║
@@ -85,23 +85,22 @@
 // ════════════════════════════════════════════════════════
 
 const SUPA_AUTH_URL = 'https://wqcwicukenycsopnyvck.supabase.co/auth/v1';
-let _session = null; // Sesión activa (token + usuario)
 
 // Recupera sesión guardada en localStorage (para no pedir login al reabrir)
 // Recupera la sesión JWT guardada en localStorage
 function _getSessionStored() {
-  try { return JSON.parse(localStorage.getItem('supa_session')); } catch { return null; }
+  try { return JSON.parse(localStorage.getItem('supaAppState.session')); } catch { return null; }
 }
 // Guarda la sesión JWT en localStorage
 function _setSessionStored(s) {
-  if (s) localStorage.setItem('supa_session', JSON.stringify(s));
-  else localStorage.removeItem('supa_session');
+  if (s) localStorage.setItem('supaAppState.session', JSON.stringify(s));
+  else localStorage.removeItem('supaAppState.session');
 }
 
 // Cabeceras REST con token de usuario autenticado (en lugar de anon key)
 // Devuelve los headers de autenticación para las peticiones a Supabase
 function _authHeaders() {
-  const token = _session?.access_token || SUPA_KEY;
+  const token = AppState.session?.access_token || SUPA_KEY;
   return {
     'apikey': SUPA_KEY,
     'Authorization': 'Bearer ' + token,
@@ -139,7 +138,7 @@ async function hacerLogin() {
       }
       throw new Error(msg || 'Error de acceso');
     }
-    _session = data;
+    AppState.session = data;
     _setSessionStored(data);
     // Actualizar cabeceras globales con el nuevo token
     Object.assign(SUPA_HEADERS, _authHeaders());
@@ -157,8 +156,8 @@ async function hacerLogin() {
 // pero por seguridad lo forzamos si la sesión tiene más de 55 min)
 // Refresca el JWT si está próximo a expirar (margen 5 min)
 async function _refreshSessionIfNeeded() {
-  if (!_session?.refresh_token) return;
-  const createdAt = _session.expires_at || 0;
+  if (!AppState.session?.refresh_token) return;
+  const createdAt = AppState.session.expires_at || 0;
   const now = Math.floor(Date.now() / 1000);
   // expires_at viene en segundos epoch desde Supabase
   if (createdAt - now < 300) { // Menos de 5 min para expirar → refrescar
@@ -166,11 +165,11 @@ async function _refreshSessionIfNeeded() {
       const res = await fetch(`${SUPA_AUTH_URL}/token?grant_type=refresh_token`, {
         method: 'POST',
         headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: _session.refresh_token })
+        body: JSON.stringify({ refresh_token: AppState.session.refresh_token })
       });
       const data = await res.json();
       if (res.ok) {
-        _session = data;
+        AppState.session = data;
         _setSessionStored(data);
         Object.assign(SUPA_HEADERS, _authHeaders());
       }
@@ -185,10 +184,10 @@ async function cerrarSesion() {
   try {
     await fetch(`${SUPA_AUTH_URL}/logout`, {
       method: 'POST',
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (_session?.access_token || '') }
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + (AppState.session?.access_token || '') }
     });
   } catch {}
-  _session = null;
+  AppState.session = null;
   _setSessionStored(null);
   // Recarga la página (muestra login)
   location.reload();
@@ -199,7 +198,7 @@ async function cerrarSesion() {
 async function checkAuth() {
   const stored = _getSessionStored();
   if (stored?.access_token) {
-    _session = stored;
+    AppState.session = stored;
     await _refreshSessionIfNeeded();
     Object.assign(SUPA_HEADERS, _authHeaders());
     document.getElementById('login-overlay').classList.add('hidden');
@@ -237,6 +236,65 @@ const SUPA_HEADERS = {
 // En memoria: CONFIG y OPERARIOS_CFG. Fallback a localStorage si Supabase no responde.
 // ════════════════════════════════════════════════════════
 
+
+// ════════════════════════════════════════════════════════
+// APPSTATE — Estado global centralizado
+// Todas las variables de estado en un único objeto.
+// Facilita la migración a React/Context API en Fase 3.
+// ════════════════════════════════════════════════════════
+const AppState = {
+  // ── Auth ──────────────────────────────────────────────
+  session: null,              // { access_token, refresh_token, expires_at, user }
+
+  // ── Cache de datos ────────────────────────────────────
+  trabCache: null,            // Array de trabajos cargados desde Supabase
+  cfgCache: null,             // { tipos:[], maquinaria:[], sinonimos:{} }
+  operariosCfgCache: null,    // [{nombre, activo, sinonimos:[]}]
+  clientesCache: null,        // [{id, nombre, telefono, observaciones}]
+  supaOnline: true,           // false si hay error de red
+
+  // ── Formulario nuevo trabajo ──────────────────────────
+  form: { cliente:'', obra:'', direccion:'', zona:'', lat:null, lng:null,
+          tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' },
+  AppState.stepActual: 1,
+
+  // ── Listado ───────────────────────────────────────────
+  AppState.ltabActual: 'pendientes',
+  AppState.realizadosMesOffset: 0,     // 0 = mes actual, -1 = anterior...
+
+  // ── Calendario mes ────────────────────────────────────
+  AppState.mesOffset: 0,               // 0 = mes actual, -1 = anterior, +1 = siguiente
+  AppState.mesFiltroMaq: '',           // '' = todas las máquinas
+
+  // ── Programación ─────────────────────────────────────
+  AppState.progTrabajoId: null,        // ID del trabajo en modo programación activa
+  AppState.progDias: [],               // Días seleccionados (ISO strings)
+  AppState.progOperarios: [],          // Operarios seleccionados
+
+  // ── Modales ───────────────────────────────────────────
+  AppState.modalTrabajoId: null,       // ID del trabajo abierto en modal detalle/realizado
+  editandoId: null,           // ID del trabajo que se está editando
+  editandoClienteId: null,    // ID del cliente que se está editando
+  edFecha: '',                // Fecha programada en edición (ISO string)
+  mrealMaquinas: [],          // Máquinas editables en modal realizado
+  confirmResolve: null,       // Promise resolver del modal de confirmación
+
+  // ── Mapa ──────────────────────────────────────────────
+  AppState.mapaLeaflet: null,          // Instancia del mapa Leaflet
+  AppState.marcador: null,             // Marcador arrastrable
+  AppState.coordsTemp: { lat: null, lng: null }, // Coordenadas antes de aceptar
+
+  // ── Voz ───────────────────────────────────────────────
+  AppState.recognition: null,          // Instancia Web Speech API
+  AppState.listening: false,           // true mientras el micrófono está activo
+
+  // ── Vista operario ────────────────────────────────────
+  AppState.opSeleccionado: null,       // Nombre del operario activo en vista Hoy
+
+  // ── UI ────────────────────────────────────────────────
+  clienteDropdownOpen: false, // true si el dropdown de clientes está abierto
+};
+
 const CONFIG_DEFAULT = {
   tipos: [
     {nombre:'Excavación', activo:true, sinonimos:['excavar','excavación','abrir','cimientos']},
@@ -273,9 +331,6 @@ const OPERARIOS_DEFAULT = [
 ];
 
 // Cache en memoria — se carga al inicio desde Supabase
-let _cfgCache = null;         // { tipos:[], maquinaria:[], sinonimos:{} }
-let _operariosCfgCache = null; // [{nombre, activo, sinonimos:[]}]
-let _clientesCache = null;     // [{id, nombre, telefono, observaciones}]
 
 // ── SUPABASE CONFIG HELPERS ──────────────────────────────
 
@@ -314,50 +369,50 @@ async function loadConfig() {
     const maquinaria = _rowsToItems(await rMaq.json());
     const operarios = _rowsToItems(await rOps.json());
     const clientesRaw = await rClients.json();
-    _clientesCache = Array.isArray(clientesRaw) ? clientesRaw : [];
+    AppState.clientesCache = Array.isArray(clientesRaw) ? clientesRaw : [];
 
     // Si las tablas están vacías, insertar los valores por defecto
     if (tipos.length === 0) {
       await _insertDefaultConfig('tipos_trabajo', CONFIG_DEFAULT.tipos);
       const r2 = await fetch(`${SUPA_URL}/rest/v1/tipos_trabajo?order=id.asc`, {headers: SUPA_HEADERS});
       const t2 = _rowsToItems(await r2.json());
-      _cfgCache = { tipos: t2, maquinaria, sinonimos: _buildSinonimosObj(t2, maquinaria) };
+      AppState.cfgCache = { tipos: t2, maquinaria, sinonimos: _buildSinonimosObj(t2, maquinaria) };
     } else {
-      _cfgCache = { tipos, maquinaria, sinonimos: _buildSinonimosObj(tipos, maquinaria) };
+      AppState.cfgCache = { tipos, maquinaria, sinonimos: _buildSinonimosObj(tipos, maquinaria) };
     }
     if (maquinaria.length === 0) {
       await _insertDefaultConfig('maquinaria', CONFIG_DEFAULT.maquinaria);
       const r2 = await fetch(`${SUPA_URL}/rest/v1/maquinaria?order=id.asc`, {headers: SUPA_HEADERS});
       const m2 = _rowsToItems(await r2.json());
-      _cfgCache.maquinaria = m2;
-      _cfgCache.sinonimos = _buildSinonimosObj(_cfgCache.tipos, m2);
+      AppState.cfgCache.maquinaria = m2;
+      AppState.cfgCache.sinonimos = _buildSinonimosObj(AppState.cfgCache.tipos, m2);
     }
     if (operarios.length === 0) {
       await _insertDefaultConfig('operarios', OPERARIOS_DEFAULT);
       const r2 = await fetch(`${SUPA_URL}/rest/v1/operarios?order=id.asc`, {headers: SUPA_HEADERS});
-      _operariosCfgCache = _rowsToItems(await r2.json());
+      AppState.operariosCfgCache = _rowsToItems(await r2.json());
     } else {
-      _operariosCfgCache = operarios;
+      AppState.operariosCfgCache = operarios;
     }
     // Guardar en localStorage como fallback
-    localStorage.setItem('cfg_listas', JSON.stringify(_cfgCache));
-    localStorage.setItem('cfg_operarios', JSON.stringify(_operariosCfgCache));
+    localStorage.setItem('cfg_listas', JSON.stringify(AppState.cfgCache));
+    localStorage.setItem('cfg_operarios', JSON.stringify(AppState.operariosCfgCache));
   } catch(e) {
     console.warn('Supabase config no disponible, usando localStorage:', e.message);
     // Config carga silenciosa — no molestamos al usuario con esto al arranque
     // Fallback localStorage
     try {
       const r = JSON.parse(localStorage.getItem('cfg_listas'));
-      _cfgCache = r || structuredClone(CONFIG_DEFAULT);
-    } catch(e2) { _cfgCache = structuredClone(CONFIG_DEFAULT); }
+      AppState.cfgCache = r || structuredClone(CONFIG_DEFAULT);
+    } catch(e2) { AppState.cfgCache = structuredClone(CONFIG_DEFAULT); }
     try {
       const r = JSON.parse(localStorage.getItem('cfg_operarios'));
-      _operariosCfgCache = Array.isArray(r) ? r : OPERARIOS_DEFAULT.map(o=>({...o}));
-    } catch(e2) { _operariosCfgCache = OPERARIOS_DEFAULT.map(o=>({...o})); }
+      AppState.operariosCfgCache = Array.isArray(r) ? r : OPERARIOS_DEFAULT.map(o=>({...o}));
+    } catch(e2) { AppState.operariosCfgCache = OPERARIOS_DEFAULT.map(o=>({...o})); }
     try {
       const r = JSON.parse(localStorage.getItem('cfg_clientes'));
-      _clientesCache = Array.isArray(r) ? r : [];
-    } catch(e2) { _clientesCache = []; }
+      AppState.clientesCache = Array.isArray(r) ? r : [];
+    } catch(e2) { AppState.clientesCache = []; }
   }
 }
 
@@ -375,11 +430,11 @@ async function _insertDefaultConfig(tabla, items) {
 
 // Devuelve la configuración actual (tipos, maquinaria, sinónimos)
 function getCfg() {
-  return _cfgCache || structuredClone(CONFIG_DEFAULT);
+  return AppState.cfgCache || structuredClone(CONFIG_DEFAULT);
 }
 // Devuelve la lista completa de operarios (activos e inactivos)
 function getOperariosCfg() {
-  return _operariosCfgCache || OPERARIOS_DEFAULT.map(o=>({...o}));
+  return AppState.operariosCfgCache || OPERARIOS_DEFAULT.map(o=>({...o}));
 }
 
 // Nombres de operarios activos (para asignar en modal programar)
@@ -418,7 +473,7 @@ async function _saveItemSupabase(tabla, item) {
     if (rows && rows[0]) item.id = rows[0].id;
   }
   // Actualizar fallback localStorage
-  localStorage.setItem('cfg_listas', JSON.stringify(_cfgCache));
+  localStorage.setItem('cfg_listas', JSON.stringify(AppState.cfgCache));
 }
 
 // Guarda o actualiza un operario en Supabase
@@ -439,17 +494,17 @@ async function _saveOperarioSupabase(op) {
     const rows = await res.json();
     if (rows && rows[0]) op.id = rows[0].id;
   }
-  localStorage.setItem('cfg_operarios', JSON.stringify(_operariosCfgCache));
+  localStorage.setItem('cfg_operarios', JSON.stringify(AppState.operariosCfgCache));
 }
 
 // saveCfg — compatibilidad: ya no se usa directamente, la cache se escribe desde las funciones async
 function saveCfg(c) {
-  _cfgCache = c;
+  AppState.cfgCache = c;
   localStorage.setItem('cfg_listas', JSON.stringify(c));
 }
 // Guarda la lista de operarios en memoria
 function saveOperariosCfg(arr) {
-  _operariosCfgCache = arr;
+  AppState.operariosCfgCache = arr;
   localStorage.setItem('cfg_operarios', JSON.stringify(arr));
 }
 
@@ -462,15 +517,10 @@ let OPERARIOS = getOperariosActivos(); // Solo activos — para asignación en m
 // ════════════════════════════════════════════════════════
 
 // Datos del formulario en curso (se resetean al guardar)
-let form = { cliente:'', obra:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
 // Paso actual del formulario de 7 pasos (1-7)
-let stepActual = 1;
 // Pestaña activa en el listado: 'pendientes', 'programados' o 'realizados'
-let ltabActual = 'pendientes';
 // Instancia del reconocedor de voz (Web Speech API)
-let recognition = null;
 // Indica si el micrófono está activo en este momento
-let listening = false;
 
 // Wrapper fetch para Supabase REST
 // ════════════════════════════════════════════════════════
@@ -484,8 +534,8 @@ async function _checkSesionExpirada(r) {
     let body = '';
     try { body = await r.clone().text(); } catch(e) {}
     if (body.includes('JWT expired') || body.includes('jwt expired') || body.includes('PGRST303')) {
-      _session = null;
-      localStorage.removeItem('supa_session');
+      AppState.session = null;
+      localStorage.removeItem('supaAppState.session');
       showToast('⚠ Sesión caducada — vuelve a entrar', true);
       setTimeout(() => mostrarLogin(), 1500); // Pequeña pausa para que el toast se vea
       return true; // sesión expirada
@@ -522,13 +572,11 @@ const supa = {
 };
 
 // Caché local para evitar esperas en cada render
-let _trabCache = null;
-let _supaOnline = true; // Se pone false si hay error de red
 
 // Indicador de estado de conexión
 // Actualiza el indicador de conexión en el header (verde/rojo)
 function setConexionStatus(ok, msg) {
-  _supaOnline = ok;
+  AppState.supaOnline = ok;
   const el = document.getElementById('conexion-status');
   if (!el) return;
   el.textContent = ok ? '● Sincronizado' : '⚠ Sin conexión — datos locales';
@@ -544,7 +592,7 @@ function setConexionStatus(ok, msg) {
 async function loadTrab() {
   try {
     const data = await supa.select('trabajos', 'fecha_creacion.desc');
-    _trabCache = (data || []).map(row => {
+    AppState.trabCache = (data || []).map(row => {
       try { row.tipos = JSON.parse(row.tipos || '[]'); } catch(e) { row.tipos = []; }
       try { row.maquinarias = JSON.parse(row.maquinarias || '[]'); } catch(e) { row.maquinarias = []; }
       try { row.diasProgramados = JSON.parse(row.dias_programados || '[]'); } catch(e) { row.diasProgramados = []; }
@@ -558,22 +606,22 @@ async function loadTrab() {
       row.tipo = row.tipos.join(', ');
       return row;
     });
-    localStorage.setItem('excavaciones_trabajos', JSON.stringify(_trabCache));
+    localStorage.setItem('excavaciones_trabajos', JSON.stringify(AppState.trabCache));
     setConexionStatus(true);
-    return _trabCache;
+    return AppState.trabCache;
   } catch(e) {
     console.warn('Supabase no disponible, usando localStorage:', e.message || e);
     setConexionStatus(false);
     showToast('⚠ Sin conexión — mostrando datos guardados', true);
-    try { _trabCache = JSON.parse(localStorage.getItem('excavaciones_trabajos') || '[]'); } catch(e2) { _trabCache = []; }
-    return _trabCache;
+    try { AppState.trabCache = JSON.parse(localStorage.getItem('excavaciones_trabajos') || '[]'); } catch(e2) { AppState.trabCache = []; }
+    return AppState.trabCache;
   }
 }
 
 // Devuelve el array de trabajos desde caché (síncrono)
 // Devuelve el array de trabajos en memoria
 function getTrab() {
-  if (_trabCache !== null) return _trabCache;
+  if (AppState.trabCache !== null) return AppState.trabCache;
   try { return JSON.parse(localStorage.getItem('excavaciones_trabajos') || '[]'); } catch(e) { return []; }
 }
 
@@ -583,7 +631,7 @@ async function addTrab(t) {
   const row = trabajoToRow(t);
   try {
     await supa.insert('trabajos', row);
-    _trabCache = null;
+    AppState.trabCache = null;
     setConexionStatus(true);
   } catch(e) {
     console.warn('Error guardando en Supabase:', e.message || e);
@@ -592,7 +640,7 @@ async function addTrab(t) {
     const arr = getTrab();
     arr.unshift(t);
     localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr));
-    _trabCache = arr;
+    AppState.trabCache = arr;
   }
 }
 
@@ -602,11 +650,11 @@ async function updateTrab(t) {
   const row = trabajoToRow(t);
   try {
     await supa.update('trabajos', row, 'id', t.id);
-    if (_trabCache) {
-      const idx = _trabCache.findIndex(x => String(x.id) === String(t.id));
-      if (idx >= 0) _trabCache[idx] = t;
+    if (AppState.trabCache) {
+      const idx = AppState.trabCache.findIndex(x => String(x.id) === String(t.id));
+      if (idx >= 0) AppState.trabCache[idx] = t;
     }
-    localStorage.setItem('excavaciones_trabajos', JSON.stringify(_trabCache || []));
+    localStorage.setItem('excavaciones_trabajos', JSON.stringify(AppState.trabCache || []));
     setConexionStatus(true);
   } catch(e) {
     console.warn('Error actualizando en Supabase:', e.message || e);
@@ -616,7 +664,7 @@ async function updateTrab(t) {
     const idx = arr.findIndex(x => String(x.id) === String(t.id));
     if (idx >= 0) arr[idx] = t;
     localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr));
-    _trabCache = arr;
+    AppState.trabCache = arr;
   }
 }
 
@@ -625,8 +673,8 @@ async function updateTrab(t) {
 async function deleteTrab(id) {
   try {
     await supa.delete('trabajos', 'id', id);
-    if (_trabCache) _trabCache = _trabCache.filter(x => x.id !== id);
-    localStorage.setItem('excavaciones_trabajos', JSON.stringify(_trabCache || []));
+    if (AppState.trabCache) AppState.trabCache = AppState.trabCache.filter(x => x.id !== id);
+    localStorage.setItem('excavaciones_trabajos', JSON.stringify(AppState.trabCache || []));
     setConexionStatus(true);
   } catch(e) {
     console.warn('Error eliminando en Supabase:', e.message || e);
@@ -634,7 +682,7 @@ async function deleteTrab(id) {
     showToast('✗ Error al eliminar — revisa la conexión', true);
     const arr = getTrab().filter(x => x.id !== id);
     localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr));
-    _trabCache = arr;
+    AppState.trabCache = arr;
   }
 }
 
@@ -669,7 +717,7 @@ function trabajoToRow(t) {
 // saveTrab — compatibilidad: actualiza caché y localStorage (sin Supabase, para cambios en batch)
 // Persiste el array de trabajos en localStorage (fallback offline)
 function saveTrab(arr) {
-  _trabCache = arr;
+  AppState.trabCache = arr;
   localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr));
 }
 
@@ -682,11 +730,11 @@ function updateProgress() {
   let html = '';
   for(let i=1;i<=total;i++) {
     // 'done' = completado, 'active' = actual, '' = pendiente
-    let cls = i < stepActual ? 'done' : i === stepActual ? 'active' : '';
+    let cls = i < AppState.stepActual ? 'done' : i === AppState.stepActual ? 'active' : '';
     html += `<div class="progress-step ${cls}"></div>`;
   }
   document.getElementById('prog-steps').innerHTML = html;
-  document.getElementById('prog-label').textContent = `Paso ${stepActual} de ${total}`;
+  document.getElementById('prog-label').textContent = `Paso ${AppState.stepActual} de ${total}`;
 }
 
 // ════════════════════════════════════════════════════════
@@ -700,7 +748,7 @@ function showStep(n) {
     const el = document.getElementById('step-'+i);
     if(el) el.style.display = i===n ? 'block' : 'none';
   }
-  stepActual = n;
+  AppState.stepActual = n;
   updateProgress();
   if(n===7) buildResumen();
   // Limpiar cualquier feedback de voz y toasts al cambiar de paso
@@ -712,10 +760,10 @@ function showStep(n) {
 // Valida el paso actual antes de avanzar. Si falta algo, muestra aviso.
 // Valida el paso actual y avanza al siguiente si pasa la validación
 function nextStep(current) {
-  if(current===1 && !form.cliente.trim()) { showToast('Selecciona o crea un cliente'); return; }
-  if(current===2 && !form.direccion.trim()) { showToast('Indica la dirección o usa el GPS'); return; }
-  if(current===3 && (!form.tipos || form.tipos.length===0)) { showToast('Selecciona al menos un tipo de trabajo'); return; }
-  if(current===4 && (!form.maquinarias || form.maquinarias.length===0)) { showToast('Selecciona al menos una máquina'); return; }
+  if(current===1 && !AppState.form.cliente.trim()) { showToast('Selecciona o crea un cliente'); return; }
+  if(current===2 && !AppState.form.direccion.trim()) { showToast('Indica la dirección o usa el GPS'); return; }
+  if(current===3 && (!AppState.form.tipos || AppState.form.tipos.length===0)) { showToast('Selecciona al menos un tipo de trabajo'); return; }
+  if(current===4 && (!AppState.form.maquinarias || AppState.form.maquinarias.length===0)) { showToast('Selecciona al menos una máquina'); return; }
   showStep(current+1);
 }
 // Vuelve al paso anterior sin validar
@@ -743,22 +791,22 @@ function buildChips() {
   const tiposActivos = getTiposActivos();
   const ct = document.getElementById('chips-tipo');
   ct.innerHTML = tiposActivos.map(t =>
-    `<div class="chip-opt ${(form.tipos||[]).includes(t)?'selected':''}" onclick="selectChipMulti('tipos','${t}',this)">${t}</div>`
+    `<div class="chip-opt ${(AppState.form.tipos||[]).includes(t)?'selected':''}" onclick="selectChipMulti('tipos','${t}',this)">${t}</div>`
   ).join('');
   const maqActiva = getMaqActiva();
   const cm = document.getElementById('chips-maq');
   cm.innerHTML = maqActiva.map(m =>
-    `<div class="chip-opt ${(form.maquinarias||[]).includes(m)?'selected':''}" onclick="selectChipMulti('maquinarias','${m}',this)">${m}</div>`
+    `<div class="chip-opt ${(AppState.form.maquinarias||[]).includes(m)?'selected':''}" onclick="selectChipMulti('maquinarias','${m}',this)">${m}</div>`
   ).join('');
 }
 
 // Añade o quita un valor del array correspondiente en el formulario
 // Selecciona o deselecciona un chip (tipo o maquinaria) y actualiza form
 function selectChipMulti(field, val, el) {
-  if(!form[field]) form[field] = [];
-  const idx = form[field].indexOf(val);
-  if(idx === -1) { form[field].push(val); el.classList.add('selected'); }   // Añadir
-  else { form[field].splice(idx, 1); el.classList.remove('selected'); }     // Quitar
+  if(!AppState.form[field]) AppState.form[field] = [];
+  const idx = AppState.form[field].indexOf(val);
+  if(idx === -1) { AppState.form[field].push(val); el.classList.add('selected'); }   // Añadir
+  else { AppState.form[field].splice(idx, 1); el.classList.remove('selected'); }     // Quitar
 }
 
 // ════════════════════════════════════════════════════════
@@ -766,7 +814,7 @@ function selectChipMulti(field, val, el) {
 // ════════════════════════════════════════════════════════
 // Establece la urgencia del trabajo (Normal / Alta / Urgente)
 function setUrgencia(val) {
-  form.urgencia = val;
+  AppState.form.urgencia = val;
   // Quita la clase activa de los tres botones y la pone solo en el seleccionado
   ['normal','alta','urgente'].forEach(u => {
     const el = document.getElementById('urg-'+u);
@@ -781,8 +829,8 @@ function setUrgencia(val) {
 // Incrementa o decrementa el contador de horas previstas (paso 5)
 function changeHoras(delta) {
   // Mínimo 1h, máximo 99h
-  form.horas = Math.max(1, Math.min(99, form.horas+delta));
-  document.getElementById('horas-display').textContent = form.horas;
+  AppState.form.horas = Math.max(1, Math.min(99, AppState.form.horas+delta));
+  document.getElementById('horas-display').textContent = AppState.form.horas;
 }
 
 // Sincroniza un campo de texto con el objeto form al escribir
@@ -792,7 +840,7 @@ function syncClienteNuevoNombre(value) {
 }
 
 // Actualiza un campo del objeto form desde un input manual
-function syncField(field, val) { form[field] = val; }
+function syncField(field, val) { AppState.form[field] = val; }
 
 // ════════════════════════════════════════════════════════
 // MAPA LEAFLET + GPS — Paso 2 del formulario
@@ -800,9 +848,6 @@ function syncField(field, val) { form[field] = val; }
 // El GPS requiere HTTPS — funciona desde GitHub Pages, no desde file://
 // ════════════════════════════════════════════════════════
 
-let mapaLeaflet = null;                    // Instancia del mapa Leaflet (se crea una sola vez)
-let marcador = null;                       // Marcador arrastrable sobre el mapa
-let coordsTemp = { lat: null, lng: null }; // Coordenadas seleccionadas antes de aceptar
 
 // Inicializa el mapa (o lo recentra si ya existe) en las coordenadas dadas
 // Crea el mapa Leaflet centrado en las coordenadas indicadas
@@ -810,45 +855,45 @@ function inicializarMapa(lat, lng, zoom) {
   const wrap = document.getElementById('map-wrap');
   wrap.classList.add('show'); // Muestra el contenedor del mapa
 
-  if (!mapaLeaflet) {
+  if (!AppState.mapaLeaflet) {
     // Primera vez: crea el mapa con tiles de OpenStreetMap
-    mapaLeaflet = L.map('map-picker').setView([lat, lng], zoom);
+    AppState.mapaLeaflet = L.map('map-picker').setView([lat, lng], zoom);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       maxZoom: 19
-    }).addTo(mapaLeaflet);
+    }).addTo(AppState.mapaLeaflet);
   } else {
     // Ya existía: solo recentra
-    mapaLeaflet.setView([lat, lng], zoom);
+    AppState.mapaLeaflet.setView([lat, lng], zoom);
   }
 
   // Fuerza redibujado (necesario cuando el contenedor estaba oculto)
-  setTimeout(() => mapaLeaflet.invalidateSize(), 200);
+  setTimeout(() => AppState.mapaLeaflet.invalidateSize(), 200);
 }
 
-// Coloca o mueve el marcador en el mapa. El marcador es arrastrable.
-// Coloca o mueve el marcador en el mapa y hace geocodificación inversa
+// Coloca o mueve el AppState.marcador en el mapa. El AppState.marcador es arrastrable.
+// Coloca o mueve el AppState.marcador en el mapa y hace geocodificación inversa
 function ponerMarcador(lat, lng) {
-  if (marcador) {
-    marcador.setLatLng([lat, lng]); // Ya existe: moverlo
+  if (AppState.marcador) {
+    AppState.marcador.setLatLng([lat, lng]); // Ya existe: moverlo
   } else {
-    // Crear marcador arrastrable por primera vez
-    marcador = L.marker([lat, lng], { draggable: true }).addTo(mapaLeaflet);
+    // Crear AppState.marcador arrastrable por primera vez
+    AppState.marcador = L.marker([lat, lng], { draggable: true }).addTo(AppState.mapaLeaflet);
     // Al terminar de arrastrar, actualiza las coordenadas temporales
-    marcador.on('dragend', () => {
-      const p = marcador.getLatLng();
-      coordsTemp = { lat: p.lat.toFixed(6), lng: p.lng.toFixed(6) };
+    AppState.marcador.on('dragend', () => {
+      const p = AppState.marcador.getLatLng();
+      AppState.coordsTemp = { lat: p.lat.toFixed(6), lng: p.lng.toFixed(6) };
     });
   }
   // Guarda las coordenadas actuales (con 6 decimales de precisión)
-  coordsTemp = { lat: typeof lat === 'number' ? lat.toFixed(6) : lat, lng: typeof lng === 'number' ? lng.toFixed(6) : lng };
+  AppState.coordsTemp = { lat: typeof lat === 'number' ? lat.toFixed(6) : lat, lng: typeof lng === 'number' ? lng.toFixed(6) : lng };
 }
 
 // Activa el modo "toca para marcar" cuando el GPS no está disponible
-// Activa el listener de click en el mapa para mover el marcador
+// Activa el listener de click en el mapa para mover el AppState.marcador
 function activarClickMapa() {
-  mapaLeaflet.off('click'); // Elimina listeners anteriores para evitar duplicados
-  mapaLeaflet.on('click', e => {
+  AppState.mapaLeaflet.off('click'); // Elimina listeners anteriores para evitar duplicados
+  AppState.mapaLeaflet.on('click', e => {
     ponerMarcador(e.latlng.lat, e.latlng.lng);
   });
 }
@@ -876,7 +921,7 @@ function abrirMapaGPS() {
       const lng = pos.coords.longitude;
       inicializarMapa(lat, lng, 17); // Zoom 17 = nivel de calle
       ponerMarcador(lat, lng);
-      btn.textContent = '✓ GPS capturado — arrastra el marcador si hay desvío';
+      btn.textContent = '✓ GPS capturado — arrastra el AppState.marcador si hay desvío';
       btn.disabled = false;
     },
     err => {
@@ -894,12 +939,12 @@ function abrirMapaGPS() {
 // Botón "Aceptar ubicación": guarda las coordenadas y busca la dirección
 // Confirma la ubicación seleccionada en el mapa y cierra el modal
 function aceptarMapa() {
-  if (!coordsTemp.lat) {
+  if (!AppState.coordsTemp.lat) {
     showToast('Marca un punto en el mapa primero');
     return;
   }
-  form.lat = coordsTemp.lat;
-  form.lng = coordsTemp.lng;
+  AppState.form.lat = AppState.coordsTemp.lat;
+  AppState.form.lng = AppState.coordsTemp.lng;
 
   const res = document.getElementById('gps-result');
   res.className = 'gps-result show';
@@ -907,7 +952,7 @@ function aceptarMapa() {
 
   // Geocodificación inversa: convierte coordenadas en dirección legible
   // Usa Nominatim de OpenStreetMap (gratuito, sin clave de API)
-  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${form.lat}&lon=${form.lng}&format=json&accept-language=es`)
+  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${AppState.form.lat}&lon=${AppState.form.lng}&format=json&accept-language=es`)
     .then(r => r.json())
     .then(d => {
       const addr = d.address || {};
@@ -916,16 +961,16 @@ function aceptarMapa() {
       const dir = partes.join(' ') || d.display_name?.split(',')[0] || '';
       // Determina la zona (barrio, pueblo, ciudad...)
       const zona = addr.suburb || addr.neighbourhood || addr.town || addr.village || addr.city_district || addr.city || '';
-      if (dir) { form.direccion = dir; document.getElementById('f-direccion').value = dir; }
-      if (zona) { form.zona = zona; document.getElementById('f-zona').value = zona; }
-      res.textContent = `📍 ${dir || form.lat+', '+form.lng}${zona ? ' · '+zona : ''}`;
+      if (dir) { AppState.form.direccion = dir; document.getElementById('f-direccion').value = dir; }
+      if (zona) { AppState.form.zona = zona; document.getElementById('f-zona').value = zona; }
+      res.textContent = `📍 ${dir || AppState.form.lat+', '+AppState.form.lng}${zona ? ' · '+zona : ''}`;
       document.getElementById('map-wrap').classList.remove('show'); // Oculta el mapa
       document.getElementById('btn-abrirmapa').textContent = '✓ Ubicación en mapa — toca para cambiar';
       showToast('✓ Ubicación guardada');
     })
     .catch(() => {
       // Sin internet o fallo de Nominatim: guarda solo las coordenadas
-      res.textContent = `📍 ${form.lat}, ${form.lng}`;
+      res.textContent = `📍 ${AppState.form.lat}, ${AppState.form.lng}`;
       document.getElementById('map-wrap').classList.remove('show');
       document.getElementById('btn-abrirmapa').textContent = '✓ Ubicación guardada';
       showToast('✓ Coordenadas guardadas');
@@ -944,15 +989,14 @@ function aceptarMapa() {
 // resId: ID del div donde se muestra la transcripción
 // Array temporal de fechas mientras se edita un trabajo
 // Fecha programada actual mientras se edita (ISO string o '')
-let _edFecha = '';
 
 // Muestra la fecha actual en el bloque de edición
 function edRenderFecha() {
   const label = document.getElementById('ed-fecha-actual-label');
   const picker = document.getElementById('ed-fecha-picker');
   if(!label) return;
-  if(_edFecha) {
-    const d = new Date(_edFecha + 'T12:00');
+  if(AppState.edFecha) {
+    const d = new Date(AppState.edFecha + 'T12:00');
     label.textContent = d.toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'long'});
     // Mostrar bloque solo si tiene fecha (trabajo programado)
     const bloque = document.getElementById('ed-fechas-bloque');
@@ -978,7 +1022,7 @@ async function edFechaCambiar() {
 
   // Validar carga del día elegido
   const trabajosDia = getTrab().filter(t =>
-    String(t.id) !== String(_editandoId) &&
+    String(t.id) !== String(AppState.editandoId) &&
     (t.diasProgramados||[]).includes(val) &&
     t.estado === 'Programado'
   );
@@ -993,7 +1037,7 @@ async function edFechaCambiar() {
     );
     if(irBolsa) {
       // Volver a la bolsa: pasar a Aceptado, borrar fecha, ir a vista Mes
-      const t = getTrab().find(x=>String(x.id)===String(_editandoId));
+      const t = getTrab().find(x=>String(x.id)===String(AppState.editandoId));
       if(t) {
         t.estado = 'Aceptado';
         t.diasProgramados = [];
@@ -1015,7 +1059,7 @@ async function edFechaCambiar() {
   }
 
   // Sin conflicto — asignar la nueva fecha
-  _edFecha = val;
+  AppState.edFecha = val;
   edRenderFecha();
   showToast('Fecha actualizada — guarda los cambios para confirmar');
 }
@@ -1044,24 +1088,24 @@ function startVoice(field, btnId, resId) {
     return;
   }
   // Si ya está escuchando, parar al tocar de nuevo
-  if(listening) { listening = false; if(recognition) recognition.stop(); return; }
+  if(AppState.listening) { AppState.listening = false; if(AppState.recognition) AppState.recognition.stop(); return; }
 
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new Rec();
-  recognition.lang = 'es-ES';
-  recognition.continuous = true;
-  recognition.interimResults = true; // Resultados provisionales mientras habla
+  AppState.recognition = new Rec();
+  AppState.recognition.lang = 'es-ES';
+  AppState.recognition.continuous = true;
+  AppState.recognition.interimResults = true; // Resultados provisionales mientras habla
 
   const btn = document.getElementById(btnId);
   const res = document.getElementById(resId);
   btn.textContent = '⏹ Escuchando… (toca para parar)';
-  btn.classList.add('listening');
-  listening = true;
+  btn.classList.add('AppState.listening');
+  AppState.listening = true;
 
   let textoAcumulado = ''; // Acumula fragmentos finales confirmados
 
   // Se ejecuta en cada fragmento — final o provisional
-  recognition.onresult = e => {
+  AppState.recognition.onresult = e => {
     let finalNuevo = '';
     let interimActual = '';
     for(let i = e.resultIndex; i < e.results.length; i++) {
@@ -1090,29 +1134,29 @@ function startVoice(field, btnId, resId) {
   };
 
   // Error: si es 'no-speech' (silencio) se ignora; cualquier otro error para el micro
-  recognition.onerror = e => {
-    if(e.error !== 'no-speech') { listening = false; resetVoiceBtn(btn, field); }
+  AppState.recognition.onerror = e => {
+    if(e.error !== 'no-speech') { AppState.listening = false; resetVoiceBtn(btn, field); }
   };
 
   // Al terminar (pausa larga, error, etc.): si seguimos en modo escucha, reinicia
-  recognition.onend = () => {
-    if(listening) {
-      try { recognition.start(); } catch(err) { listening = false; resetVoiceBtn(btn, field); }
+  AppState.recognition.onend = () => {
+    if(AppState.listening) {
+      try { AppState.recognition.start(); } catch(err) { AppState.listening = false; resetVoiceBtn(btn, field); }
     } else {
       resetVoiceBtn(btn, field); // Restaura el botón a su estado normal
     }
   };
 
-  recognition.start();
+  AppState.recognition.start();
 }
 
 // Restaura el botón del micrófono a su texto y estilo original
 // Restaura el botón de voz a su estado original tras finalizar
 function resetVoiceBtn(btn, field) {
-  listening = false;
+  AppState.listening = false;
   const labels = { cliente:'🎤 Hablar', direccion:'🎤 Hablar dirección', tipo:'🎤 Hablar', maquinaria:'🎤 Hablar', horas:'🎤 Hablar', notas:'🎤 Dictar notas' };
   btn.textContent = labels[field] || '🎤 Hablar';
-  btn.classList.remove('listening');
+  btn.classList.remove('AppState.listening');
 }
 
 // Interpreta el texto dictado y lo aplica al campo correcto del formulario
@@ -1131,18 +1175,18 @@ function processVoice(field, texto) {
       c.nombre.toLowerCase().includes(tLow) || tLow.includes(c.nombre.toLowerCase())
     );
     if(match) {
-      form.cliente = match.nombre;
+      AppState.form.cliente = match.nombre;
       document.getElementById('cs-selected').textContent = match.nombre;
       const dd = document.getElementById('cs-dropdown');
       if(dd) dd.classList.remove('show');
-      _clienteDropdownOpen = false;
+      AppState.clienteDropdownOpen = false;
       return { ok: true, msg: 'Cliente: ' + match.nombre };
     } else {
       // No encontrado — mostrar lo dictado como aviso
       return { ok: false, msg: 'No se encontró "' + texto + '" en clientes. Selecciónalo manualmente.' };
     }
   } else if(field==='direccion') {
-    form.direccion = texto;
+    AppState.form.direccion = texto;
     document.getElementById('f-direccion').value = texto;
     return { ok: true, msg: 'Dirección registrada' };
   } else if(field==='tipo') {
@@ -1168,17 +1212,17 @@ function processVoice(field, texto) {
       }
     }
     if(num && num >= 1 && num <= 24) {
-      form.horas = num;
-      document.getElementById('horas-display').textContent = form.horas;
-      return { ok: true, msg: form.horas + 'h registradas' };
+      AppState.form.horas = num;
+      document.getElementById('horas-display').textContent = AppState.form.horas;
+      return { ok: true, msg: AppState.form.horas + 'h registradas' };
     }
     return { ok: false, msg: 'No se detectó número de horas. Di por ejemplo "tres horas" o "5 horas"' };
   } else if(field==='obra') {
-    form.obra = texto;
+    AppState.form.obra = texto;
     document.getElementById('f-obra').value = texto;
     return { ok: true, msg: 'Nombre de obra registrado' };
   } else if(field==='notas') {
-    form.notas = texto;
+    AppState.form.notas = texto;
     document.getElementById('f-notas').value = texto;
     if(t.includes('urgent')) setUrgencia('Urgente');
     else if(t.includes('alta')) setUrgencia('Alta');
@@ -1201,10 +1245,10 @@ function matchSinonimo(field, texto, chipsId) {
     }
   }
   if(matched) {
-    if(!form[field]) form[field] = [];
-    if(!form[field].includes(matched)) form[field].push(matched);
+    if(!AppState.form[field]) AppState.form[field] = [];
+    if(!AppState.form[field].includes(matched)) AppState.form[field].push(matched);
     document.querySelectorAll(`#${chipsId} .chip-opt`).forEach(ch=>{
-      ch.classList.toggle('selected', form[field].includes(ch.textContent));
+      ch.classList.toggle('selected', AppState.form[field].includes(ch.textContent));
     });
     return { ok: true, msg: matched };
   } else {
@@ -1218,27 +1262,27 @@ function matchSinonimo(field, texto, chipsId) {
 // Construye el paso 7 (resumen editable) con todos los campos del trabajo
 function buildResumen() {
   document.getElementById('resumen-content').innerHTML = `
-    <div class="resumen-field"><span class="resumen-key">Cliente</span><input class="resumen-input" id="re-cliente" value="${(form.cliente||'').replace(/"/g,'&quot;')}" oninput="form.cliente=this.value"></div>
-    <div class="resumen-field"><span class="resumen-key">Nombre obra</span><input class="resumen-input" id="re-obra" value="${(form.obra||'').replace(/"/g,'&quot;')}" oninput="form.obra=this.value"></div>
-    <div class="resumen-field"><span class="resumen-key">Dirección</span><input class="resumen-input" id="re-dir" value="${(form.direccion||'').replace(/"/g,'&quot;')}" oninput="form.direccion=this.value"></div>
-    <div class="resumen-field"><span class="resumen-key">Zona</span><input class="resumen-input" id="re-zona" value="${(form.zona||'').replace(/"/g,'&quot;')}" oninput="form.zona=this.value"></div>
-    <div class="resumen-field"><span class="resumen-key">GPS</span><span class="resumen-val" style="font-size:11px">${form.lat ? form.lat+', '+form.lng : 'No capturado'}</span></div>
-    <div class="resumen-field"><span class="resumen-key">Tipo</span><input class="resumen-input" id="re-tipo" value="${((form.tipos&&form.tipos.length)?form.tipos.join(', '):'').replace(/"/g,'&quot;')}" oninput="form.tipos=this.value.split(',').map(x=>x.trim()).filter(Boolean)"></div>
-    <div class="resumen-field"><span class="resumen-key">Maquinaria</span><input class="resumen-input" id="re-maq" value="${((form.maquinarias&&form.maquinarias.length)?form.maquinarias.join(', '):'').replace(/"/g,'&quot;')}" oninput="form.maquinarias=this.value.split(',').map(x=>x.trim()).filter(Boolean)"></div>
-    <div class="resumen-field"><span class="resumen-key">Horas</span><input class="resumen-input" id="re-horas" type="number" min="1" max="24" value="${form.horas||4}" oninput="form.horas=parseInt(this.value)||4"></div>
+    <div class="resumen-field"><span class="resumen-key">Cliente</span><input class="resumen-input" id="re-cliente" value="${(AppState.form.cliente||'').replace(/"/g,'&quot;')}" oninput="AppState.form.cliente=this.value"></div>
+    <div class="resumen-field"><span class="resumen-key">Nombre obra</span><input class="resumen-input" id="re-obra" value="${(AppState.form.obra||'').replace(/"/g,'&quot;')}" oninput="AppState.form.obra=this.value"></div>
+    <div class="resumen-field"><span class="resumen-key">Dirección</span><input class="resumen-input" id="re-dir" value="${(AppState.form.direccion||'').replace(/"/g,'&quot;')}" oninput="AppState.form.direccion=this.value"></div>
+    <div class="resumen-field"><span class="resumen-key">Zona</span><input class="resumen-input" id="re-zona" value="${(AppState.form.zona||'').replace(/"/g,'&quot;')}" oninput="AppState.form.zona=this.value"></div>
+    <div class="resumen-field"><span class="resumen-key">GPS</span><span class="resumen-val" style="font-size:11px">${AppState.form.lat ? AppState.form.lat+', '+AppState.form.lng : 'No capturado'}</span></div>
+    <div class="resumen-field"><span class="resumen-key">Tipo</span><input class="resumen-input" id="re-tipo" value="${((AppState.form.tipos&&AppState.form.tipos.length)?AppState.form.tipos.join(', '):'').replace(/"/g,'&quot;')}" oninput="AppState.form.tipos=this.value.split(',').map(x=>x.trim()).filter(Boolean)"></div>
+    <div class="resumen-field"><span class="resumen-key">Maquinaria</span><input class="resumen-input" id="re-maq" value="${((AppState.form.maquinarias&&AppState.form.maquinarias.length)?AppState.form.maquinarias.join(', '):'').replace(/"/g,'&quot;')}" oninput="AppState.form.maquinarias=this.value.split(',').map(x=>x.trim()).filter(Boolean)"></div>
+    <div class="resumen-field"><span class="resumen-key">Horas</span><input class="resumen-input" id="re-horas" type="number" min="1" max="24" value="${AppState.form.horas||4}" oninput="AppState.form.horas=parseInt(this.value)||4"></div>
     <div class="resumen-field"><span class="resumen-key">Urgencia</span>
-      <select class="resumen-input" id="re-urgencia" onchange="form.urgencia=this.value">
-        <option ${form.urgencia==='Normal'?'selected':''}>Normal</option>
-        <option ${form.urgencia==='Alta'?'selected':''}>Alta</option>
-        <option ${form.urgencia==='Urgente'?'selected':''}>Urgente</option>
+      <select class="resumen-input" id="re-urgencia" onchange="AppState.form.urgencia=this.value">
+        <option ${AppState.form.urgencia==='Normal'?'selected':''}>Normal</option>
+        <option ${AppState.form.urgencia==='Alta'?'selected':''}>Alta</option>
+        <option ${AppState.form.urgencia==='Urgente'?'selected':''}>Urgente</option>
       </select>
     </div>
-    <div class="resumen-field" style="flex-direction:column;align-items:flex-start"><span class="resumen-key" style="margin-bottom:4px">Notas</span><textarea class="resumen-input" style="width:100%;min-height:60px;resize:vertical" oninput="form.notas=this.value">${form.notas||''}</textarea></div>
+    <div class="resumen-field" style="flex-direction:column;align-items:flex-start"><span class="resumen-key" style="margin-bottom:4px">Notas</span><textarea class="resumen-input" style="width:100%;min-height:60px;resize:vertical" oninput="AppState.form.notas=this.value">${AppState.form.notas||''}</textarea></div>
     <div class="resumen-field" style="flex-direction:column;align-items:flex-start">
       <span class="resumen-key" style="margin-bottom:6px">Operario (opcional)</span>
       <div style="display:flex;flex-wrap:wrap;gap:6px" id="re-operarios-chips">
         ${getOperariosCfg().filter(o=>o.activo!==false).map(o=>{
-          const sel = (form.operarios||[]).includes(o.nombre);
+          const sel = (AppState.form.operarios||[]).includes(o.nombre);
           return '<button onclick="toggleOperarioResumen(\''+o.nombre+'\',this)" style="padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:'+(sel?'var(--accent)':'transparent')+';color:'+(sel?'#1C1C1C':'var(--text2)')+';transition:all .15s">'+o.nombre+'</button>';
         }).join('')}
       </div>
@@ -1248,13 +1292,13 @@ function buildResumen() {
 
 // Selecciona o deselecciona un operario en el resumen (paso 7)
 function toggleOperarioResumen(nombre, btn) {
-  if(!form.operarios) form.operarios = [];
-  if(form.operarios.includes(nombre)) {
-    form.operarios = form.operarios.filter(o=>o!==nombre);
+  if(!AppState.form.operarios) AppState.form.operarios = [];
+  if(AppState.form.operarios.includes(nombre)) {
+    AppState.form.operarios = AppState.form.operarios.filter(o=>o!==nombre);
     btn.style.background = 'transparent';
     btn.style.color = 'var(--text2)';
   } else {
-    form.operarios.push(nombre);
+    AppState.form.operarios.push(nombre);
     btn.style.background = 'var(--accent)';
     btn.style.color = '#1C1C1C';
   }
@@ -1268,8 +1312,8 @@ async function guardarTrabajo() {
   const nuevo = {
     id: Date.now(),
     ...form,
-    tipo: (form.tipos||[]).join(', '),
-    maquinaria: (form.maquinarias||[]).join(', '),
+    tipo: (AppState.form.tipos||[]).join(', '),
+    maquinaria: (AppState.form.maquinarias||[]).join(', '),
     estado: 'Pendiente presupuestar',
     fecha: new Date().toISOString().slice(0,10),
     fechaCreacion: new Date().toISOString(),
@@ -1298,7 +1342,7 @@ function resetForm() {
   if (csDropdown) csDropdown.classList.remove('show');
   const csNuevo = document.getElementById('cs-nuevo-wrap');
   if (csNuevo) csNuevo.classList.remove('show');
-  _clienteDropdownOpen = false;
+  AppState.clienteDropdownOpen = false;
   ['f-obra','f-direccion','f-zona','f-notas'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   ['vres-1','vres-2','vres-3','vres-4','vres-5','vres-6'].forEach(id=>{ const el=document.getElementById(id); if(el){el.className='voice-result';el.textContent='';} });
   document.getElementById('horas-display').textContent = '4';
@@ -1308,8 +1352,8 @@ function resetForm() {
   const btnMapa = document.getElementById('btn-abrirmapa');
   btnMapa.textContent = '📍 Localizar en el mapa';
   btnMapa.disabled = false;
-  coordsTemp = { lat: null, lng: null };
-  if(marcador && mapaLeaflet) { mapaLeaflet.removeLayer(marcador); marcador = null; } // Limpia el marcador del mapa
+  AppState.coordsTemp = { lat: null, lng: null };
+  if(AppState.marcador && AppState.mapaLeaflet) { AppState.mapaLeaflet.removeLayer(AppState.marcador); AppState.marcador = null; } // Limpia el AppState.marcador del mapa
   showStep(1);
   buildChips(); // Reconstruye los chips sin ninguno seleccionado
 }
@@ -1321,7 +1365,7 @@ function resetForm() {
 // Cambia entre las pestañas Pendientes / Programados / Realizados
 // Cambia la pestaña activa del listado (Pendientes / Programados / Realizados)
 function setLTab(tab) {
-  ltabActual = tab;
+  AppState.ltabActual = tab;
   ['pendientes','programados','realizados'].forEach(t=>{
     document.getElementById('ltab-'+t).classList.toggle('active', t===tab);
   });
@@ -1354,11 +1398,10 @@ const ESTADOS_PROGRAMADOS = ['Programado','En curso'];
 const ESTADOS_REALIZADOS = ['Realizado'];
 
 // Navegación mes en tab Realizados
-let realizadosMesOffset = 0; // 0 = mes actual
 
 // Navega al mes anterior o siguiente en la pestaña Realizados
 function cambiarMesRealizados(dir) {
-  realizadosMesOffset += dir;
+  AppState.realizadosMesOffset += dir;
   renderListado();
 }
 
@@ -1366,7 +1409,7 @@ function cambiarMesRealizados(dir) {
 function _getRangoMesRealizados() {
   const hoy = new Date();
   const anyo = hoy.getFullYear();
-  const mes = hoy.getMonth() + realizadosMesOffset;
+  const mes = hoy.getMonth() + AppState.realizadosMesOffset;
   const primerDia = new Date(anyo, mes, 1);
   const ultimoDia = new Date(anyo, mes + 1, 0);
   return {
@@ -1386,7 +1429,7 @@ function renderListado() {
   const dir = document.getElementById('l-dir').value.trim().toLowerCase();
 
   // Actualizar título mes realizados
-  if(ltabActual==='realizados') {
+  if(AppState.ltabActual==='realizados') {
     const rango = _getRangoMesRealizados();
     const tituloEl = document.getElementById('realizados-mes-titulo');
     if(tituloEl) tituloEl.textContent = rango.titulo;
@@ -1404,8 +1447,8 @@ function renderListado() {
 
   // Filtra por pestaña activa + filtros de zona, maquinaria y búsqueda de texto
   let lista = trabajos.filter(t=>{
-    const enTab = ltabActual==='pendientes' ? ESTADOS_PENDIENTES.includes(t.estado)
-                : ltabActual==='programados' ? ESTADOS_PROGRAMADOS.includes(t.estado)
+    const enTab = AppState.ltabActual==='pendientes' ? ESTADOS_PENDIENTES.includes(t.estado)
+                : AppState.ltabActual==='programados' ? ESTADOS_PROGRAMADOS.includes(t.estado)
                 : ESTADOS_REALIZADOS.includes(t.estado);
     if(!enTab) return false;
     if(zona && t.zona!==zona) return false;
@@ -1417,7 +1460,7 @@ function renderListado() {
       (t.tipo||'').toLowerCase().includes(dir)
     )) return false;
     // Filtro de mes en Realizados (navegación ← →)
-    if(ltabActual==='realizados') {
+    if(AppState.ltabActual==='realizados') {
       const desde = document.getElementById('informe-desde')?.value;
       const hasta = document.getElementById('informe-hasta')?.value;
       const fechaT = t.fechaRealizado || t.fecha || '';
@@ -1442,7 +1485,7 @@ function renderListado() {
   }
 
   // Resumen del informe si estamos en Realizados con fechas
-  if(ltabActual==='realizados') {
+  if(AppState.ltabActual==='realizados') {
     const res = document.getElementById('informe-resumen');
     if(res) {
       const totalHorasReales = lista.reduce((acc,t)=>{
@@ -1541,7 +1584,7 @@ async function cambiarEstado(id, nuevoEstado) {
   if(!t) return;
   if(nuevoEstado === 'Realizado') {
     // Abrir modal de horas reales en lugar de confirm nativo
-    modalTrabajoId = id;
+    AppState.modalTrabajoId = id;
     abrirModalRealizadoPorId(id);
     return;
   }
@@ -1583,13 +1626,12 @@ async function quitarDelCalendario(id) {
 // EDITAR CLIENTE
 // ════════════════════════════════════════════════════════
 
-let _editandoClienteId = null;
 
 // Abre el modal de edición de un cliente existente con sus datos cargados
 function abrirEditarCliente(id) {
   const c = getClientes().find(x=>String(x.id)===String(id));
   if(!c) return;
-  _editandoClienteId = id;
+  AppState.editandoClienteId = id;
   document.getElementById('ec-nombre').value = c.nombre||'';
   document.getElementById('ec-tel').value = c.telefono||'';
   document.getElementById('ec-obs').value = c.observaciones||'';
@@ -1598,7 +1640,7 @@ function abrirEditarCliente(id) {
 
 // Guarda los cambios del cliente editado en Supabase
 async function guardarEdicionCliente() {
-  if(!_editandoClienteId) return;
+  if(!AppState.editandoClienteId) return;
   const nombre = document.getElementById('ec-nombre').value.trim();
   if(!nombre) { showToast('El nombre es obligatorio'); return; }
   const body = {
@@ -1608,13 +1650,13 @@ async function guardarEdicionCliente() {
   };
   showToast('Guardando…');
   try {
-    const r = await fetch(`${SUPA_URL}/rest/v1/clientes?id=eq.${_editandoClienteId}`, {
+    const r = await fetch(`${SUPA_URL}/rest/v1/clientes?id=eq.${AppState.editandoClienteId}`, {
       method:'PATCH', headers:{...supaHeaders(),'Content-Type':'application/json'},
       body: JSON.stringify(body)
     });
     if(!r.ok) throw new Error(await r.text());
     // Actualizar cache local
-    const idx = CONFIG.clientes.findIndex(c=>String(c.id)===String(_editandoClienteId));
+    const idx = CONFIG.clientes.findIndex(c=>String(c.id)===String(AppState.editandoClienteId));
     if(idx>-1) CONFIG.clientes[idx] = {...CONFIG.clientes[idx], ...body};
     cerrarModal('modal-editar-cliente');
     renderCfgClientes();
@@ -1629,13 +1671,12 @@ async function guardarEdicionCliente() {
 // EDITAR TRABAJO EXISTENTE
 // ════════════════════════════════════════════════════════
 
-let _editandoId = null;
 
 // Abre el modal de edición de un trabajo existente con sus datos cargados
 function abrirEditarTrabajo(id) {
   const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
-  _editandoId = id;
+  AppState.editandoId = id;
   document.getElementById('ed-cliente').value = t.cliente||'';
   document.getElementById('ed-obra').value = t.obra||'';
   document.getElementById('ed-direccion').value = t.direccion||'';
@@ -1647,7 +1688,7 @@ function abrirEditarTrabajo(id) {
   document.getElementById('ed-estado').value = t.estado||'Pendiente presupuestar';
   document.getElementById('ed-notas').value = t.notas||'';
   // Cargar fecha programada (primera si hay varias, o vacío)
-  _edFecha = (t.diasProgramados && t.diasProgramados.length > 0)
+  AppState.edFecha = (t.diasProgramados && t.diasProgramados.length > 0)
     ? [...t.diasProgramados].sort()[0]
     : '';
   edRenderFecha();
@@ -1657,7 +1698,7 @@ function abrirEditarTrabajo(id) {
 // Guarda los cambios del trabajo editado en Supabase
 async function guardarEdicionTrabajo() {
   const trabajos = getTrab();
-  const t = trabajos.find(x=>String(x.id)===String(_editandoId));
+  const t = trabajos.find(x=>String(x.id)===String(AppState.editandoId));
   if(!t) return;
   const tiposArr = document.getElementById('ed-tipo').value.split(',').map(x=>x.trim()).filter(Boolean);
   const maqArr = document.getElementById('ed-maquinaria').value.split(',').map(x=>x.trim()).filter(Boolean);
@@ -1673,12 +1714,12 @@ async function guardarEdicionTrabajo() {
   t.urgencia = document.getElementById('ed-urgencia').value;
   t.estado = document.getElementById('ed-estado').value;
   t.notas = document.getElementById('ed-notas').value.trim();
-  // Fechas: usar _edFecha (fecha única)
-  t.diasProgramados = _edFecha ? [_edFecha] : [];
+  // Fechas: usar AppState.edFecha (fecha única)
+  t.diasProgramados = AppState.edFecha ? [AppState.edFecha] : [];
   // Si hay fecha y estado es Aceptado → pasa a Programado
-  if(_edFecha && t.estado === 'Aceptado') t.estado = 'Programado';
+  if(AppState.edFecha && t.estado === 'Aceptado') t.estado = 'Programado';
   // Si no hay fecha y estado era Programado → vuelve a Aceptado (bolsa)
-  if(!_edFecha && t.estado === 'Programado') t.estado = 'Aceptado';
+  if(!AppState.edFecha && t.estado === 'Programado') t.estado = 'Aceptado';
   showToast('Guardando...');
   await updateTrab(t);
   cerrarModal('modal-editar');
@@ -1777,25 +1818,23 @@ function showView(name) {
 // MÓDULO MES — Vista mensual con bolsa de pendientes y programación
 // ════════════════════════════════════════════════════════
 
-let mesOffset = 0; // 0 = mes actual, -1 = anterior, +1 = siguiente
-let mesFiltroMaq = ''; // '' = todas
 
 // Navega al mes anterior o siguiente en la vista Mes
 function cambiarMes(dir) {
-  mesOffset += dir;
+  AppState.mesOffset += dir;
   renderMes();
 }
 
 // Activa o desactiva el filtro de maquinaria en la vista Mes
 function setMesFiltroMaq(maq) {
-  mesFiltroMaq = mesFiltroMaq === maq ? '' : maq; // toggle
+  AppState.mesFiltroMaq = AppState.mesFiltroMaq === maq ? '' : maq; // toggle
   renderMes();
 }
 
 // Calcula la fecha del primer día del mes visible
 function getPrimerDiaMes() {
   const hoy = new Date();
-  return new Date(hoy.getFullYear(), hoy.getMonth() + mesOffset, 1);
+  return new Date(hoy.getFullYear(), hoy.getMonth() + AppState.mesOffset, 1);
 }
 
 // Renderiza el grid mensual con píldoras de trabajos, días pasados en gris y barra de bolsa
@@ -1814,11 +1853,11 @@ function renderMes() {
   if (filtroEl) {
     const fstyle = (bg, color, border) => `font-size:10px;padding:4px 10px;border-radius:20px;cursor:pointer;font-family:monospace;border:1px solid ${border};background:${bg};color:${color}`;
     let fhtml = '<span style="font-size:10px;color:var(--text2);font-family:monospace;align-self:center;margin-right:2px">Filtro:</span>';
-    const bgTodas = mesFiltroMaq === '' ? '#FFD100' : 'var(--chip-bg)';
-    const colTodas = mesFiltroMaq === '' ? '#1C1C1C' : '#444';
-    fhtml += `<div style="${fstyle(bgTodas, colTodas, mesFiltroMaq===''?'#FFD100':'var(--border)')}" onclick="setMesFiltroMaq('')">Todas</div>`;
+    const bgTodas = AppState.mesFiltroMaq === '' ? '#FFD100' : 'var(--chip-bg)';
+    const colTodas = AppState.mesFiltroMaq === '' ? '#1C1C1C' : '#444';
+    fhtml += `<div style="${fstyle(bgTodas, colTodas, AppState.mesFiltroMaq===''?'#FFD100':'var(--border)')}" onclick="setMesFiltroMaq('')">Todas</div>`;
     maqDisponibles.forEach(m => {
-      const activo = mesFiltroMaq === m;
+      const activo = AppState.mesFiltroMaq === m;
       const bg = activo ? '#1a1a1a' : 'var(--chip-bg)';
       const col = activo ? '#FFD100' : '#444';
       const brd = activo ? '#1a1a1a' : 'var(--border)';
@@ -1862,11 +1901,11 @@ function renderMes() {
       t.diasProgramados && t.diasProgramados.includes(iso) && t.estado !== 'Realizado'
     );
     // Trabajos visibles según filtro (para píldoras y carga)
-    const trabajosVis = mesFiltroMaq
-      ? trabajosDia.filter(t => (t.maquinarias||[]).includes(mesFiltroMaq))
+    const trabajosVis = AppState.mesFiltroMaq
+      ? trabajosDia.filter(t => (t.maquinarias||[]).includes(AppState.mesFiltroMaq))
       : trabajosDia;
     // Trabajos atenuados (tienen fecha pero no coinciden con filtro)
-    const trabajosDim = mesFiltroMaq ? trabajosDia.filter(t => !(t.maquinarias||[]).includes(mesFiltroMaq)) : [];
+    const trabajosDim = AppState.mesFiltroMaq ? trabajosDia.filter(t => !(t.maquinarias||[]).includes(AppState.mesFiltroMaq)) : [];
 
     const cel = document.createElement('div');
     const hoyISOMes = fechaISO(new Date());
@@ -1899,17 +1938,17 @@ function renderMes() {
       pill.innerHTML = '<span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+nombre+'</span><span style="display:block;font-size:7px;opacity:0.65;font-family:monospace">'+hrsText+'</span>';
       if(urg==='urgente') pill.classList.add('mes-pill-urgente');
       else if(urg==='alta') pill.classList.add('mes-pill-alta');
-      pill.onclick = (e) => { e.stopPropagation(); if(progTrabajoId) toggleDiaProg(isoCapturado); else abrirDetalle(t.id); };
+      pill.onclick = (e) => { e.stopPropagation(); if(AppState.progTrabajoId) toggleDiaProg(isoCapturado); else abrirDetalle(t.id); };
       pillsWrap.appendChild(pill);
     });
     // Atenuadas (filtro activo, no coinciden)
-    if (mesFiltroMaq && trabajosDim.length > 0 && trabajosVis.length < 2) {
+    if (AppState.mesFiltroMaq && trabajosDim.length > 0 && trabajosVis.length < 2) {
       trabajosDim.slice(0, 2 - trabajosVis.length).forEach(t => {
         const pill = document.createElement('div');
         pill.className = 'mes-pill-mini';
         pill.style.opacity = '0.25';
         pill.textContent = (t.obra || t.cliente || 'Trabajo').split(/[-,]/)[0].trim().slice(0, 10);
-        pill.onclick = (e) => { e.stopPropagation(); if(progTrabajoId) toggleDiaProg(isoCapturado); else abrirDetalle(t.id); };
+        pill.onclick = (e) => { e.stopPropagation(); if(AppState.progTrabajoId) toggleDiaProg(isoCapturado); else abrirDetalle(t.id); };
         pillsWrap.appendChild(pill);
       });
     }
@@ -1924,9 +1963,9 @@ function renderMes() {
 
     if (esMes) {
       const isoCapturado = iso;
-      if (progTrabajoId) {
+      if (AppState.progTrabajoId) {
         // Modo programación activa: días clicables para seleccionar/deseleccionar
-        const selProg = progDias.includes(isoCapturado);
+        const selProg = AppState.progDias.includes(isoCapturado);
         if (selProg) cel.classList.add('prog-sel');
         else cel.classList.add('prog-disponible');
         cel.onclick = (e) => { e.stopPropagation(); toggleDiaProg(isoCapturado); };
@@ -1953,7 +1992,6 @@ function renderMes() {
 // Uso: await showConfirm('¿Cerrar sesión?') → true/false
 // peligro=true → botón rojo (acciones destructivas)
 // ════════════════════════════════════════════════════════
-let _confirmResolve = null;
 
 // Muestra el modal de confirmación y devuelve una Promise que resuelve con true/false
 function showConfirm(msg, sub, peligro) {
@@ -1963,13 +2001,13 @@ function showConfirm(msg, sub, peligro) {
   btn.textContent = peligro ? 'Eliminar' : 'Aceptar';
   btn.className = 'modal-confirm-ok' + (peligro ? ' peligro' : '');
   document.getElementById('modal-confirm').classList.add('show');
-  return new Promise(resolve => { _confirmResolve = resolve; });
+  return new Promise(resolve => { AppState.confirmResolve = resolve; });
 }
 
 // Resuelve la Promise del modal de confirmación
 function confirmRespuesta(ok) {
   document.getElementById('modal-confirm').classList.remove('show');
-  if (_confirmResolve) { _confirmResolve(ok); _confirmResolve = null; }
+  if (AppState.confirmResolve) { AppState.confirmResolve(ok); AppState.confirmResolve = null; }
 }
 
 // ════════════════════════════════════════════════════════
@@ -2075,7 +2113,7 @@ function renderBolsa() {
   bolsa.innerHTML = '';
   pendientes.forEach(t => {
     const urg = (t.urgencia || '').toLowerCase();
-    const esActivo = String(t.id) === String(progTrabajoId);
+    const esActivo = String(t.id) === String(AppState.progTrabajoId);
     const div = document.createElement('div');
     div.className = 'bolsa-trabajo' + (urg === 'urgente' ? ' urgente' : urg === 'alta' ? ' alta' : '') + (esActivo ? ' bolsa-activo' : '');
     const nombreMostrar = t.obra ? t.obra + ' · ' + (t.cliente || '') : (t.cliente || 'Sin cliente');
@@ -2098,7 +2136,6 @@ function renderBolsa() {
 // Estado compartido por el modal de programar y la vista Mes
 // ════════════════════════════════════════════════════════
 
-let modalTrabajoId = null;  // ID del trabajo abierto en modales de detalle/realizado
 
 // Nombres cortos y largos de los días (índice 0 = lunes, 6 = domingo)
 const DIAS_CORTO = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
@@ -2116,21 +2153,18 @@ function fechaISO(d) {
 // PROGRAMACIÓN EN VISTA MES
 // Estado de la sesión de programación activa
 // ════════════════════════════════════════════════════════
-let progTrabajoId = null;      // ID del trabajo que se está programando
-let progDias = [];             // Días seleccionados (ISO strings)
-let progOperarios = [];        // Operarios seleccionados
 
 // Activa un trabajo para programar desde la bolsa
 // Activa el modo programación para un trabajo de la bolsa
 function activarProgramacion(id) {
-  if (progTrabajoId === id) {
+  if (AppState.progTrabajoId === id) {
     // Segundo toque en el mismo trabajo → cancelar
     cancelarProgramacion();
     return;
   }
-  progTrabajoId = id;
-  progDias = [];
-  progOperarios = [];
+  AppState.progTrabajoId = id;
+  AppState.progDias = [];
+  AppState.progOperarios = [];
   renderBolsa();
   renderMes();
   actualizarBarraProgramar();
@@ -2139,9 +2173,9 @@ function activarProgramacion(id) {
 // Cancela la programación en curso
 // Cancela el modo programación sin guardar cambios
 function cancelarProgramacion() {
-  progTrabajoId = null;
-  progDias = [];
-  progOperarios = [];
+  AppState.progTrabajoId = null;
+  AppState.progDias = [];
+  AppState.progOperarios = [];
   renderBolsa();
   renderMes();
   document.getElementById('barra-programar').style.display = 'none';
@@ -2151,14 +2185,14 @@ function cancelarProgramacion() {
 // Marca o desmarca un día en la vista mes (solo en modo programación activa)
 // Selecciona o deselecciona un día del calendario en modo programación; bloquea días pasados
 function toggleDiaProg(iso) {
-  if (!progTrabajoId) return;
+  if (!AppState.progTrabajoId) return;
   // Bloquear días pasados
   const hoy = fechaISO(new Date());
   if (iso < hoy) { showToast('No se puede programar en días pasados'); return; }
-  if (progDias.includes(iso)) {
-    progDias = progDias.filter(d => d !== iso);
+  if (AppState.progDias.includes(iso)) {
+    AppState.progDias = AppState.progDias.filter(d => d !== iso);
   } else {
-    progDias.push(iso);
+    AppState.progDias.push(iso);
   }
   renderMes();
   actualizarBarraProgramar();
@@ -2169,12 +2203,12 @@ function toggleDiaProg(iso) {
 function actualizarBarraProgramar() {
   const barra = document.getElementById('barra-programar');
   const hint = document.getElementById('mes-prog-hint');
-  if (!progTrabajoId) { barra.style.display = 'none'; hint.style.display = 'none'; return; }
+  if (!AppState.progTrabajoId) { barra.style.display = 'none'; hint.style.display = 'none'; return; }
 
-  const t = getTrab().find(x => String(x.id) === String(progTrabajoId));
+  const t = getTrab().find(x => String(x.id) === String(AppState.progTrabajoId));
   if (!t) return;
 
-  hint.style.display = progDias.length === 0 ? 'block' : 'none';
+  hint.style.display = AppState.progDias.length === 0 ? 'block' : 'none';
   barra.style.display = 'block';
 
   // Nombre del trabajo
@@ -2184,14 +2218,14 @@ function actualizarBarraProgramar() {
 
   // Días seleccionados
   const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  const diasTexto = progDias.length === 0
+  const diasTexto = AppState.progDias.length === 0
     ? 'Sin días seleccionados — toca el calendario'
-    : progDias.sort().map(iso => {
+    : AppState.progDias.sort().map(iso => {
         const d = new Date(iso + 'T12:00');
         return DIAS_CORTO[d.getDay() === 0 ? 6 : d.getDay() - 1] + ' ' + d.getDate() + ' ' + meses[d.getMonth()];
       }).join(' · ');
-  const bprogDias = document.getElementById('bprog-dias');
-  if(bprogDias) bprogDias.textContent = '📅 ' + diasTexto;
+  const bAppState.progDias = document.getElementById('bprog-dias');
+  if(bAppState.progDias) bAppState.progDias.textContent = '📅 ' + diasTexto;
 
   // Chips de operarios
   const opWrap = document.getElementById('bprog-operarios');
@@ -2199,12 +2233,12 @@ function actualizarBarraProgramar() {
   opWrap.innerHTML = '';
   OPERARIOS.forEach(op => {
     const chip = document.createElement('div');
-    const sel = progOperarios.includes(op);
+    const sel = AppState.progOperarios.includes(op);
     chip.style.cssText = 'padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;font-family:Georgia,serif;border:1px solid '+(sel?'#FFD100':'rgba(255,209,0,0.4)')+';background:'+(sel?'#FFD100':'#222')+';color:'+(sel?'#1C1C1C':'#FFF');
     chip.textContent = op;
     chip.onclick = () => {
-      if (progOperarios.includes(op)) progOperarios = progOperarios.filter(x => x !== op);
-      else progOperarios.push(op);
+      if (AppState.progOperarios.includes(op)) AppState.progOperarios = AppState.progOperarios.filter(x => x !== op);
+      else AppState.progOperarios.push(op);
       actualizarBarraProgramar();
     };
     opWrap.appendChild(chip);
@@ -2214,15 +2248,15 @@ function actualizarBarraProgramar() {
 // Confirma la programación desde la vista mes
 // Guarda la programación del trabajo (días + operarios) en Supabase
 async function confirmarProgramar() {
-  if (progDias.length === 0) { showToast('Toca uno o más días en el calendario'); return; }
-  if (progOperarios.length === 0) {
+  if (AppState.progDias.length === 0) { showToast('Toca uno o más días en el calendario'); return; }
+  if (AppState.progOperarios.length === 0) {
     const ok = await showConfirm('¿Programar sin asignar operario?', 'El trabajo quedará programado pero sin operario asignado.');
     if (!ok) return;
   }
-  const t = getTrab().find(x => String(x.id) === String(progTrabajoId));
+  const t = getTrab().find(x => String(x.id) === String(AppState.progTrabajoId));
   if (!t) return;
-  t.diasProgramados = progDias;
-  t.operarios = progOperarios;
+  t.diasProgramados = AppState.progDias;
+  t.operarios = AppState.progOperarios;
   t.estado = 'Programado';
   showToast('Guardando...');
   cancelarProgramacion();
@@ -2239,7 +2273,7 @@ async function confirmarProgramar() {
 // ════════════════════════════════════════════════════════
 // Abre el modal de detalle de un trabajo con todos sus campos
 function abrirDetalle(id) {
-  modalTrabajoId = id;
+  AppState.modalTrabajoId = id;
   const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
   document.getElementById('mdet-titulo').textContent = t.cliente || 'Sin cliente';
@@ -2291,26 +2325,25 @@ function abrirDetalle(id) {
 }
 
 function editarDesdeDetalle() {
-  if(!modalTrabajoId) return;
+  if(!AppState.modalTrabajoId) return;
   cerrarModal('modal-detalle');
-  abrirEditarTrabajo(modalTrabajoId);
+  abrirEditarTrabajo(AppState.modalTrabajoId);
 }
 
 // Abre el modal de horas reales desde el botón del modal detalle
 // Abre el modal para marcar como realizado el trabajo del modal de detalle
 function abrirModalRealizado() {
-  if(!modalTrabajoId) return;
-  abrirModalRealizadoPorId(modalTrabajoId);
+  if(!AppState.modalTrabajoId) return;
+  abrirModalRealizadoPorId(AppState.modalTrabajoId);
 }
 
 // Maquinaria editable en el modal Realizado
-let _mrealMaquinas = []; // array de nombres editables
 
 // Renderiza la lista editable de máquinas con sus horas reales en el modal de realizado
 function renderMrealMaquinas() {
-  const t = getTrab().find(x=>String(x.id)===String(modalTrabajoId));
+  const t = getTrab().find(x=>String(x.id)===String(AppState.modalTrabajoId));
   let html = '';
-  _mrealMaquinas.forEach((m, i) => {
+  AppState.mrealMaquinas.forEach((m, i) => {
     html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
       <span style="flex:1;font-size:13px;color:var(--text);font-weight:500">${m}</span>
       <input type="number" id="mreal-horas-${i}" min="0" max="24" step="0.5" value="${t&&t.horas?t.horas:4}"
@@ -2319,7 +2352,7 @@ function renderMrealMaquinas() {
       <button onclick="mrealQuitarMaq(${i})" style="background:none;border:none;color:var(--danger);font-size:18px;cursor:pointer;padding:4px" title="Quitar">✕</button>
     </div>`;
   });
-  const todasMaq = getMaqActiva().filter(m => !_mrealMaquinas.includes(m));
+  const todasMaq = getMaqActiva().filter(m => !AppState.mrealMaquinas.includes(m));
   if (todasMaq.length > 0) {
     html += `<div style="display:flex;gap:8px;margin-top:6px">
       <select id="mreal-add-maq" style="flex:1;padding:8px;background:var(--card);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
@@ -2334,7 +2367,7 @@ function renderMrealMaquinas() {
 
 // Quita una máquina de la lista editable del modal de realizado
 function mrealQuitarMaq(idx) {
-  _mrealMaquinas.splice(idx, 1);
+  AppState.mrealMaquinas.splice(idx, 1);
   renderMrealMaquinas();
 }
 
@@ -2342,7 +2375,7 @@ function mrealQuitarMaq(idx) {
 function mrealAddMaq() {
   const sel = document.getElementById('mreal-add-maq');
   if (!sel || !sel.value) return;
-  _mrealMaquinas.push(sel.value);
+  AppState.mrealMaquinas.push(sel.value);
   renderMrealMaquinas();
 }
 
@@ -2351,9 +2384,9 @@ function mrealAddMaq() {
 function abrirModalRealizadoPorId(id) {
   const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
-  modalTrabajoId = id;
+  AppState.modalTrabajoId = id;
   document.getElementById('mreal-nombre').textContent = (t.cliente||'Sin cliente') + ' — ' + (t.obra||t.direccion||'Sin dirección');
-  _mrealMaquinas = t.maquinarias && t.maquinarias.length ? [...t.maquinarias] : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
+  AppState.mrealMaquinas = t.maquinarias && t.maquinarias.length ? [...t.maquinarias] : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
   renderMrealMaquinas();
   document.getElementById('mreal-notas').value = '';
   document.getElementById('mreal-materiales').value = '';
@@ -2365,16 +2398,16 @@ function abrirModalRealizadoPorId(id) {
 // Confirma el trabajo como realizado guardando horas reales, notas y materiales
 async function confirmarRealizado() {
   const trabajos = getTrab();
-  const t = trabajos.find(x=>String(x.id)===String(modalTrabajoId));
+  const t = trabajos.find(x=>String(x.id)===String(AppState.modalTrabajoId));
   if(!t) return;
-  // Recoger horas reales por máquina (usando la lista editable _mrealMaquinas)
+  // Recoger horas reales por máquina (usando la lista editable AppState.mrealMaquinas)
   const horasReales = {};
-  _mrealMaquinas.forEach((m, i) => {
+  AppState.mrealMaquinas.forEach((m, i) => {
     const v = parseFloat(document.getElementById(`mreal-horas-${i}`)?.value) || 0;
     horasReales[m] = v;
   });
   // Actualizar maquinarias del trabajo si han cambiado
-  if (_mrealMaquinas.length > 0) t.maquinarias = [..._mrealMaquinas];
+  if (AppState.mrealMaquinas.length > 0) t.maquinarias = [...AppState.mrealMaquinas];
   t.estado = 'Realizado';
   t.diasProgramados = [];
   t.horasReales = horasReales;
@@ -2396,7 +2429,7 @@ async function confirmarRealizado() {
 function abrirModalJornada(id) {
   const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
-  modalTrabajoId = id;
+  AppState.modalTrabajoId = id;
   document.getElementById('mjor-nombre').textContent = (t.cliente||'Sin cliente') + ' — ' + (t.direccion||'Sin dirección');
   document.getElementById('mjor-fecha').value = new Date().toISOString().slice(0,10);
   const maquinas = t.maquinarias && t.maquinarias.length ? t.maquinarias : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
@@ -2418,7 +2451,7 @@ function abrirModalJornada(id) {
 // Guarda la jornada parcial con horas por máquina y notas
 async function confirmarJornada() {
   const trabajos = getTrab();
-  const t = trabajos.find(x=>String(x.id)===String(modalTrabajoId));
+  const t = trabajos.find(x=>String(x.id)===String(AppState.modalTrabajoId));
   if(!t) return;
   const maquinas = t.maquinarias && t.maquinarias.length ? t.maquinarias : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
   const horas = {};
@@ -2446,7 +2479,7 @@ function realizarDesdeDetalle() {
 // Quita el trabajo del calendario desde el modal de detalle
 async function desprogramarDesdeDetalle() {
   const trabajos = getTrab();
-  const t = trabajos.find(x=>String(x.id)===String(modalTrabajoId));
+  const t = trabajos.find(x=>String(x.id)===String(AppState.modalTrabajoId));
   if(!t) return;
   if(!await showConfirm('¿Quitar de la programación?', t.cliente||'Sin cliente')) return;
   t.diasProgramados = [];
@@ -2467,7 +2500,7 @@ function cerrarModal(id) {
   // Solo resetear si no hay otro modal abierto (comprobar DESPUÉS de quitar show)
   setTimeout(() => {
     const hayModalAbierto = document.querySelector('.modal-overlay.show');
-    if (!hayModalAbierto) modalTrabajoId = null;
+    if (!hayModalAbierto) AppState.modalTrabajoId = null;
   }, 50);
 }
 
@@ -2589,7 +2622,6 @@ function exportarInformeCSV() {
 // Sin acceso a formularios ni configuración.
 // ════════════════════════════════════════════════════════
 
-let opSeleccionado = OPERARIOS[0]; // Operario activo en la vista (por defecto el primero)
 
 // Construye la vista completa del operario: fecha, selector, trabajos de los próximos 7 días
 // Renderiza la vista Hoy con los trabajos de los próximos 7 días para el operario seleccionado
@@ -2612,15 +2644,15 @@ function renderOperario() {
   const conTrabajo = new Set(trabajosAll.flatMap(t => t.operarios || []));
   const opCfg = getOperariosCfg();
   const opVisibles = opCfg.filter(o => o.activo || conTrabajo.has(o.nombre)).map(o => o.nombre);
-  // Si el opSeleccionado ya no aparece, resetear al primero visible
-  if (!opVisibles.includes(opSeleccionado)) opSeleccionado = opVisibles[0] || '';
+  // Si el AppState.opSeleccionado ya no aparece, resetear al primero visible
+  if (!opVisibles.includes(AppState.opSeleccionado)) AppState.opSeleccionado = opVisibles[0] || '';
   opVisibles.forEach(op => {
     const esActivo = opCfg.find(o=>o.nombre===op)?.activo !== false;
     const btn = document.createElement('button');
-    btn.className = 'op-sel-btn' + (op === opSeleccionado ? ' activo' : '');
+    btn.className = 'op-sel-btn' + (op === AppState.opSeleccionado ? ' activo' : '');
     btn.textContent = esActivo ? op : op + ' (desactivado)';
     btn.title = esActivo ? '' : 'Operario desactivado — trabajos históricos visibles';
-    btn.onclick = () => { opSeleccionado = op; renderOperario(); };
+    btn.onclick = () => { AppState.opSeleccionado = op; renderOperario(); };
     sel.appendChild(btn);
   });
 
@@ -2652,7 +2684,7 @@ function renderOperario() {
     const del_dia = trabajos.filter(t => {
       if (t.estado !== 'Programado') return false;
       if (!(t.diasProgramados || []).includes(iso)) return false;
-      if (t.operarios && t.operarios.length > 0 && !t.operarios.includes(opSeleccionado)) return false;
+      if (t.operarios && t.operarios.length > 0 && !t.operarios.includes(AppState.opSeleccionado)) return false;
       if (vistos.has(t.id)) return false;
       vistos.add(t.id);
       return true;
@@ -2699,7 +2731,7 @@ function renderOperario() {
     contenido.innerHTML = `
       <div class="op-vacio">
         <span class="op-vacio-icon">✓</span>
-        Sin trabajos programados esta semana<br>para <strong>${opSeleccionado}</strong>
+        Sin trabajos programados esta semana<br>para <strong>${AppState.opSeleccionado}</strong>
       </div>`;
     return;
   }
@@ -2710,7 +2742,7 @@ function renderOperario() {
 // Marca un trabajo como Realizado desde la vista del operario
 // Abre el modal de realizado desde la vista Hoy
 function opMarcarRealizado(id) {
-  modalTrabajoId = id;
+  AppState.modalTrabajoId = id;
   abrirModalRealizadoPorId(id);
 }
 
@@ -2720,7 +2752,7 @@ function opMarcarRealizado(id) {
 // ════════════════════════════════════════════════════════
 
 // Devuelve la lista de clientes en memoria
-function getClientes() { return _clientesCache || []; }
+function getClientes() { return AppState.clientesCache || []; }
 
 // Guarda un cliente nuevo en Supabase
 async function _saveClienteSupabase(cliente) {
@@ -2736,7 +2768,7 @@ async function _saveClienteSupabase(cliente) {
     const rows = await res.json();
     if (rows && rows[0]) cliente.id = rows[0].id;
   }
-  localStorage.setItem('cfg_clientes', JSON.stringify(_clientesCache));
+  localStorage.setItem('cfg_clientes', JSON.stringify(AppState.clientesCache));
 }
 
 // Añade un cliente desde la sección de configuración
@@ -2746,9 +2778,9 @@ async function cfgAddCliente() {
   if (!nombre) { showToast('Escribe el nombre del cliente'); return; }
   if (getClientes().some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) { showToast('Ya existe ese cliente'); return; }
   const nuevo = { nombre, telefono: document.getElementById('inp-cliente-tel').value.trim(), observaciones: document.getElementById('inp-cliente-obs').value.trim() };
-  if (!_clientesCache) _clientesCache = [];
-  _clientesCache.push(nuevo);
-  _clientesCache.sort((a,b) => a.nombre.localeCompare(b.nombre));
+  if (!AppState.clientesCache) AppState.clientesCache = [];
+  AppState.clientesCache.push(nuevo);
+  AppState.clientesCache.sort((a,b) => a.nombre.localeCompare(b.nombre));
   await _saveClienteSupabase(nuevo);
   ['inp-cliente-nombre','inp-cliente-tel','inp-cliente-obs'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   renderConfig();
@@ -2764,8 +2796,8 @@ async function cfgEliminarCliente(id) {
   try {
     await fetch(`${SUPA_URL}/rest/v1/clientes?id=eq.${id}`, { method: 'DELETE', headers: SUPA_HEADERS });
   } catch(e) { showToast('Error al eliminar'); return; }
-  _clientesCache = _clientesCache.filter(x => String(x.id) !== String(id));
-  localStorage.setItem('cfg_clientes', JSON.stringify(_clientesCache));
+  AppState.clientesCache = AppState.clientesCache.filter(x => String(x.id) !== String(id));
+  localStorage.setItem('cfg_clientes', JSON.stringify(AppState.clientesCache));
   renderConfig();
   showToast('✓ Eliminado');
 }
@@ -2794,13 +2826,12 @@ function renderCfgClientes() {
 
 // ── SELECTOR DE CLIENTE EN FORMULARIO ──────────────────────
 
-let _clienteDropdownOpen = false;
 
 // Abre o cierra el dropdown de selección de cliente en el paso 1
 function toggleClienteDropdown() {
-  _clienteDropdownOpen = !_clienteDropdownOpen;
+  AppState.clienteDropdownOpen = !AppState.clienteDropdownOpen;
   const dd = document.getElementById('cs-dropdown');
-  if (_clienteDropdownOpen) {
+  if (AppState.clienteDropdownOpen) {
     buildClienteDropdown();
     dd.classList.add('show');
   } else {
@@ -2820,22 +2851,22 @@ function buildClienteDropdown() {
   dd.innerHTML = html;
 }
 
-// Selecciona un cliente del dropdown y actualiza form.cliente
+// Selecciona un cliente del dropdown y actualiza AppState.form.cliente
 function seleccionarCliente(id) {
   const c = getClientes().find(x => String(x.id) === String(id));
   if (!c) return;
-  form.cliente = c.nombre;
+  AppState.form.cliente = c.nombre;
   document.getElementById('cs-selected').textContent = c.nombre;
   document.getElementById('cs-dropdown').classList.remove('show');
   document.getElementById('cs-nuevo-wrap').classList.remove('show');
-  _clienteDropdownOpen = false;
+  AppState.clienteDropdownOpen = false;
 }
 
 // Muestra el formulario inline de creación de cliente nuevo
 function mostrarNuevoClienteInline() {
   document.getElementById('cs-dropdown').classList.remove('show');
   document.getElementById('cs-nuevo-wrap').classList.add('show');
-  _clienteDropdownOpen = false;
+  AppState.clienteDropdownOpen = false;
   document.getElementById('cs-nuevo-nombre').focus();
 }
 
@@ -2848,22 +2879,22 @@ async function guardarClienteNuevo() {
     telefono: document.getElementById('cs-nuevo-tel').value.trim(),
     observaciones: document.getElementById('cs-nuevo-obs').value.trim()
   };
-  if (!_clientesCache) _clientesCache = [];
+  if (!AppState.clientesCache) AppState.clientesCache = [];
   // Comprobar duplicado
-  if (_clientesCache.some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) {
+  if (AppState.clientesCache.some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) {
     // Seleccionar el existente
-    const existe = _clientesCache.find(c => c.nombre.toLowerCase() === nombre.toLowerCase());
+    const existe = AppState.clientesCache.find(c => c.nombre.toLowerCase() === nombre.toLowerCase());
     seleccionarCliente(existe.id);
     document.getElementById('cs-nuevo-wrap').classList.remove('show');
     showToast('Cliente ya existe — seleccionado');
     return;
   }
   showToast('Guardando cliente…');
-  _clientesCache.push(nuevo);
-  _clientesCache.sort((a,b) => a.nombre.localeCompare(b.nombre));
+  AppState.clientesCache.push(nuevo);
+  AppState.clientesCache.sort((a,b) => a.nombre.localeCompare(b.nombre));
   await _saveClienteSupabase(nuevo);
   // Seleccionar el recién creado
-  form.cliente = nombre;
+  AppState.form.cliente = nombre;
   document.getElementById('cs-selected').textContent = nombre;
   document.getElementById('cs-nuevo-wrap').classList.remove('show');
   ['cs-nuevo-nombre','cs-nuevo-tel','cs-nuevo-obs'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
@@ -2891,8 +2922,8 @@ function renderConfig() {
   renderCfgSinonimos(c);
   // Mostrar email del usuario logueado
   const infoEl = document.getElementById('cfg-usuario-info');
-  if (infoEl && _session?.user?.email) {
-    infoEl.textContent = 'Sesión activa: ' + _session.user.email;
+  if (infoEl && AppState.session?.user?.email) {
+    infoEl.textContent = 'Sesión activa: ' + AppState.session.user.email;
   }
 }
 
@@ -2991,7 +3022,7 @@ async function cfgAdd(key) {
     if (arr.some(o => o.nombre === val)) { showToast('Ya existe'); return; }
     const newOp = {nombre: val, activo: true, sinonimos: []};
     arr.push(newOp);
-    _operariosCfgCache = arr;
+    AppState.operariosCfgCache = arr;
     await _saveOperarioSupabase(newOp);
     OPERARIOS = getOperariosActivos();
   } else {
@@ -3001,7 +3032,7 @@ async function cfgAdd(key) {
     const newItem = {nombre: val, activo: true, sinonimos: []};
     c[key].push(newItem);
     if (!c.sinonimos[val]) c.sinonimos[val] = [];
-    _cfgCache = c;
+    AppState.cfgCache = c;
     await _saveItemSupabase(tablaMap[key], newItem);
     CONFIG = c;
   }
@@ -3022,7 +3053,7 @@ async function cfgToggleItem(key, idx) {
     showToast('Debe haber al menos 1 elemento activo'); return;
   }
   item.activo = !item.activo;
-  _cfgCache = c;
+  AppState.cfgCache = c;
   await _saveItemSupabase(tablaMap[key], item);
   CONFIG = c;
   buildChips();
@@ -3040,10 +3071,10 @@ async function cfgToggleOperario(idx) {
     showToast('Debe haber al menos 1 operario activo'); return;
   }
   op.activo = !op.activo;
-  _operariosCfgCache = arr;
+  AppState.operariosCfgCache = arr;
   await _saveOperarioSupabase(op);
   OPERARIOS = getOperariosActivos();
-  if (!OPERARIOS.includes(opSeleccionado)) opSeleccionado = OPERARIOS[0] || '';
+  if (!OPERARIOS.includes(AppState.opSeleccionado)) AppState.opSeleccionado = OPERARIOS[0] || '';
   renderConfig();
   showToast(op.activo ? 'Dado de alta' : 'Dado de baja');
 }
@@ -3062,7 +3093,7 @@ async function cfgAddSin(item) {
   if (!c.sinonimos[item]) c.sinonimos[item] = [];
   if (c.sinonimos[item].includes(val)) { showToast('Ya existe'); return; }
   c.sinonimos[item].push(val);
-  _cfgCache = c;
+  AppState.cfgCache = c;
   // Actualizar sinonimos en el objeto del item correspondiente y guardar en Supabase
   const tipoItem = c.tipos.find(o=>o.nombre===item);
   const maqItem = c.maquinaria.find(o=>o.nombre===item);
@@ -3090,7 +3121,7 @@ async function cfgDelSin(item, sin) {
   const c = getCfg();
   if (!c.sinonimos[item]) return;
   c.sinonimos[item] = c.sinonimos[item].filter(s => s !== sin);
-  _cfgCache = c;
+  AppState.cfgCache = c;
   const tipoItem = c.tipos.find(o=>o.nombre===item);
   const maqItem = c.maquinaria.find(o=>o.nombre===item);
   if (tipoItem) { tipoItem.sinonimos = c.sinonimos[item]; await _saveItemSupabase('tipos_trabajo', tipoItem); }
@@ -3120,8 +3151,8 @@ async function cfgReset() {
       fetch(`${SUPA_URL}/rest/v1/maquinaria?id=gte.0`, { method:'DELETE', headers:{...SUPA_HEADERS,'Prefer':'return=minimal'} }),
       fetch(`${SUPA_URL}/rest/v1/operarios?id=gte.0`, { method:'DELETE', headers:{...SUPA_HEADERS,'Prefer':'return=minimal'} })
     ]);
-    _cfgCache = null;
-    _operariosCfgCache = null;
+    AppState.cfgCache = null;
+    AppState.operariosCfgCache = null;
     await loadConfig();
   } catch(e) {
     localStorage.removeItem('cfg_listas');
@@ -3129,7 +3160,7 @@ async function cfgReset() {
   }
   CONFIG = getCfg();
   OPERARIOS = getOperariosActivos();
-  opSeleccionado = OPERARIOS[0] || '';
+  AppState.opSeleccionado = OPERARIOS[0] || '';
   buildChips();
   renderConfig();
   showToast('✓ Configuración restaurada');
@@ -3149,10 +3180,10 @@ async function cfgEliminarOperario(idx) {
     } catch(e) { showToast('Error al eliminar'); return; }
   }
   arr.splice(idx, 1);
-  _operariosCfgCache = arr;
+  AppState.operariosCfgCache = arr;
   localStorage.setItem('cfg_operarios', JSON.stringify(arr));
   OPERARIOS = getOperariosActivos();
-  if (!OPERARIOS.includes(opSeleccionado)) opSeleccionado = OPERARIOS[0] || '';
+  if (!OPERARIOS.includes(AppState.opSeleccionado)) AppState.opSeleccionado = OPERARIOS[0] || '';
   renderConfig();
   showToast('✓ Eliminado');
 }
@@ -3174,7 +3205,7 @@ async function cfgEliminarItem(key, idx) {
   }
   delete c.sinonimos[item.nombre];
   c[key].splice(idx, 1);
-  _cfgCache = c;
+  AppState.cfgCache = c;
   localStorage.setItem('cfg_listas', JSON.stringify(c));
   CONFIG = c;
   buildChips();
