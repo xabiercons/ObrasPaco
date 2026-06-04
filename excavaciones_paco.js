@@ -1,3 +1,83 @@
+/*
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║           EXCAVACIONES PACO — Gestión de Obras              ║
+ * ║                archivo: JavaScript                          ║
+ * ╠══════════════════════════════════════════════════════════════╣
+ * ║  Versión: 7.6                                               ║
+ * ║                                                             ║
+ * ║  ÍNDICE DE MÓDULOS                                          ║
+ * ║                                                             ║
+ * ║  ── CONFIGURACIÓN ─────────────────────────────────────     ║
+ * ║  · Constantes Supabase (SUPA_URL, SUPA_KEY)                 ║
+ * ║  · Constantes EmailJS (SERVICE_ID, TEMPLATE_ID, KEY)        ║
+ * ║  · Estados de trabajo (arrays ESTADOS_*)                    ║
+ * ║  · Variables globales de estado de la app                   ║
+ * ║                                                             ║
+ * ║  ── AUTENTICACIÓN ──────────────────────────────────────    ║
+ * ║  · hacerLogin / cerrarSesion                                ║
+ * ║  · Gestión de sesión JWT (Supabase Auth REST)               ║
+ * ║  · Refresh automático de token                              ║
+ * ║                                                             ║
+ * ║  ── CAPA DE DATOS ──────────────────────────────────────    ║
+ * ║  · getTrab / addTrab / updateTrab / deleteTrab              ║
+ * ║  · loadTrab / loadConfig                                    ║
+ * ║  · Clientes, Operarios, Maquinaria, Tipos                   ║
+ * ║  · Backup: exportar/importar JSON                           ║
+ * ║                                                             ║
+ * ║  ── MÓDULO 1: FORMULARIO NUEVO TRABAJO ─────────────────    ║
+ * ║  · 7 pasos: cliente, ubicación, tipo, maquinaria,           ║
+ * ║    horas, urgencia+notas, resumen                           ║
+ * ║  · GPS + mapa Leaflet + Nominatim geocoding                 ║
+ * ║  · Voz (Web Speech API) en todos los campos                 ║
+ * ║                                                             ║
+ * ║  ── MÓDULO 2: LISTADO ──────────────────────────────────    ║
+ * ║  · renderListado — tarjetas con filtros y agrupación        ║
+ * ║  · Tabs: Pendientes / Programados / Realizados              ║
+ * ║  · Exportar CSV individual y por rango de fechas            ║
+ * ║  · Enviar informe por email (EmailJS SMTP)                  ║
+ * ║                                                             ║
+ * ║  ── MÓDULO 3: VISTA MES ────────────────────────────────    ║
+ * ║  · renderMes — grid mensual con píldoras de trabajos        ║
+ * ║  · Programación desde el mes: seleccionar días y operarios  ║
+ * ║  · Filtro por maquinaria                                    ║
+ * ║  · Días pasados en gris, urgencia en color                  ║
+ * ║                                                             ║
+ * ║  ── MÓDULO 4: VISTA HOY ────────────────────────────────    ║
+ * ║  · renderOperario — trabajos de los próximos 7 días         ║
+ * ║  · Selector de operario                                     ║
+ * ║  · Marcar como realizado con horas reales                   ║
+ * ║                                                             ║
+ * ║  ── MÓDULO 5: CONFIGURACIÓN ────────────────────────────    ║
+ * ║  · Clientes, Operarios, Tipos, Maquinaria en Supabase       ║
+ * ║  · Editar y eliminar registros                              ║
+ * ║  · Sinónimos de voz por elemento                            ║
+ * ║                                                             ║
+ * ║  ── MÓDULO 6: INFORMES Y EXPORTACIÓN ──────────────────     ║
+ * ║  · CSV por rango de fechas                                  ║
+ * ║  · Email de informe mensual estructurado                    ║
+ * ║  · Email individual por trabajo                             ║
+ * ║                                                             ║
+ * ║  ── EDITAR TRABAJO / CLIENTE ───────────────────────────    ║
+ * ║  · abrirEditarTrabajo / guardarEdicionTrabajo               ║
+ * ║  · abrirEditarCliente / guardarEdicionCliente               ║
+ * ║  · quitarDelCalendario — vuelve trabajo a bolsa             ║
+ * ║                                                             ║
+ * ║  ── VOZ ────────────────────────────────────────────────    ║
+ * ║  · startVoice / processVoice / matchSinonimo                ║
+ * ║  · Campos: cliente, obra, dirección, tipo, maquinaria,      ║
+ * ║    horas (dígitos + palabras), notas                        ║
+ * ║                                                             ║
+ * ║  NOTAS TÉCNICAS                                             ║
+ * ║  · Supabase: fetch nativo REST sin SDK                      ║
+ * ║  · IDs: siempre comparar con String() — Supabase devuelve   ║
+ * ║    strings, JS genera numbers                               ║
+ * ║  · Auth: JWT en localStorage clave "supa_session"           ║
+ * ║  · RLS activo: política solo_auth para rol authenticated    ║
+ * ║  · GPS requiere HTTPS (GitHub Pages lo garantiza)           ║
+ * ║  · Voz requiere HTTPS y Chrome/Edge en Android              ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ */
+
 // ════════════════════════════════════════════════════════
 // AUTH — Supabase Authentication
 // Usa el SDK de Supabase para gestionar sesión con email+contraseña.
@@ -8,15 +88,18 @@ const SUPA_AUTH_URL = 'https://wqcwicukenycsopnyvck.supabase.co/auth/v1';
 let _session = null; // Sesión activa (token + usuario)
 
 // Recupera sesión guardada en localStorage (para no pedir login al reabrir)
+// Recupera la sesión JWT guardada en localStorage
 function _getSessionStored() {
   try { return JSON.parse(localStorage.getItem('supa_session')); } catch { return null; }
 }
+// Guarda la sesión JWT en localStorage
 function _setSessionStored(s) {
   if (s) localStorage.setItem('supa_session', JSON.stringify(s));
   else localStorage.removeItem('supa_session');
 }
 
 // Cabeceras REST con token de usuario autenticado (en lugar de anon key)
+// Devuelve los headers de autenticación para las peticiones a Supabase
 function _authHeaders() {
   const token = _session?.access_token || SUPA_KEY;
   return {
@@ -28,6 +111,7 @@ function _authHeaders() {
 }
 
 // Login con email + contraseña
+// Autentica al usuario contra Supabase Auth y guarda la sesión
 async function hacerLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-pass').value;
@@ -71,6 +155,7 @@ async function hacerLogin() {
 
 // Refresca el token si está cerca de expirar (Supabase lo hace automáticamente,
 // pero por seguridad lo forzamos si la sesión tiene más de 55 min)
+// Refresca el JWT si está próximo a expirar (margen 5 min)
 async function _refreshSessionIfNeeded() {
   if (!_session?.refresh_token) return;
   const createdAt = _session.expires_at || 0;
@@ -94,6 +179,7 @@ async function _refreshSessionIfNeeded() {
 }
 
 // Cierra sesión
+// Cierra sesión en Supabase y limpia el estado local
 async function cerrarSesion() {
   if (!await showConfirm('¿Cerrar sesión?', 'Tendrás que volver a introducir tus credenciales.')) return;
   try {
@@ -109,6 +195,7 @@ async function cerrarSesion() {
 }
 
 // Comprueba si hay sesión guardada y decide si mostrar login o entrar directo
+// Comprueba si hay sesión activa al cargar la app; redirige al login si no
 async function checkAuth() {
   const stored = _getSessionStored();
   if (stored?.access_token) {
@@ -122,6 +209,7 @@ async function checkAuth() {
 }
 
 // Arranca la app (se llama tras login exitoso o sesión recuperada)
+// Punto de entrada principal: carga config, trabajos y renderiza la UI
 async function iniciarApp() {
   setConexionStatus(false, 'Conectando...');
   await loadConfig();
@@ -192,6 +280,7 @@ let _clientesCache = null;     // [{id, nombre, telefono, observaciones}]
 // ── SUPABASE CONFIG HELPERS ──────────────────────────────
 
 // Convierte filas de Supabase (tabla tipos_trabajo o maquinaria) a formato interno
+// Convierte filas de Supabase al formato interno de la app
 function _rowsToItems(rows) {
   return rows.map(r => ({
     id: r.id,
@@ -202,6 +291,7 @@ function _rowsToItems(rows) {
 }
 
 // Construye el objeto sinonimos plano { nombre: [sins] } para compatibilidad
+// Construye el mapa de sinónimos de voz a partir de tipos y maquinaria
 function _buildSinonimosObj(tipos, maquinaria) {
   const obj = {};
   [...tipos, ...maquinaria].forEach(item => {
@@ -211,6 +301,7 @@ function _buildSinonimosObj(tipos, maquinaria) {
 }
 
 // Carga configuración desde Supabase al iniciar la app
+// Carga operarios, tipos, maquinaria y clientes desde Supabase
 async function loadConfig() {
   try {
     const [rTipos, rMaq, rOps, rClients] = await Promise.all([
@@ -270,6 +361,7 @@ async function loadConfig() {
   }
 }
 
+// Inserta configuración por defecto si la tabla está vacía
 async function _insertDefaultConfig(tabla, items) {
   const rows = items.map(i => ({ nombre: i.nombre, activo: i.activo, sinonimos: i.sinonimos || [] }));
   await fetch(`${SUPA_URL}/rest/v1/${tabla}`, {
@@ -281,24 +373,31 @@ async function _insertDefaultConfig(tabla, items) {
 
 // ── GETTERS SÍNCRONOS (leen de cache en memoria) ─────────
 
+// Devuelve la configuración actual (tipos, maquinaria, sinónimos)
 function getCfg() {
   return _cfgCache || structuredClone(CONFIG_DEFAULT);
 }
+// Devuelve la lista completa de operarios (activos e inactivos)
 function getOperariosCfg() {
   return _operariosCfgCache || OPERARIOS_DEFAULT.map(o=>({...o}));
 }
 
 // Nombres de operarios activos (para asignar en modal programar)
+// Devuelve solo los operarios activos
 function getOperariosActivos() { return getOperariosCfg().filter(o=>o.activo).map(o=>o.nombre); }
 // Todos los nombres de operarios (activos + archivados, para la vista Hoy)
+// Devuelve todos los operarios sin filtro
 function getOperariosTodos() { return getOperariosCfg().map(o=>o.nombre); }
 // Nombres activos de tipos y maquinaria (para chips del formulario)
+// Devuelve los tipos de trabajo activos
 function getTiposActivos() { return getCfg().tipos.filter(o=>o.activo).map(o=>o.nombre); }
+// Devuelve las máquinas activas
 function getMaqActiva() { return getCfg().maquinaria.filter(o=>o.activo).map(o=>o.nombre); }
 
 // ── ESCRITURA EN SUPABASE ─────────────────────────────────
 
 // Guarda un ítem (tipo o maquinaria) en Supabase y actualiza cache
+// Guarda un ítem de configuración (tipo o maquinaria) en Supabase
 async function _saveItemSupabase(tabla, item) {
   const body = { nombre: item.nombre, activo: item.activo, sinonimos: item.sinonimos || [] };
   if (item.id) {
@@ -322,6 +421,7 @@ async function _saveItemSupabase(tabla, item) {
   localStorage.setItem('cfg_listas', JSON.stringify(_cfgCache));
 }
 
+// Guarda o actualiza un operario en Supabase
 async function _saveOperarioSupabase(op) {
   const body = { nombre: op.nombre, activo: op.activo, sinonimos: op.sinonimos || [] };
   if (op.id) {
@@ -347,6 +447,7 @@ function saveCfg(c) {
   _cfgCache = c;
   localStorage.setItem('cfg_listas', JSON.stringify(c));
 }
+// Guarda la lista de operarios en memoria
 function saveOperariosCfg(arr) {
   _operariosCfgCache = arr;
   localStorage.setItem('cfg_operarios', JSON.stringify(arr));
@@ -377,6 +478,7 @@ let listening = false;
 // Se llama desde el wrapper supa — un solo punto de control
 // Si detecta sesión caducada: toast + limpia sesión + muestra login
 // ════════════════════════════════════════════════════════
+// Detecta error 401 de Supabase y redirige al login si la sesión expiró
 async function _checkSesionExpirada(r) {
   if (r.status === 401) {
     let body = '';
@@ -424,6 +526,7 @@ let _trabCache = null;
 let _supaOnline = true; // Se pone false si hay error de red
 
 // Indicador de estado de conexión
+// Actualiza el indicador de conexión en el header (verde/rojo)
 function setConexionStatus(ok, msg) {
   _supaOnline = ok;
   const el = document.getElementById('conexion-status');
@@ -437,6 +540,7 @@ function setConexionStatus(ok, msg) {
 // ════════════════════════════════════════════════════════
 
 // Carga trabajos desde Supabase y actualiza caché
+// Carga todos los trabajos desde Supabase a memoria local
 async function loadTrab() {
   try {
     const data = await supa.select('trabajos', 'fecha_creacion.desc');
@@ -467,12 +571,14 @@ async function loadTrab() {
 }
 
 // Devuelve el array de trabajos desde caché (síncrono)
+// Devuelve el array de trabajos en memoria
 function getTrab() {
   if (_trabCache !== null) return _trabCache;
   try { return JSON.parse(localStorage.getItem('excavaciones_trabajos') || '[]'); } catch(e) { return []; }
 }
 
 // Guarda un trabajo nuevo en Supabase
+// Añade un trabajo nuevo a Supabase y lo inserta en memoria
 async function addTrab(t) {
   const row = trabajoToRow(t);
   try {
@@ -491,6 +597,7 @@ async function addTrab(t) {
 }
 
 // Actualiza un trabajo existente en Supabase
+// Actualiza un trabajo existente en Supabase y en memoria
 async function updateTrab(t) {
   const row = trabajoToRow(t);
   try {
@@ -514,6 +621,7 @@ async function updateTrab(t) {
 }
 
 // Elimina un trabajo en Supabase
+// Elimina un trabajo de Supabase y de memoria
 async function deleteTrab(id) {
   try {
     await supa.delete('trabajos', 'id', id);
@@ -531,6 +639,7 @@ async function deleteTrab(id) {
 }
 
 // Convierte objeto trabajo JS a fila Supabase (snake_case)
+// Convierte un objeto trabajo al formato de columnas de Supabase
 function trabajoToRow(t) {
   return {
     id: t.id,
@@ -558,6 +667,7 @@ function trabajoToRow(t) {
 }
 
 // saveTrab — compatibilidad: actualiza caché y localStorage (sin Supabase, para cambios en batch)
+// Persiste el array de trabajos en localStorage (fallback offline)
 function saveTrab(arr) {
   _trabCache = arr;
   localStorage.setItem('excavaciones_trabajos', JSON.stringify(arr));
@@ -566,6 +676,7 @@ function saveTrab(arr) {
 // ════════════════════════════════════════════════════════
 // BARRA DE PROGRESO — Los 7 segmentos de la parte superior del formulario
 // ════════════════════════════════════════════════════════
+// Actualiza la barra de progreso del formulario de nuevo trabajo
 function updateProgress() {
   const total = 7;
   let html = '';
@@ -583,6 +694,7 @@ function updateProgress() {
 // ════════════════════════════════════════════════════════
 
 // Muestra el paso n y oculta el resto. Si es el paso 7, construye el resumen.
+// Muestra el paso N del formulario y oculta los demás; limpia errores al navegar
 function showStep(n) {
   for(let i=1;i<=7;i++) {
     const el = document.getElementById('step-'+i);
@@ -598,6 +710,7 @@ function showStep(n) {
 }
 
 // Valida el paso actual antes de avanzar. Si falta algo, muestra aviso.
+// Valida el paso actual y avanza al siguiente si pasa la validación
 function nextStep(current) {
   if(current===1 && !form.cliente.trim()) { showToast('Selecciona o crea un cliente'); return; }
   if(current===2 && !form.direccion.trim()) { showToast('Indica la dirección o usa el GPS'); return; }
@@ -606,9 +719,11 @@ function nextStep(current) {
   showStep(current+1);
 }
 // Vuelve al paso anterior sin validar
+// Vuelve al paso anterior sin validar
 function prevStep(current) { showStep(current-1); }
 
 // Comprueba si ya existe un cliente con ese nombre y muestra aviso
+// Avisa si ya existe un cliente con el mismo nombre al crear uno nuevo
 function checkClienteDuplicado(valor) {
   const aviso = document.getElementById('aviso-cliente');
   if(!aviso) return;
@@ -623,6 +738,7 @@ function checkClienteDuplicado(valor) {
 // ════════════════════════════════════════════════════════
 
 // Construye los chips de tipo de trabajo y maquinaria a partir de CONFIG
+// Renderiza los chips de tipo y maquinaria en los pasos 3 y 4 del formulario
 function buildChips() {
   const tiposActivos = getTiposActivos();
   const ct = document.getElementById('chips-tipo');
@@ -637,6 +753,7 @@ function buildChips() {
 }
 
 // Añade o quita un valor del array correspondiente en el formulario
+// Selecciona o deselecciona un chip (tipo o maquinaria) y actualiza form
 function selectChipMulti(field, val, el) {
   if(!form[field]) form[field] = [];
   const idx = form[field].indexOf(val);
@@ -647,6 +764,7 @@ function selectChipMulti(field, val, el) {
 // ════════════════════════════════════════════════════════
 // URGENCIA — Selector visual Normal / Alta / Urgente
 // ════════════════════════════════════════════════════════
+// Establece la urgencia del trabajo (Normal / Alta / Urgente)
 function setUrgencia(val) {
   form.urgencia = val;
   // Quita la clase activa de los tres botones y la pone solo en el seleccionado
@@ -660,6 +778,7 @@ function setUrgencia(val) {
 // ════════════════════════════════════════════════════════
 // HORAS — Stepper +/- para las horas previstas del trabajo
 // ════════════════════════════════════════════════════════
+// Incrementa o decrementa el contador de horas previstas (paso 5)
 function changeHoras(delta) {
   // Mínimo 1h, máximo 99h
   form.horas = Math.max(1, Math.min(99, form.horas+delta));
@@ -667,10 +786,12 @@ function changeHoras(delta) {
 }
 
 // Sincroniza un campo de texto con el objeto form al escribir
+// Sincroniza visualmente el campo nombre del cliente inline (sin actualizar form)
 function syncClienteNuevoNombre(value) {
   // Solo sincroniza el campo visual
 }
 
+// Actualiza un campo del objeto form desde un input manual
 function syncField(field, val) { form[field] = val; }
 
 // ════════════════════════════════════════════════════════
@@ -684,6 +805,7 @@ let marcador = null;                       // Marcador arrastrable sobre el mapa
 let coordsTemp = { lat: null, lng: null }; // Coordenadas seleccionadas antes de aceptar
 
 // Inicializa el mapa (o lo recentra si ya existe) en las coordenadas dadas
+// Crea el mapa Leaflet centrado en las coordenadas indicadas
 function inicializarMapa(lat, lng, zoom) {
   const wrap = document.getElementById('map-wrap');
   wrap.classList.add('show'); // Muestra el contenedor del mapa
@@ -705,6 +827,7 @@ function inicializarMapa(lat, lng, zoom) {
 }
 
 // Coloca o mueve el marcador en el mapa. El marcador es arrastrable.
+// Coloca o mueve el marcador en el mapa y hace geocodificación inversa
 function ponerMarcador(lat, lng) {
   if (marcador) {
     marcador.setLatLng([lat, lng]); // Ya existe: moverlo
@@ -722,6 +845,7 @@ function ponerMarcador(lat, lng) {
 }
 
 // Activa el modo "toca para marcar" cuando el GPS no está disponible
+// Activa el listener de click en el mapa para mover el marcador
 function activarClickMapa() {
   mapaLeaflet.off('click'); // Elimina listeners anteriores para evitar duplicados
   mapaLeaflet.on('click', e => {
@@ -730,6 +854,7 @@ function activarClickMapa() {
 }
 
 // Botón principal del paso 2: pide GPS y abre el mapa cuando hay respuesta
+// Solicita la posición GPS y abre el modal del mapa
 function abrirMapaGPS() {
   const btn = document.getElementById('btn-abrirmapa');
   btn.textContent = '⏳ Obteniendo posición GPS…';
@@ -767,6 +892,7 @@ function abrirMapaGPS() {
 }
 
 // Botón "Aceptar ubicación": guarda las coordenadas y busca la dirección
+// Confirma la ubicación seleccionada en el mapa y cierra el modal
 function aceptarMapa() {
   if (!coordsTemp.lat) {
     showToast('Marca un punto en el mapa primero');
@@ -817,6 +943,7 @@ function aceptarMapa() {
 // btnId: ID del botón que cambia de texto al activarse
 // resId: ID del div donde se muestra la transcripción
 // Genera un enlace a Google Maps para una dirección o coordenadas
+// Genera la URL de Google Maps para un trabajo (por GPS o por dirección)
 function mapsLink(t) {
   if(t.lat && t.lng) return `https://maps.google.com/?q=${t.lat},${t.lng}`;
   if(t.direccion) return `https://maps.google.com/?q=${encodeURIComponent(t.direccion)}`;
@@ -824,6 +951,7 @@ function mapsLink(t) {
 }
 
 // Genera el HTML del enlace "Cómo llegar" para usar en cualquier vista
+// Genera el HTML del enlace "Cómo llegar" para insertar en tarjetas
 function mapsHtml(t, estilo) {
   const url = mapsLink(t);
   if(!url) return '';
@@ -831,6 +959,7 @@ function mapsHtml(t, estilo) {
   return `<a href="${url}" target="_blank" style="${base}${estilo||''}">🗺 Cómo llegar</a>`;
 }
 
+// Inicia o detiene el reconocimiento de voz para un campo dado
 function startVoice(field, btnId, resId) {
   if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     showToast('Reconocimiento de voz no disponible. Usa Chrome en Android.');
@@ -900,6 +1029,7 @@ function startVoice(field, btnId, resId) {
 }
 
 // Restaura el botón del micrófono a su texto y estilo original
+// Restaura el botón de voz a su estado original tras finalizar
 function resetVoiceBtn(btn, field) {
   listening = false;
   const labels = { cliente:'🎤 Hablar', direccion:'🎤 Hablar dirección', tipo:'🎤 Hablar', maquinaria:'🎤 Hablar', horas:'🎤 Hablar', notas:'🎤 Dictar notas' };
@@ -909,6 +1039,7 @@ function resetVoiceBtn(btn, field) {
 
 // Interpreta el texto dictado y lo aplica al campo correcto del formulario
 // Devuelve {ok: boolean, msg: string} para que el llamador muestre el feedback
+// Procesa el texto dictado y lo asigna al campo correspondiente del form
 function processVoice(field, texto) {
   const t = texto.toLowerCase();
   if(field==='clienteNuevo') {
@@ -979,6 +1110,7 @@ function processVoice(field, texto) {
 }
 
 // Busca en CONFIG.sinonimos si el texto dictado corresponde a algún valor de la lista
+// Busca coincidencias entre el texto dictado y los sinónimos configurados
 function matchSinonimo(field, texto, chipsId) {
   // Solo busca en activos (los archivados no deben activarse por voz)
   const lista = field==='tipos' ? getTiposActivos() : getMaqActiva();
@@ -1005,6 +1137,7 @@ function matchSinonimo(field, texto, chipsId) {
 // ════════════════════════════════════════════════════════
 // RESUMEN — Paso 7: muestra todos los datos del formulario para revisión
 // ════════════════════════════════════════════════════════
+// Construye el paso 7 (resumen editable) con todos los campos del trabajo
 function buildResumen() {
   document.getElementById('resumen-content').innerHTML = `
     <div class="resumen-field"><span class="resumen-key">Cliente</span><input class="resumen-input" id="re-cliente" value="${(form.cliente||'').replace(/"/g,'&quot;')}" oninput="form.cliente=this.value"></div>
@@ -1035,6 +1168,7 @@ function buildResumen() {
   `;
 }
 
+// Selecciona o deselecciona un operario en el resumen (paso 7)
 function toggleOperarioResumen(nombre, btn) {
   if(!form.operarios) form.operarios = [];
   if(form.operarios.includes(nombre)) {
@@ -1051,6 +1185,7 @@ function toggleOperarioResumen(nombre, btn) {
 // ════════════════════════════════════════════════════════
 // GUARDAR TRABAJO — Crea el objeto trabajo y lo añade en Supabase
 // ════════════════════════════════════════════════════════
+// Valida y guarda el trabajo nuevo en Supabase; resetea el formulario
 async function guardarTrabajo() {
   const nuevo = {
     id: Date.now(),
@@ -1075,6 +1210,7 @@ async function guardarTrabajo() {
 }
 
 // Limpia el formulario y lo vuelve al estado inicial (paso 1, valores vacíos)
+// Resetea el formulario de nuevo trabajo a su estado inicial
 function resetForm() {
   form = { cliente:'', obra:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
   // Reset selector cliente
@@ -1105,6 +1241,7 @@ function resetForm() {
 // ════════════════════════════════════════════════════════
 
 // Cambia entre las pestañas Pendientes / Programados / Realizados
+// Cambia la pestaña activa del listado (Pendientes / Programados / Realizados)
 function setLTab(tab) {
   ltabActual = tab;
   ['pendientes','programados','realizados'].forEach(t=>{
@@ -1116,6 +1253,7 @@ function setLTab(tab) {
 }
 
 // Rellena los desplegables de zona y maquinaria con los valores reales de los trabajos
+// Actualiza los selectores de filtro (zona, maquinaria) con los valores disponibles
 function buildFiltros() {
   const trabajos = getTrab();
   // Zonas únicas extraídas de los trabajos existentes, ordenadas alfabéticamente
@@ -1140,11 +1278,13 @@ const ESTADOS_REALIZADOS = ['Realizado'];
 // Navegación mes en tab Realizados
 let realizadosMesOffset = 0; // 0 = mes actual
 
+// Navega al mes anterior o siguiente en la pestaña Realizados
 function cambiarMesRealizados(dir) {
   realizadosMesOffset += dir;
   renderListado();
 }
 
+// Calcula el rango de fechas (desde/hasta) del mes visible en Realizados
 function _getRangoMesRealizados() {
   const hoy = new Date();
   const anyo = hoy.getFullYear();
@@ -1159,6 +1299,7 @@ function _getRangoMesRealizados() {
 }
 
 // Dibuja el listado completo: stats, filtros y tarjetas de trabajos
+// Renderiza las tarjetas de trabajos con filtros aplicados y agrupación por maquinaria
 function renderListado() {
   buildFiltros();
   const trabajos = getTrab();
@@ -1315,6 +1456,7 @@ function renderListado() {
 
 // Cambia el estado de un trabajo con confirmación previa
 // Para 'Realizado' avisa que no se puede deshacer
+// Cambia el estado de un trabajo (ej: Pendiente → Presupuestado)
 async function cambiarEstado(id, nuevoEstado) {
   const trabajos = getTrab();
   const t = trabajos.find(x=>String(x.id)===String(id));
@@ -1333,6 +1475,7 @@ async function cambiarEstado(id, nuevoEstado) {
 }
 
 // Elimina un trabajo permanentemente (con confirmación)
+// Elimina un trabajo con confirmación
 async function eliminar(id) {
   if(!await showConfirm('¿Eliminar este trabajo?', 'Esta acción no se puede deshacer.', true)) return;
   await deleteTrab(id);
@@ -1343,6 +1486,7 @@ async function eliminar(id) {
 // QUITAR TRABAJO DEL CALENDARIO (fechas pasadas → vuelve a Aceptado)
 // ════════════════════════════════════════════════════════
 
+// Mueve un trabajo de Programado a Aceptado y borra sus fechas asignadas
 async function quitarDelCalendario(id) {
   const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
@@ -1362,6 +1506,7 @@ async function quitarDelCalendario(id) {
 
 let _editandoClienteId = null;
 
+// Abre el modal de edición de un cliente existente con sus datos cargados
 function abrirEditarCliente(id) {
   const c = getClientes().find(x=>String(x.id)===String(id));
   if(!c) return;
@@ -1372,6 +1517,7 @@ function abrirEditarCliente(id) {
   document.getElementById('modal-editar-cliente').classList.add('show');
 }
 
+// Guarda los cambios del cliente editado en Supabase
 async function guardarEdicionCliente() {
   if(!_editandoClienteId) return;
   const nombre = document.getElementById('ec-nombre').value.trim();
@@ -1406,6 +1552,7 @@ async function guardarEdicionCliente() {
 
 let _editandoId = null;
 
+// Abre el modal de edición de un trabajo existente con sus datos cargados
 function abrirEditarTrabajo(id) {
   const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
@@ -1423,6 +1570,7 @@ function abrirEditarTrabajo(id) {
   document.getElementById('modal-editar').classList.add('show');
 }
 
+// Guarda los cambios del trabajo editado en Supabase
 async function guardarEdicionTrabajo() {
   const trabajos = getTrab();
   const t = trabajos.find(x=>String(x.id)===String(_editandoId));
@@ -1458,6 +1606,7 @@ const EMAILJS_SERVICE_ID  = 'service_5ubpuil';
 const EMAILJS_TEMPLATE_ID = 'template_7xsr0tg';
 const EMAILJS_PUBLIC_KEY  = 'up9JeR0IBI7TJyS33';
 
+// Genera y envía por email el informe del mes visible vía EmailJS
 function enviarInformePorEmail() {
   const trabajos = getTrab().filter(t=>ESTADOS_REALIZADOS.includes(t.estado));
   const rango = _getRangoMesRealizados();
@@ -1520,6 +1669,7 @@ function enviarInformePorEmail() {
 // ════════════════════════════════════════════════════════
 // NAVEGACIÓN ENTRE VISTAS — Cambia entre Nuevo / Listado / Semana
 // ════════════════════════════════════════════════════════
+// Cambia la vista activa (Nuevo / Listado / Mes / Hoy / Config)
 function showView(name) {
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
@@ -1539,21 +1689,25 @@ function showView(name) {
 let mesOffset = 0; // 0 = mes actual, -1 = anterior, +1 = siguiente
 let mesFiltroMaq = ''; // '' = todas
 
+// Navega al mes anterior o siguiente en la vista Mes
 function cambiarMes(dir) {
   mesOffset += dir;
   renderMes();
 }
 
+// Activa o desactiva el filtro de maquinaria en la vista Mes
 function setMesFiltroMaq(maq) {
   mesFiltroMaq = mesFiltroMaq === maq ? '' : maq; // toggle
   renderMes();
 }
 
+// Calcula la fecha del primer día del mes visible
 function getPrimerDiaMes() {
   const hoy = new Date();
   return new Date(hoy.getFullYear(), hoy.getMonth() + mesOffset, 1);
 }
 
+// Renderiza el grid mensual con píldoras de trabajos, días pasados en gris y barra de bolsa
 function renderMes() {
   const primer = getPrimerDiaMes();
   const anyo = primer.getFullYear();
@@ -1710,6 +1864,7 @@ function renderMes() {
 // ════════════════════════════════════════════════════════
 let _confirmResolve = null;
 
+// Muestra el modal de confirmación y devuelve una Promise que resuelve con true/false
 function showConfirm(msg, sub, peligro) {
   document.getElementById('confirm-msg').textContent = msg;
   document.getElementById('confirm-sub').textContent = sub || '';
@@ -1720,6 +1875,7 @@ function showConfirm(msg, sub, peligro) {
   return new Promise(resolve => { _confirmResolve = resolve; });
 }
 
+// Resuelve la Promise del modal de confirmación
 function confirmRespuesta(ok) {
   document.getElementById('modal-confirm').classList.remove('show');
   if (_confirmResolve) { _confirmResolve(ok); _confirmResolve = null; }
@@ -1728,6 +1884,7 @@ function confirmRespuesta(ok) {
 // ════════════════════════════════════════════════════════
 // TOAST — Mensaje emergente breve en la parte inferior
 // ════════════════════════════════════════════════════════
+// Muestra una notificación temporal en la parte inferior de la pantalla
 function showToast(msg, esError) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -1749,6 +1906,7 @@ function showToast(msg, esError) {
 // Importar: fusiona con los datos existentes sin duplicar (detecta por ID)
 // ════════════════════════════════════════════════════════
 
+// Exporta todos los datos (trabajos + config) como archivo JSON descargable
 function exportarJSON() {
   const trabajos = getTrab();
   if(trabajos.length === 0) { showToast('No hay trabajos para exportar'); return; }
@@ -1774,6 +1932,7 @@ function exportarJSON() {
   showToast('✓ Datos exportados');
 }
 
+// Importa datos desde un archivo JSON fusionando sin duplicar
 function importarJSON(input) {
   const file = input.files[0];
   if(!file) return;
@@ -1812,6 +1971,7 @@ function importarJSON(input) {
 // renderBolsa — Actualiza la bolsa de pendientes de programar
 // Usada por renderMes() y tras cualquier acción que cambie estados
 // ════════════════════════════════════════════════════════
+// Renderiza la bolsa de trabajos pendientes de programar bajo el calendario
 function renderBolsa() {
   const trabajos = getTrab();
   const pendientes = trabajos.filter(t => t.estado !== 'Realizado' && (!t.diasProgramados || t.diasProgramados.length === 0));
@@ -1854,6 +2014,7 @@ const DIAS_CORTO = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 const DIAS_LARGO = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 
 // Convierte un objeto Date a string 'YYYY-MM-DD' usando hora LOCAL (evita desfase UTC)
+// Convierte un objeto Date a string ISO YYYY-MM-DD en hora local
 function fechaISO(d) {
   const mm = String(d.getMonth()+1).padStart(2,'0');
   const dd = String(d.getDate()).padStart(2,'0');
@@ -1869,6 +2030,7 @@ let progDias = [];             // Días seleccionados (ISO strings)
 let progOperarios = [];        // Operarios seleccionados
 
 // Activa un trabajo para programar desde la bolsa
+// Activa el modo programación para un trabajo de la bolsa
 function activarProgramacion(id) {
   if (progTrabajoId === id) {
     // Segundo toque en el mismo trabajo → cancelar
@@ -1884,6 +2046,7 @@ function activarProgramacion(id) {
 }
 
 // Cancela la programación en curso
+// Cancela el modo programación sin guardar cambios
 function cancelarProgramacion() {
   progTrabajoId = null;
   progDias = [];
@@ -1895,6 +2058,7 @@ function cancelarProgramacion() {
 }
 
 // Marca o desmarca un día en la vista mes (solo en modo programación activa)
+// Selecciona o deselecciona un día del calendario en modo programación; bloquea días pasados
 function toggleDiaProg(iso) {
   if (!progTrabajoId) return;
   // Bloquear días pasados
@@ -1910,6 +2074,7 @@ function toggleDiaProg(iso) {
 }
 
 // Actualiza la barra de confirmación con el estado actual
+// Actualiza la barra fija inferior con los días seleccionados y operarios
 function actualizarBarraProgramar() {
   const barra = document.getElementById('barra-programar');
   const hint = document.getElementById('mes-prog-hint');
@@ -1953,6 +2118,7 @@ function actualizarBarraProgramar() {
 }
 
 // Confirma la programación desde la vista mes
+// Guarda la programación del trabajo (días + operarios) en Supabase
 async function confirmarProgramar() {
   if (progDias.length === 0) { showToast('Toca uno o más días en el calendario'); return; }
   if (progOperarios.length === 0) {
@@ -1977,6 +2143,7 @@ async function confirmarProgramar() {
 // MODAL DETALLE — Muestra los datos completos de un trabajo programado
 // Desde aquí se puede marcar como Realizado o quitar de la semana
 // ════════════════════════════════════════════════════════
+// Abre el modal de detalle de un trabajo con todos sus campos
 function abrirDetalle(id) {
   modalTrabajoId = id;
   const t = getTrab().find(x=>String(x.id)===String(id));
@@ -2026,6 +2193,7 @@ function abrirDetalle(id) {
 }
 
 // Abre el modal de horas reales desde el botón del modal detalle
+// Abre el modal para marcar como realizado el trabajo del modal de detalle
 function abrirModalRealizado() {
   if(!modalTrabajoId) return;
   abrirModalRealizadoPorId(modalTrabajoId);
@@ -2034,6 +2202,7 @@ function abrirModalRealizado() {
 // Maquinaria editable en el modal Realizado
 let _mrealMaquinas = []; // array de nombres editables
 
+// Renderiza la lista editable de máquinas con sus horas reales en el modal de realizado
 function renderMrealMaquinas() {
   const t = getTrab().find(x=>String(x.id)===String(modalTrabajoId));
   let html = '';
@@ -2059,11 +2228,13 @@ function renderMrealMaquinas() {
   document.getElementById('mreal-maquinas').innerHTML = html;
 }
 
+// Quita una máquina de la lista editable del modal de realizado
 function mrealQuitarMaq(idx) {
   _mrealMaquinas.splice(idx, 1);
   renderMrealMaquinas();
 }
 
+// Añade una máquina al modal de realizado desde el selector
 function mrealAddMaq() {
   const sel = document.getElementById('mreal-add-maq');
   if (!sel || !sel.value) return;
@@ -2072,6 +2243,7 @@ function mrealAddMaq() {
 }
 
 // Abre el modal de horas reales para un trabajo concreto
+// Abre el modal de realizado directamente por ID de trabajo
 function abrirModalRealizadoPorId(id) {
   const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
@@ -2086,6 +2258,7 @@ function abrirModalRealizadoPorId(id) {
 }
 
 // Confirma el trabajo como realizado guardando horas reales
+// Confirma el trabajo como realizado guardando horas reales, notas y materiales
 async function confirmarRealizado() {
   const trabajos = getTrab();
   const t = trabajos.find(x=>String(x.id)===String(modalTrabajoId));
@@ -2115,6 +2288,7 @@ async function confirmarRealizado() {
 }
 
 // Abre modal para añadir jornada parcial
+// Abre el modal para registrar una jornada parcial de trabajo
 function abrirModalJornada(id) {
   const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
@@ -2137,6 +2311,7 @@ function abrirModalJornada(id) {
 }
 
 // Guarda jornada parcial en el trabajo
+// Guarda la jornada parcial con horas por máquina y notas
 async function confirmarJornada() {
   const trabajos = getTrab();
   const t = trabajos.find(x=>String(x.id)===String(modalTrabajoId));
@@ -2158,11 +2333,13 @@ async function confirmarJornada() {
   showToast('✓ Jornada registrada');
 }
 
+// Acceso directo al modal de realizado desde el modal de detalle
 function realizarDesdeDetalle() {
   abrirModalRealizado();
 }
 
 // Quita el trabajo de la semana sin marcarlo como realizado (vuelve a la bolsa)
+// Quita el trabajo del calendario desde el modal de detalle
 async function desprogramarDesdeDetalle() {
   const trabajos = getTrab();
   const t = trabajos.find(x=>String(x.id)===String(modalTrabajoId));
@@ -2180,6 +2357,7 @@ async function desprogramarDesdeDetalle() {
 }
 
 // Cierra cualquier modal ocultando su overlay
+// Cierra un modal por su ID quitando la clase show
 function cerrarModal(id) {
   document.getElementById(id).classList.remove('show');
   // Solo resetear si no hay otro modal abierto (comprobar DESPUÉS de quitar show)
@@ -2194,6 +2372,7 @@ function cerrarModal(id) {
 // ════════════════════════════════════════════════════════
 
 // Limpia el rango de fechas del informe
+// Limpia el rango de fechas del panel de exportación en Realizados
 function limpiarRango() {
   document.getElementById('informe-desde').value = '';
   document.getElementById('informe-hasta').value = '';
@@ -2201,6 +2380,7 @@ function limpiarRango() {
 }
 
 // Convierte un array de trabajos a CSV y lo descarga
+// Genera y descarga un archivo CSV con los trabajos indicados
 function descargarCSV(trabajos, nombreArchivo) {
   const filas = [];
   // Cabecera
@@ -2234,6 +2414,7 @@ function descargarCSV(trabajos, nombreArchivo) {
 }
 
 // Exporta un trabajo individual como CSV
+// Descarga el CSV de un único trabajo realizado
 function exportarTrabajoCSV(id) {
   const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
@@ -2242,6 +2423,7 @@ function exportarTrabajoCSV(id) {
 }
 
 // Envía un trabajo individual por email
+// Envía por email los datos de un único trabajo realizado vía EmailJS
 function enviarTrabajoEmail(id) {
   const t = getTrab().find(x=>String(x.id)===String(id));
   if(!t) return;
@@ -2282,6 +2464,7 @@ function enviarTrabajoEmail(id) {
 }
 
 // Exporta el informe del rango de fechas actual como CSV
+// Descarga el CSV de todos los trabajos del rango de fechas seleccionado
 function exportarInformeCSV() {
   const trabajos = getTrab().filter(t=>ESTADOS_REALIZADOS.includes(t.estado));
   const desde = document.getElementById('informe-desde')?.value;
@@ -2305,6 +2488,7 @@ function exportarInformeCSV() {
 let opSeleccionado = OPERARIOS[0]; // Operario activo en la vista (por defecto el primero)
 
 // Construye la vista completa del operario: fecha, selector, trabajos de los próximos 7 días
+// Renderiza la vista Hoy con los trabajos de los próximos 7 días para el operario seleccionado
 function renderOperario() {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const hoyISO = fechaISO(hoy);
@@ -2420,6 +2604,7 @@ function renderOperario() {
 }
 
 // Marca un trabajo como Realizado desde la vista del operario
+// Abre el modal de realizado desde la vista Hoy
 function opMarcarRealizado(id) {
   modalTrabajoId = id;
   abrirModalRealizadoPorId(id);
@@ -2430,8 +2615,10 @@ function opMarcarRealizado(id) {
 // CLIENTES — Gestión de clientes habituales
 // ════════════════════════════════════════════════════════
 
+// Devuelve la lista de clientes en memoria
 function getClientes() { return _clientesCache || []; }
 
+// Guarda un cliente nuevo en Supabase
 async function _saveClienteSupabase(cliente) {
   const body = { nombre: cliente.nombre, telefono: cliente.telefono||'', observaciones: cliente.observaciones||'' };
   if (cliente.id) {
@@ -2449,6 +2636,7 @@ async function _saveClienteSupabase(cliente) {
 }
 
 // Añade un cliente desde la sección de configuración
+// Añade un cliente nuevo desde el formulario de Configuración
 async function cfgAddCliente() {
   const nombre = document.getElementById('inp-cliente-nombre').value.trim();
   if (!nombre) { showToast('Escribe el nombre del cliente'); return; }
@@ -2464,6 +2652,7 @@ async function cfgAddCliente() {
 }
 
 // Elimina un cliente de Supabase
+// Elimina un cliente con confirmación
 async function cfgEliminarCliente(id) {
   const c = getClientes().find(x => String(x.id) === String(id));
   if (!c) return;
@@ -2477,6 +2666,7 @@ async function cfgEliminarCliente(id) {
   showToast('✓ Eliminado');
 }
 
+// Renderiza la lista de clientes en Configuración
 // Renderiza la lista de clientes en Configuración
 function renderCfgClientes() {
   const wrap = document.getElementById('cfg-clientes');
@@ -2502,6 +2692,7 @@ function renderCfgClientes() {
 
 let _clienteDropdownOpen = false;
 
+// Abre o cierra el dropdown de selección de cliente en el paso 1
 function toggleClienteDropdown() {
   _clienteDropdownOpen = !_clienteDropdownOpen;
   const dd = document.getElementById('cs-dropdown');
@@ -2513,6 +2704,7 @@ function toggleClienteDropdown() {
   }
 }
 
+// Construye el contenido del dropdown con los clientes disponibles
 function buildClienteDropdown() {
   const dd = document.getElementById('cs-dropdown');
   const clientes = getClientes();
@@ -2524,6 +2716,7 @@ function buildClienteDropdown() {
   dd.innerHTML = html;
 }
 
+// Selecciona un cliente del dropdown y actualiza form.cliente
 function seleccionarCliente(id) {
   const c = getClientes().find(x => String(x.id) === String(id));
   if (!c) return;
@@ -2534,6 +2727,7 @@ function seleccionarCliente(id) {
   _clienteDropdownOpen = false;
 }
 
+// Muestra el formulario inline de creación de cliente nuevo
 function mostrarNuevoClienteInline() {
   document.getElementById('cs-dropdown').classList.remove('show');
   document.getElementById('cs-nuevo-wrap').classList.add('show');
@@ -2541,6 +2735,7 @@ function mostrarNuevoClienteInline() {
   document.getElementById('cs-nuevo-nombre').focus();
 }
 
+// Guarda el cliente nuevo en Supabase y lo selecciona en el formulario
 async function guardarClienteNuevo() {
   const nombre = document.getElementById('cs-nuevo-nombre').value.trim();
   if (!nombre) { showToast('Escribe el nombre del cliente'); return; }
@@ -2582,6 +2777,7 @@ checkAuth();
 // Guarda en localStorage y recarga CONFIG y OPERARIOS al instante.
 // ════════════════════════════════════════════════════════
 
+// Renderiza la pantalla de Configuración completa
 function renderConfig() {
   renderCfgClientes();
   renderCfgOperarios(getOperariosCfg(), 'cfg-operarios');
@@ -2597,6 +2793,7 @@ function renderConfig() {
 }
 
 // Renderiza operarios con toggle Dar de baja/Dar de alta
+// Renderiza la lista de operarios en Configuración con toggle activo/inactivo
 function renderCfgOperarios(ops, containerId) {
   const wrap = document.getElementById(containerId);
   wrap.innerHTML = '';
@@ -2615,6 +2812,7 @@ function renderCfgOperarios(ops, containerId) {
 }
 
 // Renderiza tipos o maquinaria con toggle Dar de baja/Dar de alta
+// Renderiza una lista de ítems (tipos o maquinaria) con sinónimos expandibles
 function renderCfgToggleList(key, items, containerId) {
   const wrap = document.getElementById(containerId);
   wrap.innerHTML = '';
@@ -2633,6 +2831,7 @@ function renderCfgToggleList(key, items, containerId) {
 }
 
 // Renderiza el acordeón de sinónimos
+// Renderiza los sinónimos de voz de un ítem expandido
 function renderCfgSinonimos(c) {
   const wrap = document.getElementById('cfg-sinonimos');
   wrap.innerHTML = '';
@@ -2663,8 +2862,10 @@ function renderCfgSinonimos(c) {
 }
 
 // Escapa comillas simples para uso en atributos HTML onclick
+// Escapa caracteres especiales HTML para insertar en templates de forma segura
 function esc(s) { return s.replace(/'/g,"\\'"); }
 
+// Abre o cierra el panel de sinónimos de un ítem en Configuración
 function toggleSinItem(header) {
   const body = header.nextElementSibling;
   const arrow = header.querySelector('.cfg-sin-arrow');
@@ -2674,6 +2875,7 @@ function toggleSinItem(header) {
 
 // Añade un ítem a operarios, tipos o maquinaria
 // Añade un ítem a operarios, tipos o maquinaria
+// Añade un ítem nuevo (tipo, maquinaria u operario) a la configuración
 async function cfgAdd(key) {
   const inputId = key==='operarios'?'inp-operario':key==='tipos'?'inp-tipo':'inp-maquinaria';
   const inp = document.getElementById(inputId);
@@ -2706,6 +2908,7 @@ async function cfgAdd(key) {
 }
 
 // Archiva o reactiva un tipo de trabajo o maquinaria
+// Activa o desactiva un ítem de configuración (tipo o maquinaria)
 async function cfgToggleItem(key, idx) {
   const tablaMap = {tipos: 'tipos_trabajo', maquinaria: 'maquinaria'};
   const c = getCfg();
@@ -2724,6 +2927,7 @@ async function cfgToggleItem(key, idx) {
 }
 
 // Archiva o reactiva un operario (nunca se borra — sus trabajos quedan intactos)
+// Activa o desactiva un operario
 async function cfgToggleOperario(idx) {
   const arr = getOperariosCfg();
   const op = arr[idx];
@@ -2741,9 +2945,11 @@ async function cfgToggleOperario(idx) {
 }
 
 // cfgDel ya no se usa — se mantiene por compatibilidad
+// Solicita confirmación para eliminar un ítem de configuración
 function cfgDel(key, idx) { }
 
 // Añade un sinónimo a un ítem
+// Añade un sinónimo de voz a un ítem
 async function cfgAddSin(item) {
   const inp = document.getElementById('sin-inp-'+item);
   const val = inp.value.trim().toLowerCase();
@@ -2775,6 +2981,7 @@ async function cfgAddSin(item) {
 }
 
 // Elimina un sinónimo
+// Elimina un sinónimo de voz de un ítem
 async function cfgDelSin(item, sin) {
   const c = getCfg();
   if (!c.sinonimos[item]) return;
@@ -2799,6 +3006,7 @@ async function cfgDelSin(item, sin) {
 }
 
 // Restaura las listas por defecto borrando Supabase e insertando defaults (no borra trabajos)
+// Restaura las listas de tipos y maquinaria a los valores por defecto
 async function cfgReset() {
   if (!await showConfirm('¿Restaurar configuración por defecto?', 'Se restablecen tipos, maquinaria y operarios. Los trabajos no se borran.', true)) return;
   try {
@@ -2823,6 +3031,7 @@ async function cfgReset() {
   showToast('✓ Configuración restaurada');
 }
 // Elimina definitivamente un operario de Supabase
+// Elimina un operario definitivamente con confirmación
 async function cfgEliminarOperario(idx) {
   const arr = getOperariosCfg();
   const op = arr[idx];
@@ -2845,6 +3054,7 @@ async function cfgEliminarOperario(idx) {
 }
 
 // Elimina definitivamente un tipo o maquinaria de Supabase
+// Elimina un ítem de configuración definitivamente con confirmación
 async function cfgEliminarItem(key, idx) {
   const tablaMap = {tipos: 'tipos_trabajo', maquinaria: 'maquinaria'};
   const c = getCfg();

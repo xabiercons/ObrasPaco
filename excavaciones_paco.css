@@ -1,3 +1,31 @@
+/*
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║           EXCAVACIONES PACO — Gestión de Obras              ║
+ * ║                   archivo: CSS                              ║
+ * ╠══════════════════════════════════════════════════════════════╣
+ * ║  Versión: 7.6                                               ║
+ * ║                                                             ║
+ * ║  ÍNDICE DE SECCIONES                                        ║
+ * ║  1. Variables CSS (:root) — sistema de colores y radios     ║
+ * ║  2. Reset y base — body, inputs, tipografía                 ║
+ * ║  3. Login — pantalla de acceso                              ║
+ * ║  4. Header y Nav — cabecera y navegación principal          ║
+ * ║  5. Progress bar — barra de progreso formulario nuevo       ║
+ * ║  6. Formulario nuevo trabajo — 7 pasos                      ║
+ * ║  7. Listado — tarjetas, filtros, stats, tabs                ║
+ * ║  8. Modales — detalle, editar, realizado, confirmar         ║
+ * ║  9. Vista Mes — calendario, píldoras, programación          ║
+ * ║  10. Vista Hoy — operario, tarjetas del día                 ║
+ * ║  11. Configuración — clientes, operarios, listas            ║
+ * ║  12. Utilidades — toast, spinner, empty state               ║
+ * ║                                                             ║
+ * ║  SISTEMA DE COLORES                                         ║
+ * ║  Todas las variables están en :root al inicio del archivo.  ║
+ * ║  Para cambiar el tema, solo hay que modificar :root.        ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ */
+
+/* Sistema de variables CSS — colores, radios. Para cambiar el tema solo modificar aquí */
 :root {
     /* Backgrounds */
     --bg:             #F5F4F0;
@@ -48,16 +76,19 @@
     --radius-sm:      8px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  /* Base — tipografía, scroll y fondo de página */
+body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
   /* HEADER */
-  .header { background: var(--accent); color: #1C1C1C; padding: 16px 20px 14px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
+  /* ── HEADER Y NAVEGACIÓN ───────────────────────────── */
+.header { background: var(--accent); color: #1C1C1C; padding: 16px 20px 14px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; }
   .header-icon { font-size: 22px; }
   .header h1 { font-size: 17px; font-weight: normal; letter-spacing: 0.02em; flex: 1; }
   .header-sub { font-size: 11px; opacity: 0.7; font-family: 'Courier New', monospace; }
 
   /* NAV TABS */
-  .nav { display: flex; background: var(--card); border-bottom: 1px solid var(--border); }
+  /* Barra de navegación principal (Nuevo / Listado / Mes / Hoy / Config) */
+.nav { display: flex; background: var(--card); border-bottom: 1px solid var(--border); }
   .nav-tab { flex: 1; padding: 12px 4px; text-align: center; font-size: 17px; color: var(--text2); cursor: pointer; border: none; background: none; font-family: 'Courier New', monospace; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 2px solid transparent; transition: all 0.2s; font-weight: bold; }
   .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; } .nav { background: var(--card); }
 
@@ -66,7 +97,8 @@
   .view.active { display: block; }
 
   /* PROGRESS BAR */
-  .progress-wrap { margin-bottom: 20px; }
+  /* ── BARRA DE PROGRESO (formulario nuevo trabajo) ──── */
+.progress-wrap { margin-bottom: 20px; }
   .progress-steps { display: flex; gap: 4px; margin-bottom: 6px; }
   .progress-step { flex: 1; height: 4px; background: var(--border); border-radius: 2px; transition: background 0.3s; }
   .progress-step.done { background: var(--accent); }
@@ -74,17 +106,20 @@
   .progress-label { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
 
   /* STEP CARD */
-  .step-card { background: var(--card); border-radius: var(--radius); border: 1px solid rgba(255,209,0,0.18); padding: 20px; margin-bottom: 12px; }
+  /* ── FORMULARIO NUEVO TRABAJO — 7 pasos ────────────── */
+.step-card { background: var(--card); border-radius: var(--radius); border: 1px solid rgba(255,209,0,0.18); padding: 20px; margin-bottom: 12px; }
   .step-number { font-size: 10px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
   .step-title { font-size: 20px; color: var(--text); margin-bottom: 4px; font-weight: normal; }
   .step-hint { font-size: 13px; color: var(--text2); margin-bottom: 18px; }
 
   /* VOICE BUTTON */
-  .voice-btn { width: 100%; padding: 16px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: Georgia, serif; margin-bottom: 10px; transition: opacity 0.2s; }
+  /* Botón de micrófono — inicia el reconocimiento de voz */
+.voice-btn { width: 100%; padding: 16px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-family: Georgia, serif; margin-bottom: 10px; transition: opacity 0.2s; }
   .voice-btn:active { opacity: 0.85; transform: scale(0.99); }
   .voice-btn.listening { background: var(--danger); animation: pulse 1.2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.8} }
-  .voice-result { background: var(--chip-bg); border: 1px solid #FFD100; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: var(--text-inv); margin-bottom: 10px; min-height: 40px; display: none; }
+  /* Área de resultado de voz — muestra el texto dictado y feedback */
+.voice-result { background: var(--chip-bg); border: 1px solid #FFD100; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; color: var(--text-inv); margin-bottom: 10px; min-height: 40px; display: none; }
   .voice-result.show { display: block; }
   .voice-result .vr-interim { color: var(--text3); font-style: italic; font-size: 12px; }
   .voice-result .vr-final { color: var(--text-inv); font-weight: 600; }
@@ -93,7 +128,8 @@
   .divider { text-align: center; font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; margin: 8px 0; letter-spacing: 0.1em; }
 
   /* INPUTS */
-  input[type=text], input[type=number], textarea, select {
+  /* Inputs globales — todos los campos de texto, número, select y textarea */
+input[type=text], input[type=number], textarea, select {
     width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
     font-size: 15px; background: var(--card); font-family: Georgia, serif; color: var(--text);
     outline: none; transition: border-color 0.2s;
@@ -127,7 +163,8 @@
   .step-val { flex: 1; text-align: center; font-size: 24px; border: 1px solid var(--border); border-left: none; border-right: none; padding: 10px; background: var(--card); color: var(--text); }
 
   /* URGENCY */
-  .urgency-opts { display: flex; gap: 8px; margin-bottom: 12px; }
+  /* Selector de urgencia: Normal / Alta / Urgente */
+.urgency-opts { display: flex; gap: 8px; margin-bottom: 12px; }
   .urg-opt { flex: 1; padding: 12px 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); text-align: center; font-size: 13px; cursor: pointer; background: var(--card); color: var(--text2); transition: all 0.15s; }
   .urg-opt.sel-normal { background: var(--chip-bg); color: var(--text2); border-color: var(--text2); font-weight: 500; }
   .urg-opt.sel-alta { background: var(--accent-bg); color: var(--warning-dark); border-color: var(--warning); border-width: 2px; font-weight: 500; }
@@ -141,7 +178,8 @@
   .btn-next:disabled { opacity: 0.4; cursor: not-allowed; }
 
   /* RESUMEN */
-  .resumen-field { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+  /* Campos editables del resumen (paso 7) */
+.resumen-field { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); gap: 12px; }
   .resumen-field:last-child { border-bottom: none; }
   .resumen-key { font-size: 12px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.05em; min-width: 90px; padding-top: 2px; }
   .resumen-val { font-size: 15px; color: var(--text); text-align: right; }
@@ -157,14 +195,16 @@
   .ltab.active { background: var(--accent); color: #1C1C1C; border-color: var(--accent); }
   .maq-group-header { font-size: 11px; color: var(--text2); font-weight: 600; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; padding: 12px 0 6px; display: flex; align-items: center; gap: 8px; }
   .maq-pill { display: inline-block; font-size: 11px; padding: 2px 10px; border-radius: 20px; font-weight: 600; background: var(--card); color: var(--text); border: 1.5px solid var(--text); }
-  .trabajo-card { background: var(--card); border: 1px solid var(--border); border-left: 3px solid #FFD100; border-radius: var(--radius); padding: 14px; margin-bottom: 8px; }
+  /* ── LISTADO DE TRABAJOS ────────────────────────────── */
+.trabajo-card { background: var(--card); border: 1px solid var(--border); border-left: 3px solid #FFD100; border-radius: var(--radius); padding: 14px; margin-bottom: 8px; }
   .tc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
   .tc-titulo { font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
   .tc-dir { font-size: 12px; color: var(--text2); margin-top: 2px; }
   .tc-notas { font-size: 12px; color: var(--text3); margin-top: 6px; padding: 6px 8px; background: var(--card); border-radius: 6px; border-left: 2px solid var(--border); font-style: italic; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer; }
   .tc-notas.expandido { display: block; -webkit-line-clamp: unset; }
   .tc-notas-label { font-size: 10px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 6px; }
-  .status-pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; white-space: nowrap; font-family: 'Courier New', monospace; }
+  /* Pills de estado (Pendiente presupuestar, Programado, Realizado...) */
+.status-pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; white-space: nowrap; font-family: 'Courier New', monospace; }
   .sp-borrador { background: var(--border); color: var(--text3); }
   .sp-presupuestar { background: var(--warning-bg); color: var(--warning-dark); border: 1px solid var(--accent-border); }
   .sp-presupuestado { background: var(--info-bg); color: var(--info); border: 1px solid var(--info-border); }
@@ -181,13 +221,15 @@
 
   /* STATS */
   .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
-  .stat-box { background: var(--chip-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; }
+  /* Cajas de estadísticas: Total, Activos, H. Previstas, Hechos */
+.stat-box { background: var(--chip-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; }
   .stat-n { font-size: 22px; color: var(--text); }
   .stat-l { font-size: 10px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
 
 
   /* BACKUP PANEL */
-  .backup-panel { background: var(--card); border: 1px solid rgba(0,0,0,0.1); border-left: 3px solid #FFA500; border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+  /* ── BACKUP — EXPORTAR / IMPORTAR ──────────────────── */
+.backup-panel { background: var(--card); border: 1px solid rgba(0,0,0,0.1); border-left: 3px solid #FFA500; border-radius: 14px; padding: 16px; margin-bottom: 16px; }
   .backup-title { font-size: 11px; color: #FFA500; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
   .backup-row { display: flex; gap: 8px; }
   .btn-export { flex: 1; padding: 13px 8px; background: var(--chip-bg); color: var(--text2); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; cursor: pointer; font-family: Georgia, serif; text-align: center; }
@@ -197,7 +239,8 @@
   .backup-info { font-size: 11px; color: #7A6600; margin-top: 8px; text-align: center; font-family: 'Courier New', monospace; }
   #import-file { display: none; }
   /* TOAST */
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #1C1C1C; padding: 12px 24px; border-radius: 24px; font-size: 14px; font-family: Georgia, serif; z-index: 999; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  /* ── NOTIFICACIONES TOAST ───────────────────────────── */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #1C1C1C; padding: 12px 24px; border-radius: 24px; font-size: 14px; font-family: Georgia, serif; z-index: 999; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
   .toast.show { opacity: 1; }
 
   /* MAQ COLORS */
@@ -245,8 +288,10 @@
   /* ── VISTA MENSUAL ── */
   .mes-grid-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
   .mes-grid-header-dia { text-align: center; font-size: 9px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 0; }
-  .mes-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 16px; }
-  .mes-dia { background: var(--card); border: 1px solid var(--border); border-radius: 4px; min-height: 60px; padding: 4px 3px; position: relative; cursor: pointer; }
+  /* ── VISTA MES — CALENDARIO ─────────────────────────── */
+.mes-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 16px; }
+  /* Celda de día en el calendario */
+.mes-dia { background: var(--card); border: 1px solid var(--border); border-radius: 4px; min-height: 60px; padding: 4px 3px; position: relative; cursor: pointer; }
   .mes-dia.otro-mes { opacity: 0.3; cursor: default; }
   .mes-dia.hoy-mes { border-color: var(--accent); border-width: 2px; }
   .mes-dia.dia-pasado { background: var(--cal-past) !important; }
@@ -256,7 +301,8 @@
   .mes-dia-pills { display: flex; flex-direction: column; gap: 2px; }
   .mes-pill-urgente { background: var(--danger-bg) !important; color: var(--urgent) !important; border-left: 2px solid var(--urgent) !important; }
   .mes-pill-alta { background: var(--warning-bg) !important; color: var(--warning-dark) !important; border-left: 2px solid var(--warning) !important; }
-  .mes-pill-mini { font-size: 8px; padding: 2px 4px; border-radius: 3px; background: #DBEAFE; color: var(--text); border-left: 2px solid #3B82F6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Píldora de trabajo dentro de una celda del calendario */
+.mes-pill-mini { font-size: 8px; padding: 2px 4px; border-radius: 3px; background: #DBEAFE; color: var(--text); border-left: 2px solid #3B82F6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mes-pill-mini.urgente { background: #3A0000; color: #FF6666; }
   .mes-pill-mini.alta { background: #2A1800; color: #FFA500; }
   .mes-mas-mini { font-size: 8px; color: var(--text3); text-align: center; font-family: 'Courier New', monospace; margin-top: 1px; }
@@ -269,7 +315,8 @@
 
   /* ── CLIENTES ── */
   .cliente-selector-wrap { margin-bottom: 10px; }
-  .cliente-selector-btn { width: 100%; padding: 13px 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; color: var(--text); cursor: pointer; text-align: left; font-family: Georgia, serif; display: flex; align-items: center; justify-content: space-between; }
+  /* ── SELECTOR DE CLIENTE (paso 1 del formulario) ────── */
+.cliente-selector-btn { width: 100%; padding: 13px 14px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; color: var(--text); cursor: pointer; text-align: left; font-family: Georgia, serif; display: flex; align-items: center; justify-content: space-between; }
   .cliente-selector-btn:focus { border-color: var(--accent); outline: none; }
   .cliente-selector-btn .cs-arrow { color: var(--accent); font-size: 12px; }
   .cliente-dropdown { display: none; background: var(--chip-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); max-height: 220px; overflow-y: auto; margin-top: 4px; }
@@ -301,9 +348,11 @@
   .modal-confirm-ok.peligro { background: #FF4444; color: var(--text-inv); }
 
   /* Modal programar */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+  /* ── MODALES ────────────────────────────────────────── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
   .modal-overlay.show { display: flex; }
-  .modal-sheet { background: var(--card); border-radius: 18px 18px 0 0; width: 100%; max-width: 480px; padding: 20px 20px 32px; border-top: 2px solid var(--accent); max-height: 85vh; overflow-y: auto; }
+  /* Modal tipo sheet (sube desde abajo en móvil) */
+.modal-sheet { background: var(--card); border-radius: 18px 18px 0 0; width: 100%; max-width: 480px; padding: 20px 20px 32px; border-top: 2px solid var(--accent); max-height: 85vh; overflow-y: auto; }
   .modal-title { font-size: 16px; color: var(--text); margin-bottom: 4px; }
   .modal-sub { font-size: 12px; color: var(--text2); margin-bottom: 18px; }
   .modal-label { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; margin-top: 14px; }
@@ -321,7 +370,8 @@
 
 
   /* Detail modal */
-  .detail-field { padding: 9px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  /* Filas del modal de detalle de trabajo */
+.detail-field { padding: 9px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
   .detail-field:last-child { border-bottom: none; }
   .detail-key { font-size: 11px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.05em; min-width: 80px; padding-top: 2px; }
   .detail-val { font-size: 14px; color: var(--text); text-align: right; }
@@ -338,16 +388,19 @@
   .op-sel-btn.activo { background: var(--accent); color: #1C1C1C; border-color: var(--accent); font-weight: bold; }
   .op-maq-grupo { margin-bottom: 20px; }
   .op-maq-label { font-size: 10px; color: var(--text3); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
-  .op-trabajo-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; }
+  /* ── VISTA HOY — TARJETAS DE OPERARIO ──────────────── */
+.op-trabajo-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; }
   .op-trabajo-card.urgente { border-color: var(--urgent); border-width: 2px; background: var(--danger-bg); }
   .op-trabajo-card.alta { border-color: var(--warning); border-width: 2px; background: var(--accent-bg); }
   .op-cliente { font-size: 15px; color: var(--text); margin-bottom: 4px; }
   .op-dir { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
   .op-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-  .op-chip-item { font-size: 11px; padding: 3px 9px; border-radius: 12px; border: 1.5px solid #999; color: var(--text2); font-family: 'Courier New', monospace; }
+  /* Chips de tipo/maquinaria/horas en tarjetas de operario */
+.op-chip-item { font-size: 11px; padding: 3px 9px; border-radius: 12px; border: 1.5px solid #999; color: var(--text2); font-family: 'Courier New', monospace; }
   .op-horas { font-size: 12px; color: var(--text3); margin-bottom: 12px; }
   .op-notas { font-size: 12px; color: var(--text3); background: var(--card); border-radius: 6px; padding: 8px 10px; border-left: 2px solid var(--border); font-style: italic; margin-bottom: 12px; }
-  .btn-op-realizado { width: 100%; padding: 16px; background: var(--accent); color: var(--accent-dark); border: 2px solid var(--accent); border-radius: var(--radius-sm); font-size: 16px; cursor: pointer; font-family: Georgia, serif; letter-spacing: 0.02em; }
+  /* Botón principal de marcar como realizado en vista Hoy */
+.btn-op-realizado { width: 100%; padding: 16px; background: var(--accent); color: var(--accent-dark); border: 2px solid var(--accent); border-radius: var(--radius-sm); font-size: 16px; cursor: pointer; font-family: Georgia, serif; letter-spacing: 0.02em; }
   .btn-op-realizado:active { opacity: 0.85; }
   .op-dia-header { font-size: 12px; color: var(--text2); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; margin: 16px 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
   .op-dia-header.op-dia-hoy { color: var(--accent); border-bottom-color: var(--accent); }
@@ -359,10 +412,12 @@
 .cfg-wrap { padding: 16px; max-width: 600px; margin: 0 auto; }
 .cfg-title { font-size: 18px; font-weight: bold; color: var(--accent); margin-bottom: 4px; }
 .cfg-info { font-size: 12px; color: var(--text3); margin-bottom: 16px; }
+/* ── CONFIGURACIÓN ──────────────────────────────────── */
 .cfg-section { background: var(--card-alt); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
 .cfg-danger-section { border-color: #553333; }
 .cfg-section-title { font-size: 13px; font-weight: bold; color: var(--text2); margin-bottom: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
 .cfg-items { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; min-height: 10px; }
+/* Ítem de lista en configuración (tipo, maquinaria, operario) */
 .cfg-chip { display: flex; align-items: center; background: var(--chip-bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--text2); margin-bottom: 4px; width: 100%; justify-content: space-between; }
 .cfg-chip-del { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; line-height: 1; padding: 0; }
 .cfg-chip-del:hover { color: #ff6b6b; }
@@ -399,6 +454,7 @@
 .cfg-btn-del:hover { border-color: #c06060; color: #ff8080; }
 
 /* ═══ LOGIN ═══ */
+/* ── PANTALLA DE LOGIN ─────────────────────────────── */
 .login-overlay {
   position: fixed; inset: 0; background: var(--bg);
   z-index: 9999; display: flex; align-items: center; justify-content: center;
