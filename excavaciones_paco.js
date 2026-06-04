@@ -964,13 +964,39 @@ function edRenderFechas() {
 }
 
 // Añade la fecha seleccionada en el picker al array de fechas
-function edFechaAdd() {
+// Valida: no pasadas, no duplicadas, avisa si el día ya tiene 2+ trabajos
+async function edFechaAdd() {
   const picker = document.getElementById('ed-fecha-picker');
   const val = picker.value;
   if(!val) { showToast('Selecciona una fecha'); return; }
   const hoy = fechaISO(new Date());
   if(val < hoy) { showToast('No se pueden asignar fechas pasadas'); return; }
   if(_edFechas.includes(val)) { showToast('Esa fecha ya está añadida'); return; }
+
+  // Comprobar cuántos trabajos hay ese día (excluyendo el que se está editando)
+  const trabajosDia = getTrab().filter(t =>
+    String(t.id) !== String(_editandoId) &&
+    (t.diasProgramados||[]).includes(val) &&
+    t.estado === 'Programado'
+  );
+
+  if(trabajosDia.length >= 2) {
+    const d = new Date(val + 'T12:00');
+    const label = d.toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'long'});
+    const ir = await showConfirm(
+      `⚠ El ${label} ya tiene ${trabajosDia.length} trabajos programados`,
+      '¿Añadir igualmente o ir al calendario para reorganizar?',
+      false
+    );
+    if(!ir) {
+      // Ir al calendario — cerrar modal y abrir vista Mes
+      cerrarModal('modal-editar');
+      showView('mes');
+      return;
+    }
+    // Si confirma, añade igualmente
+  }
+
   _edFechas.push(val);
   picker.value = '';
   edRenderFechas();
@@ -2138,7 +2164,8 @@ function actualizarBarraProgramar() {
 
   // Nombre del trabajo
   const nombre = (t.obra || t.cliente || 'Sin cliente') + (t.obra ? ' · ' + t.cliente : '');
-  document.getElementById('bprog-nombre').textContent = nombre;
+  const bprogNombre = document.getElementById('bprog-nombre');
+  if(bprogNombre) bprogNombre.textContent = nombre;
 
   // Días seleccionados
   const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -2148,10 +2175,12 @@ function actualizarBarraProgramar() {
         const d = new Date(iso + 'T12:00');
         return DIAS_CORTO[d.getDay() === 0 ? 6 : d.getDay() - 1] + ' ' + d.getDate() + ' ' + meses[d.getMonth()];
       }).join(' · ');
-  document.getElementById('bprog-dias').textContent = '📅 ' + diasTexto;
+  const bprogDias = document.getElementById('bprog-dias');
+  if(bprogDias) bprogDias.textContent = '📅 ' + diasTexto;
 
   // Chips de operarios
   const opWrap = document.getElementById('bprog-operarios');
+  if(!opWrap) return;
   opWrap.innerHTML = '';
   OPERARIOS.forEach(op => {
     const chip = document.createElement('div');
