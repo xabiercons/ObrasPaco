@@ -942,6 +942,46 @@ function aceptarMapa() {
 // field: qué campo rellena ('cliente', 'tipo', 'maquinaria', 'notas'...)
 // btnId: ID del botón que cambia de texto al activarse
 // resId: ID del div donde se muestra la transcripción
+// Array temporal de fechas mientras se edita un trabajo
+let _edFechas = [];
+
+// Renderiza los chips de fechas en el modal de edición
+function edRenderFechas() {
+  const wrap = document.getElementById('ed-fechas-chips');
+  if(!wrap) return;
+  if(_edFechas.length === 0) {
+    wrap.innerHTML = '<span style="font-size:12px;color:var(--text3);font-style:italic">Sin fechas asignadas</span>';
+    return;
+  }
+  wrap.innerHTML = _edFechas.sort().map(f => {
+    const d = new Date(f + 'T12:00');
+    const label = d.toLocaleDateString('es-ES', {weekday:'short', day:'numeric', month:'short'});
+    return `<span style="display:inline-flex;align-items:center;gap:5px;background:var(--info-bg);color:var(--info);border:1px solid var(--info-border);border-radius:20px;padding:4px 10px;font-size:12px">
+      ${label}
+      <button onclick="edFechaRemove('${f}')" style="background:none;border:none;color:var(--info);cursor:pointer;font-size:14px;padding:0;line-height:1">×</button>
+    </span>`;
+  }).join('');
+}
+
+// Añade la fecha seleccionada en el picker al array de fechas
+function edFechaAdd() {
+  const picker = document.getElementById('ed-fecha-picker');
+  const val = picker.value;
+  if(!val) { showToast('Selecciona una fecha'); return; }
+  const hoy = fechaISO(new Date());
+  if(val < hoy) { showToast('No se pueden asignar fechas pasadas'); return; }
+  if(_edFechas.includes(val)) { showToast('Esa fecha ya está añadida'); return; }
+  _edFechas.push(val);
+  picker.value = '';
+  edRenderFechas();
+}
+
+// Elimina una fecha del array de fechas
+function edFechaRemove(fecha) {
+  _edFechas = _edFechas.filter(f => f !== fecha);
+  edRenderFechas();
+}
+
 // Genera un enlace a Google Maps para una dirección o coordenadas
 // Genera la URL de Google Maps para un trabajo (por GPS o por dirección)
 function mapsLink(t) {
@@ -1567,6 +1607,10 @@ function abrirEditarTrabajo(id) {
   document.getElementById('ed-urgencia').value = t.urgencia||'Normal';
   document.getElementById('ed-estado').value = t.estado||'Pendiente presupuestar';
   document.getElementById('ed-notas').value = t.notas||'';
+  // Renderizar chips de fechas
+  _edFechas = [...(t.diasProgramados||[])].sort();
+  edRenderFechas();
+  document.getElementById('ed-fecha-picker').value = '';
   document.getElementById('modal-editar').classList.add('show');
 }
 
@@ -1589,6 +1633,12 @@ async function guardarEdicionTrabajo() {
   t.urgencia = document.getElementById('ed-urgencia').value;
   t.estado = document.getElementById('ed-estado').value;
   t.notas = document.getElementById('ed-notas').value.trim();
+  // Fechas: usar el array _edFechas gestionado por los chips
+  t.diasProgramados = [..._edFechas].sort();
+  // Si hay fechas y estado es Aceptado → pasa a Programado
+  if(_edFechas.length > 0 && t.estado === 'Aceptado') t.estado = 'Programado';
+  // Si no hay fechas y estado era Programado → vuelve a Aceptado (bolsa)
+  if(_edFechas.length === 0 && t.estado === 'Programado') t.estado = 'Aceptado';
   showToast('Guardando...');
   await updateTrab(t);
   cerrarModal('modal-editar');

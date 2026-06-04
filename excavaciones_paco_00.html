@@ -102,151 +102,14 @@
 <!-- ═══════════════════════════════════════
      VISTA: MES
 ════════════════════════════════════════ -->
-<div class="view" <!-- ═══════════════════════════════
+<!-- ═══════════════════════════════
      VISTA: MES (Calendario)
      Grid mensual con píldoras de trabajos
      Incluye bolsa de pendientes y barra de programación
-════════════════════════════════════ -->>
-
-  <!-- Navegación mes -->
-  <div class="semana-titulo-bar">
-    <button class="nav-flecha" onclick="cambiarMes(-1)">&#8592;</button>
-    <span id="mes-titulo" class="semana-titulo-txt">Mes actual</span>
-    <button class="nav-flecha" onclick="cambiarMes(1)">&#8594;</button>
-  </div>
-
-  <!-- Filtro maquinaria -->
-  <div id="mes-filtro-maq" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
-
-  <!-- Cabecera días semana -->
-  <div class="mes-grid-header" id="mes-grid-header"></div>
-
-  <!-- Grid mensual -->
-  <div class="mes-grid" id="mes-grid"></div>
-
-  <!-- Instrucción modo programación -->
-  <div id="mes-prog-hint" style="display:none;padding:8px 12px;background: var(--chip-bg);border:1px solid rgba(255,209,0,0.4);border-radius:8px;font-size:12px;color:#C9A800;font-family:'Courier New',monospace;margin-bottom:8px;text-align:center">
-    Toca uno o más días en el calendario
-  </div>
-
-  <!-- Bolsa de pendientes -->
-  <div class="bolsa-header">
-    <span>Pendientes de programar</span>
-    <span class="bolsa-count" id="bolsa-count">0</span>
-  </div>
-  <div id="bolsa-trabajos"></div>
-
-  <!-- Barra de confirmación — aparece al seleccionar trabajo + días -->
-  <div id="barra-programar" style="display:none;position:sticky;bottom:0;background:var(--card);border-top:2px solid #FFD100;padding:12px 16px 20px;margin:0 -16px;">
-    <div style="font-size:10px;color:#FFD100;font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Programando</div>
-    <div style="font-size:14px;color:var(--card);margin-bottom:4px" id="bprog-nombre"></div>
-    <div style="font-size:11px;color:#C9A800;font-family:'Courier New',monospace;margin-bottom:10px" id="bprog-dias">Sin días seleccionados</div>
-    <div style="font-size:10px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Operarios <span style="color:var(--text2)">(opcional)</span></div>
-    <div id="bprog-operarios" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
-    <div style="display:flex;gap:8px;">
-      <button onclick="cancelarProgramacion()" style="flex:1;padding:12px;border:1px solid var(--text2);border-radius:8px;background:none;color:var(--text3);font-size:13px;cursor:pointer;font-family:Georgia,serif">Cancelar</button>
-      <button onclick="confirmarProgramar()" style="flex:2;padding:12px;background:#FFD100;color:#1C1C1C;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;font-family:Georgia,serif">✓ Programar</button>
-    </div>
-  </div>
-
-</div>
-
-<!-- ═══════════════════════════════════════
-     VISTA: OPERARIO (Módulo 4)
-     Vista simplificada para el operario.
-     Muestra solo los trabajos de hoy.
-     Un único botón: Marcar realizado.
-════════════════════════════════════════ -->
-<div class="view" <!-- ═══════════════════════════════
-     VISTA: HOY
-     Trabajos de los próximos 7 días por operario
-════════════════════════════════════ -->>
-
-  <!-- Fecha de hoy -->
-  <div class="op-fecha-header">
-    Trabajos de hoy
-    <span id="op-fecha-txt"></span>
-  </div>
-
-  <!-- Selector de operario — para ver los trabajos de cada uno -->
-  <div class="op-selector" id="op-selector"></div>
-
-  <!-- Lista de trabajos del día para el operario seleccionado -->
-  <div id="op-contenido"></div>
-
-</div>
+════════════════════════════════════ -->
 
 
-<!-- Modal: detalle trabajo programado -->
-<div class="modal-overlay" id="modal-detalle">
-  <div class="modal-sheet">
-    <div class="modal-title" id="mdet-titulo">Detalle</div>
-    <div id="mdet-campos"></div>
-    <button class="btn-realizado-modal" onclick="abrirModalRealizado()">✓ Marcar como Realizado</button>
-    <button class="btn-desprogramar" onclick="desprogramarDesdeDetalle()">↩ Quitar de la semana</button>
-    <div class="modal-actions" style="margin-top:12px">
-      <button class="modal-cancel" style="flex:1" onclick="cerrarModal('modal-detalle')">Cerrar</button>
-      <button class="modal-confirm" style="flex:1;background:transparent;color:var(--text);border:1.5px solid var(--text);padding:13px;border-radius:var(--radius-sm);font-size:14px;cursor:pointer;font-family:Georgia,serif" onclick="cerrarModal('modal-detalle');abrirEditarTrabajo(modalTrabajoId)">✏ Editar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: confirmar realizado + horas reales -->
-<div class="modal-overlay" id="modal-realizado">
-  <div class="modal-sheet">
-    <div class="modal-title">✓ Trabajo Realizado</div>
-    <div class="modal-sub" id="mreal-nombre"></div>
-
-    <div class="modal-label">Horas reales por máquina</div>
-    <div id="mreal-maquinas"></div>
-
-    <div class="modal-label" style="margin-top:16px">Notas de cierre (opcional)</div>
-    <textarea id="mreal-notas" placeholder="Incidencias, observaciones..." style="min-height:60px"></textarea>
-
-    <div class="modal-label" style="margin-top:16px">Materiales utilizados (opcional)</div>
-    <textarea id="mreal-materiales" placeholder="Ej: arena 2 sacos, tubo PVC 6m, hormigón 0.5m³..." style="min-height:60px"></textarea>
-
-    <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:8px;padding:12px;margin-top:14px;font-size:12px;color:var(--warning-dark);font-family:'Courier New',monospace">
-      Esta acción moverá el trabajo al historial de Realizados.
-    </div>
-
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="cerrarModal('modal-realizado')">Cancelar</button>
-      <button class="modal-confirm" onclick="confirmarRealizado()">Confirmar Realizado</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: añadir jornada parcial -->
-<div class="modal-overlay" id="modal-jornada">
-  <div class="modal-sheet">
-    <div class="modal-title">+ Jornada parcial</div>
-    <div class="modal-sub" id="mjor-nombre"></div>
-
-    <div class="modal-label">Fecha</div>
-    <input type="date" id="mjor-fecha" style="margin-bottom:8px">
-
-    <div class="modal-label">Horas trabajadas por máquina</div>
-    <div id="mjor-maquinas"></div>
-
-    <div class="modal-label" style="margin-top:12px">Notas</div>
-    <textarea id="mjor-notas" placeholder="Observaciones de la jornada..." style="min-height:50px"></textarea>
-
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="cerrarModal('modal-jornada')">Cancelar</button>
-      <button class="modal-confirm" onclick="confirmarJornada()">Guardar jornada</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════
-     VISTA: CAPTURA
-════════════════════════════════════════ -->
-<div class="view active" <!-- ═══════════════════════════════
-     VISTA: NUEVO TRABAJO (7 pasos)
-     Paso 1: Cliente | Paso 2: Ubicación | Paso 3: Tipo
-     Paso 4: Maquinaria | Paso 5: Horas | Paso 6: Urgencia+Notas | Paso 7: Resumen
-════════════════════════════════════ -->>
+<div class="view active" id="view-captura">
 
   <div class="progress-wrap">
     <div class="progress-steps" id="prog-steps"></div>
@@ -397,14 +260,8 @@
 
 </div>
 
-<!-- ═══════════════════════════════════════
-     VISTA: LISTADO
-════════════════════════════════════════ -->
-<div class="view" <!-- ═══════════════════════════════
-     VISTA: LISTADO
-     Tabs: Pendientes / Programados / Realizados
-     Incluye: backup, stats, filtros, tarjetas de trabajo
-════════════════════════════════════ -->>
+
+<div class="view" id="view-listado">
   <div class="backup-panel">
     <div class="backup-title">⚙ Copia de seguridad</div>
     <div class="backup-row">
@@ -458,13 +315,71 @@
   <div id="listado-content"></div>
 </div>
 
-<!-- ═══════════════════════════════════════
-     VISTA: CONFIGURACIÓN (Módulo 5)
-════════════════════════════════════════ -->
-<div class="view" <!-- ═══════════════════════════════
-     VISTA: CONFIGURACIÓN
-     Clientes, Operarios, Tipos, Maquinaria, Backup, Restaurar
-════════════════════════════════════ -->>
+
+<div class="view" id="view-mes">
+
+  <!-- Navegación mes -->
+  <div class="semana-titulo-bar">
+    <button class="nav-flecha" onclick="cambiarMes(-1)">&#8592;</button>
+    <span id="mes-titulo" class="semana-titulo-txt">Mes actual</span>
+    <button class="nav-flecha" onclick="cambiarMes(1)">&#8594;</button>
+  </div>
+
+  <!-- Filtro maquinaria -->
+  <div id="mes-filtro-maq" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;"></div>
+
+  <!-- Cabecera días semana -->
+  <div class="mes-grid-header" id="mes-grid-header"></div>
+
+  <!-- Grid mensual -->
+  <div class="mes-grid" id="mes-grid"></div>
+
+  <!-- Instrucción modo programación -->
+  <div id="mes-prog-hint" style="display:none;padding:8px 12px;background: var(--chip-bg);border:1px solid rgba(255,209,0,0.4);border-radius:8px;font-size:12px;color:#C9A800;font-family:'Courier New',monospace;margin-bottom:8px;text-align:center">
+    Toca uno o más días en el calendario
+  </div>
+
+  <!-- Bolsa de pendientes -->
+  <div class="bolsa-header">
+    <span>Pendientes de programar</span>
+    <span class="bolsa-count" id="bolsa-count">0</span>
+  </div>
+  <div id="bolsa-trabajos"></div>
+
+  <!-- Barra de confirmación — aparece al seleccionar trabajo + días -->
+  <div id="barra-programar" style="display:none;position:sticky;bottom:0;background:var(--card);border-top:2px solid #FFD100;padding:12px 16px 20px;margin:0 -16px;">
+    <div style="font-size:10px;color:#FFD100;font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Programando</div>
+    <div style="font-size:14px;color:var(--card);margin-bottom:4px" id="bprog-nombre"></div>
+    <div style="font-size:11px;color:#C9A800;font-family:'Courier New',monospace;margin-bottom:10px" id="bprog-dias">Sin días seleccionados</div>
+    <div style="font-size:10px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Operarios <span style="color:var(--text2)">(opcional)</span></div>
+    <div id="bprog-operarios" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="cancelarProgramacion()" style="flex:1;padding:12px;border:1px solid var(--text2);border-radius:8px;background:none;color:var(--text3);font-size:13px;cursor:pointer;font-family:Georgia,serif">Cancelar</button>
+      <button onclick="confirmarProgramar()" style="flex:2;padding:12px;background:#FFD100;color:#1C1C1C;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;font-family:Georgia,serif">✓ Programar</button>
+    </div>
+  </div>
+
+</div>
+
+
+<div class="view" id="view-operario">
+
+  <!-- Fecha de hoy -->
+  <div class="op-fecha-header">
+    Trabajos de hoy
+    <span id="op-fecha-txt"></span>
+  </div>
+
+  <!-- Selector de operario — para ver los trabajos de cada uno -->
+  <div class="op-selector" id="op-selector"></div>
+
+  <!-- Lista de trabajos del día para el operario seleccionado -->
+  <div id="op-contenido"></div>
+
+</div>
+
+
+<div class="view" id="view-config">
   <div class="cfg-wrap">
     <div class="cfg-title">⚙ Configuración</div>
     <div class="cfg-info">Los cambios se guardan automáticamente y se aplican de inmediato.</div>
@@ -536,6 +451,7 @@
   </div>
 </div>
 
+
 <!-- ═══════════════════════════════════════
      MODAL: EDITAR TRABAJO
 ════════════════════════════════════════ -->
@@ -591,6 +507,15 @@
           <option>En curso</option>
           <option>Realizado</option>
         </select></div>
+      <div>
+        <label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Fechas programadas</label>
+        <div id="ed-fechas-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:28px"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input type="date" id="ed-fecha-picker" class="cfg-input" style="flex:1;margin:0">
+          <button onclick="edFechaAdd()" style="padding:8px 14px;background:var(--accent);color:var(--accent-dark);border:none;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:Georgia,serif;white-space:nowrap">+ Añadir</button>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">Sin fechas → el trabajo vuelve a la bolsa para reprogramar</div>
+      </div>
       <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Notas</label>
         <textarea class="cfg-input" id="ed-notas" style="width:100%;min-height:60px;resize:vertical;margin-top:4px"></textarea></div>
     </div>
