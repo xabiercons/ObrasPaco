@@ -1,5 +1,5 @@
 # Documento Tutor — Excavaciones Paco
-**Versión 7.3 · Junio 2026**
+**Versión 7.6 · Junio 2026**
 
 Guía técnica del código para quien quiera entenderlo, modificarlo o aprender de él.
 
@@ -8,7 +8,7 @@ Guía técnica del código para quien quiera entenderlo, modificarlo o aprender 
 ## Índice
 
 1. [Qué es la app y qué tecnologías usa](#1-qué-es-la-app)
-2. [Por qué todo en un solo archivo HTML](#2-un-solo-archivo-html)
+2. [Estructura de archivos — 3 ficheros separados](#2-estructura-de-archivos)
 3. [Cómo está organizado el código](#3-organización-del-código)
 4. [Los datos: Supabase](#4-los-datos-supabase)
 5. [Módulo a módulo](#5-módulo-a-módulo)
@@ -18,7 +18,8 @@ Guía técnica del código para quien quiera entenderlo, modificarlo o aprender 
 9. [Decisiones técnicas — por qué así y no de otra manera](#9-decisiones-técnicas)
 10. [Cómo modificar cosas sin romper nada](#10-cómo-modificar-cosas)
 11. [Autenticación — Login y seguridad](#11-autenticación)
-12. [Sistema de roles — diseño para Fase 3](#12-sistema-de-roles)
+12. [Sistema de variables CSS — tema claro](#12-sistema-de-variables-css)
+13. [Sistema de roles — diseño para Fase 3](#13-sistema-de-roles)
 
 ---
 
@@ -37,7 +38,7 @@ Guía técnica del código para quien quiera entenderlo, modificarlo o aprender 
 | **OpenStreetMap** | Tiles del mapa (las imágenes del mapa) | Gratis |
 | **Nominatim** | Geocodificación inversa (coordenadas → dirección) | Gratis |
 | **Web Speech API** | Reconocimiento de voz del navegador | Gratis, nativo |
-| **Tabler Icons** | Iconos SVG para la interfaz (candado, correo…) | Gratis (CDN) |
+| **Tabler Icons** | Iconos SVG para la interfaz | Gratis (CDN) |
 
 **Coste total: 0 €/mes.**
 
@@ -47,110 +48,93 @@ El GPS (`navigator.geolocation`) y el micrófono (`webkitSpeechRecognition`) sol
 
 ---
 
-## 2. Un solo archivo HTML
+## 2. Estructura de archivos
 
-### ¿Qué significa?
-
-Todo el código — HTML, CSS y JavaScript — está en un único archivo: `excavaciones_paco_00.html`. No hay servidor de aplicación, no hay build, no hay dependencias npm que instalar.
-
-### Estructura del archivo
+Desde v7.4 el código está separado en **3 archivos** (antes todo en uno):
 
 ```
-excavaciones_paco_00.html
-│
-├── <head>
-│   ├── Leaflet CSS (CDN)
-│   ├── Leaflet JS (CDN)
-│   └── Tabler Icons (CDN)
-│
-├── <style>
-│   └── Todo el CSS de la app (~750 líneas)
-│
-├── <body>
-│   ├── Pantalla de Login (bloquea la app hasta autenticar)
-│   ├── Cabecera y navegación (5 pestañas)
-│   ├── Vista: + Nuevo (formulario 7 pasos)
-│   ├── Vista: Listado
-│   ├── Vista: Mes
-│   ├── Vista: Hoy
-│   └── Vista: Configuración ⚙
-│
-└── <script>
-    ├── Constantes Supabase
-    ├── CONFIG (listas de tipos, maquinaria, operarios)
-    ├── Estado global (variables let: form, progTrabajoId, _session, etc.)
-    ├── Wrapper Supabase (objeto supa con select/insert/update/delete)
-    ├── Autenticación (login, sesión, refresh token)
-    ├── Funciones de almacenamiento de trabajos (loadTrab, addTrab...)
-    ├── Módulo 1 — Formulario de captura
-    ├── Módulo 2 — Listado
-    ├── Módulo 3 — Vista Mes + Programación desde el mes
-    ├── Módulo 4 — Vista operario (Hoy)
-    ├── Módulo 5 — Configuración (incluye Clientes)
-    ├── Módulo 6 — Informes y CSV
-    └── Arranque — IIFE async: checkAuth() → iniciarApp()
+ObrasPaco/
+├── excavaciones_paco_00.html   — estructura HTML (vistas, modales, formularios)
+├── excavaciones_paco.css       — estilos con sistema de variables CSS (~492 líneas)
+└── excavaciones_paco.js        — lógica completa (~3.100 líneas)
 ```
 
-### Ventajas de este enfoque
+El HTML referencia los otros dos:
+```html
+<link rel="stylesheet" href="excavaciones_paco.css">
+<!-- al final del body, justo antes de </body> -->
+<script src="excavaciones_paco.js"></script>
+```
 
-- **Cero instalación**: se abre en cualquier navegador moderno.
-- **Fácil de actualizar**: se sube un archivo a GitHub y en 2 minutos está en producción.
-- **Fácil de hacer backup**: es un archivo — se copia y ya está.
-- **Sin dependencias**: no hay `node_modules`, no hay versiones que chocan.
+> **Crítico**: el `<script>` debe estar al final del `<body>`, no en el `<head>`. Si se pone antes, el JS intenta acceder a elementos del DOM que todavía no existen → `Cannot read properties of null`.
 
-### Limitaciones
+### Vistas HTML (en orden en el DOM)
 
-- Para proyectos grandes (>5.000 líneas) se vuelve difícil de mantener.
-- No hay separación de responsabilidades formal (MVC, componentes...).
-- No hay tests automatizados.
+```
+#view-captura    → + Nuevo (formulario 7 pasos)   [active por defecto]
+#view-listado    → Listado (Pendientes/Programados/Realizados)
+#view-mes        → Calendario mensual + programación
+#view-hoy        → Vista operario
+#view-config     → Configuración ⚙
+```
+
+### Modales (fuera del flujo de vistas)
+
+```
+#modal-editar-cliente   → Editar datos de un cliente
+#modal-editar           → Editar trabajo completo (incluye cambio de fecha)
+#modal-detalle          → Detalle de trabajo desde el calendario
+#modal-realizado        → Confirmar trabajo realizado + horas reales
+#modal-jornada          → Añadir jornada parcial
+#modal-confirm          → Modal de confirmación genérico (sí/no)
+```
 
 ---
 
 ## 3. Organización del código
 
-El script está dividido en bloques bien delimitados con comentarios `// ════...`. El orden importa porque JavaScript lee el archivo de arriba a abajo.
+El script (`excavaciones_paco.js`) está dividido en bloques con comentarios `// ════...`. El orden importa porque JavaScript lee el archivo de arriba a abajo.
 
 ### Orden de declaración (crítico)
 
 ```
-1. Constantes Supabase (SUPA_URL, SUPA_KEY)
-      ↓ deben existir antes que cualquier función que las use
-2. CONFIG — defaults y funciones de configuración
-      ↓ loadConfig() usa SUPA_URL
-3. Estado global (variables let: form, progTrabajoId, _session, _clientesCache, etc.)
-4. Wrapper Supabase (objeto supa con select/insert/update/delete)
-      ↓ usa _authHeaders() que depende de _session
-5. Autenticación — login(), checkAuth(), _refreshSessionIfNeeded()
-6. Funciones de almacenamiento de trabajos (loadTrab, addTrab...)
-7. Módulos 1-6 (formulario, listado, mes, hoy, config, informe)
-8. Arranque — IIFE async: checkAuth() → si autenticado, iniciarApp()
+1. Constantes Supabase (SUPA_URL, SUPA_KEY, SUPA_AUTH_URL)
+2. Autenticación — _getSessionStored, _setSessionStored, _authHeaders, hacerLogin,
+                   _refreshSessionIfNeeded, cerrarSesion, checkAuth, iniciarApp
+3. CONFIG — defaults, funciones getCfg/getOperariosCfg/etc., loadConfig
+4. Estado global (variables let: form, stepActual, _trabCache, _session, etc.)
+5. Wrapper Supabase (objeto supa con select/insert/update/delete)
+6. Funciones de almacenamiento de trabajos (loadTrab, addTrab, updateTrab, deleteTrab)
+7. Módulo 1 — Formulario de captura (7 pasos, voz, mapa, resumen)
+8. Módulo 2 — Listado (renderListado, filtros, cambiarEstado, editar, eliminar)
+9. Módulo 3 — Vista Mes + Programación (renderMes, renderBolsa, progTrabajoId...)
+10. Módulo 4 — Vista operario / Hoy (renderOperario, opMarcarRealizado)
+11. Módulo 5 — Configuración (clientes, operarios, tipos, maquinaria, sinónimos)
+12. Módulo 6 — Informes y CSV (exportarInformeCSV, enviarInformePorEmail)
+13. Arranque — IIFE async: checkAuth() → iniciarApp()
 ```
 
-> **Regla de oro**: si una función A llama a una función B, B debe estar declarada antes que A, O B debe ser una `function` (no `const`/`let`) porque las `function` se elevan (hoisting) al inicio del script.
+> **Regla de oro**: si una función A llama a una función B, B debe estar declarada antes que A, O debe ser una `function` declaration (no `const`/`let`) porque las `function` se elevan (hoisting) al inicio del script.
 
 ---
 
 ## 4. Los datos: Supabase
 
-### Qué es Supabase
-
-Supabase es una base de datos PostgreSQL en la nube con una API REST automática. No hace falta escribir un servidor — se hacen peticiones HTTP directamente desde el navegador.
-
 ### Tablas en la base de datos
 
-#### `trabajos` — tabla principal (21 columnas)
+#### `trabajos` — tabla principal
 
 | Columna | Tipo | Descripción |
 |---|---|---|
 | `id` | serial | Clave primaria autoincremental |
 | `cliente` | text | Nombre del cliente |
-| `obra` | text | Nombre de la obra (ej: "Desmonte en Santeles") |
+| `obra` | text | Nombre de la obra |
 | `direccion` | text | Dirección obtenida por geocodificación |
-| `zona` | text | Zona o barrio (parte de la dirección) |
+| `zona` | text | Zona o barrio |
 | `lat` / `lng` | float | Coordenadas GPS |
 | `tipos` | text | JSON array: `["Excavación","Picado"]` |
 | `maquinarias` | text | JSON array: `["Minipala JCB"]` |
-| `tipo` | text | Texto plano (join de tipos, para mostrar) |
+| `tipo` | text | Texto plano (join de tipos) |
 | `maquinaria` | text | Texto plano (join de maquinarias) |
 | `horas` | integer | Horas estimadas |
 | `urgencia` | text | `Normal`, `Alta` o `Urgente` |
@@ -158,11 +142,13 @@ Supabase es una base de datos PostgreSQL en la nube con una API REST automática
 | `estado` | text | Estado actual del trabajo |
 | `fecha` | text | Fecha de creación (ISO) |
 | `operarios` | text | JSON array de nombres asignados |
-| `dias` | text | JSON array de fechas programadas (ISO) |
+| `dias_programados` | text | JSON array de fechas programadas (ISO) |
 | `horas_reales` | text | JSON object: `{"Minipala JCB": 5}` |
 | `notas_cierre` | text | Notas al marcar como realizado |
-| `materiales` | text | Materiales utilizados (texto libre) |
-| `jornadas` | text | JSON array de jornadas parciales |
+| `materiales` | text | Materiales utilizados |
+| `jornadas_parciales` | text | JSON array de jornadas parciales |
+
+> **Nota**: en el objeto JS se usa `diasProgramados` (camelCase). En la BD se guarda como `dias_programados` (snake_case). La conversión ocurre en `trabajoToRow()` y `loadTrab()`.
 
 #### `clientes` — tabla de clientes habituales
 
@@ -184,23 +170,27 @@ Supabase es una base de datos PostgreSQL en la nube con una API REST automática
 
 ### Cómo se conecta la app
 
-La app **no usa el SDK de Supabase**. Usa `fetch` nativo directamente a la REST API. Esto es así porque el SDK es incompatible con las claves `sb_publishable_` que Supabase usa actualmente.
+La app **no usa el SDK de Supabase**. Usa `fetch` nativo directamente a la REST API. Motivo: el SDK es incompatible con las claves `sb_publishable_` que Supabase usa actualmente.
 
 ```javascript
-// Así se hace una consulta SELECT
+// SELECT
 const response = await fetch(
   `${SUPA_URL}/rest/v1/trabajos?select=*&order=fecha.desc`,
   { headers: SUPA_HEADERS }
 );
-const datos = await response.json();
+
+// UPDATE
+await fetch(
+  `${SUPA_URL}/rest/v1/trabajos?id=eq.${id}`,
+  { method: 'PATCH', headers: SUPA_HEADERS, body: JSON.stringify(row) }
+);
 ```
 
 ### Row Level Security (RLS)
 
-Supabase tiene RLS activado en todas las tablas. La política exige usuario **autenticado** (rol `authenticated`):
+Activo en todas las tablas. Solo usuarios autenticados pueden operar:
 
 ```sql
--- Solo usuarios autenticados pueden leer/escribir
 CREATE POLICY "solo_auth" ON trabajos
   FOR ALL TO authenticated
   USING (true) WITH CHECK (true);
@@ -210,7 +200,14 @@ GRANT ALL ON public.clientes TO authenticated;
 GRANT USAGE, SELECT ON SEQUENCE public.clientes_id_seq TO authenticated;
 ```
 
-> **Truco aprendido en producción**: crear la tabla con RLS no es suficiente. Supabase requiere también `GRANT ALL ... TO authenticated` para que las operaciones funcionen. Sin el GRANT, las peticiones devuelven 400 aunque la política RLS esté bien definida.
+### Rate limits de seguridad configurados (v7.6)
+
+| Límite | Valor configurado | Razón |
+|---|---|---|
+| Sign-ups and sign-ins | 5 cada 5 min | Solo 2 usuarios legítimos |
+| Token refreshes | 10 cada 5 min | Consumo de cuota controlado |
+| Anonymous users | Desactivado | No se usa login anónimo |
+| Captcha | Pendiente Fase 3 | Requiere cuenta hCaptcha |
 
 ---
 
@@ -218,203 +215,183 @@ GRANT USAGE, SELECT ON SEQUENCE public.clientes_id_seq TO authenticated;
 
 ### Módulo 1 — Formulario de captura (7 pasos)
 
-**Paso 1 — Cliente + Nombre de obra**
-
-El paso 1 combina dos campos:
-
-- **Selector de cliente**: dropdown con los clientes de la tabla `clientes`. Al tocar → selecciona y rellena `form.cliente`. Opción "Nuevo cliente…" muestra un formulario inline que crea el cliente en Supabase y lo selecciona sin salir del formulario.
-- **Nombre de obra**: campo de texto con botón de voz. Libre — ej: "Desmonte en Santeles". Se guarda en `form.obra` y en la columna `obra` de la tabla `trabajos`.
-
+Estado del formulario en el objeto global `form`:
 ```javascript
-// Activar la programación de un trabajo desde la bolsa
-function activarProgramacion(id) { ... }
-
-// Seleccionar cliente desde el dropdown
-function seleccionarCliente(id) { ... }
-
-// Crear cliente nuevo inline
-async function guardarClienteNuevo() { ... }
+let form = {
+  cliente: '', obra: '', direccion: '', zona: '',
+  lat: null, lng: null,
+  tipos: [], maquinarias: [],
+  horas: 4, urgencia: 'Normal', notas: ''
+};
 ```
 
-**Pasos 2-7**: ubicación GPS, tipo de trabajo, maquinaria, horas, urgencia+notas, resumen.
+Funciones clave:
+- `showStep(n)` — muestra el paso n, oculta el resto
+- `nextStep(current)` / `prevStep(current)` — navegación entre pasos
+- `buildChips()` — construye los botones de selección de tipos y maquinaria
+- `selectChipMulti(field, val, el)` — toggle de un chip (añade/quita del array)
+- `guardarTrabajo()` — construye el objeto trabajo, llama a `addTrab()` y resetea
+- `resetForm()` — limpia todo el formulario
 
-### Módulo 3 — Vista Mes y Programación
+### Módulo 2 — Listado
 
-La programación ya no usa un modal flotante. Se hace directamente sobre el grid mensual:
+`renderListado()` es la función central. Genera el HTML completo del listado según:
+- `ltabActual` — pestaña activa ('pendientes' | 'programados' | 'realizados')
+- Filtros activos (zona, maquinaria, texto libre)
+- `realizadosMesOffset` — mes visible en la pestaña Realizados (0 = mes actual)
 
-**Estado de programación** (variables globales):
+**Detección de fechas pasadas:**
 ```javascript
-let progTrabajoId = null;   // ID del trabajo que se está programando
-let progDias = [];           // Días seleccionados (ISO strings)
+const hoyISO = fechaISO(new Date());
+const esFechasPasadas = t.estado === 'Programado' &&
+  t.diasProgramados && t.diasProgramados.length > 0 &&
+  t.diasProgramados.every(d => d < hoyISO);
+```
+Si `esFechasPasadas` es true, la tarjeta muestra el badge naranja y el botón "↩ Quitar del calendario".
+
+### Módulo 3 — Vista Mes + Programación
+
+Variables de estado del módulo:
+```javascript
+let mesOffset = 0;           // 0 = mes actual, -1 = anterior, +1 = siguiente
+let mesFiltroMaq = '';       // '' = todas las máquinas
+let progTrabajoId = null;    // ID del trabajo en modo programación activa (null = ninguno)
+let progDias = [];           // Días seleccionados en modo programación
 let progOperarios = [];      // Operarios seleccionados
 ```
 
-**Flujo completo**:
-1. `activarProgramacion(id)` — toca un trabajo en la bolsa. Activa modo programación. Segundo toque en el mismo trabajo → cancela.
-2. `toggleDiaProg(iso)` — toca un día en el grid. Marca/desmarca el día en `progDias`. Llama a `renderMes()` para redibujar y a `actualizarBarraProgramar()`.
-3. `actualizarBarraProgramar()` — actualiza la barra fija inferior con nombre, días y chips de operarios.
-4. `confirmarProgramar()` — guarda en Supabase, cancela modo programación, redibuja.
+Funciones clave:
+- `renderMes()` — genera el grid mensual completo con píldoras
+- `renderBolsa()` — genera la bolsa de trabajos Aceptados sin fecha
+- `activarProgramacion(id)` — activa el modo programación para un trabajo
+- `cancelarProgramacion()` — cancela sin guardar
+- `toggleDiaProg(iso)` — marca/desmarca un día en modo programación
+- `confirmarProgramar()` — guarda los días y operarios, llama a `updateTrab()`
+- `abrirDetalle(id)` — abre el modal de detalle al tocar una píldora
 
-**Filtro de maquinaria** (variable global):
-```javascript
-let mesFiltroMaq = ''; // '' = todas, o nombre de máquina
-```
-`setMesFiltroMaq(maq)` activa/desactiva el filtro. `renderMes()` lo lee para atenuar píldoras que no coinciden.
+> **Importante**: cualquier función que modifique `diasProgramados` debe llamar a `renderMes()` después para que el calendario se actualice. Funciones que lo hacen: `guardarEdicionTrabajo()`, `quitarDelCalendario()`, `confirmarProgramar()`, `desprogramarDesdeDetalle()`.
 
-### Módulo 6 — Realizados por mes
+### Módulo 4 — Vista Hoy (operario)
 
-```javascript
-let realizadosMesOffset = 0; // 0 = mes actual, -1 = anterior, +1 = siguiente
+`renderOperario()` muestra los trabajos del operario seleccionado para los próximos 7 días. Agrupa por fecha. Solo muestra días con trabajos.
 
-function cambiarMesRealizados(dir) {
-  realizadosMesOffset += dir;
-  renderListado();
-}
+`opMarcarRealizado(id)` → abre `abrirModalRealizadoPorId(id)` → al confirmar llama a `confirmarRealizado()`.
 
-function _getRangoMesRealizados() {
-  // Devuelve { desde, hasta, titulo } para el mes navegado
-}
-```
+### Módulo 5 — Configuración
 
-En `renderListado()`, si estamos en tab Realizados y no hay rango manual activo (`informe-desde`/`informe-hasta` vacíos), se filtra automáticamente por el mes de `realizadosMesOffset`.
+Clientes: `cfgAddCliente()`, `cfgEliminarCliente()`, `renderCfgClientes()`, `abrirEditarCliente()`, `guardarEdicionCliente()`.
 
-### Módulo 5 — Clientes en Configuración
+Dropdown de clientes en el formulario: `toggleClienteDropdown()`, `buildClienteDropdown()`, `seleccionarCliente()`, `mostrarNuevoClienteInline()`, `guardarClienteNuevo()`.
 
-```javascript
-let _clientesCache = null; // [{id, nombre, telefono, observaciones}]
+Config general: `cfgAdd(key)`, `cfgToggleItem(key, idx)`, `cfgDel(key, idx)`, `cfgAddSin(item)`, `cfgDelSin(item, sin)`.
 
-async function cfgAddCliente()       // Añadir desde Configuración
-async function cfgEliminarCliente(id) // Eliminar con confirmación
-function renderCfgClientes()          // Dibujar lista en Configuración
-```
+### Módulo 6 — Informes
 
-Los clientes se cargan en `loadConfig()` junto al resto de configuración, en la misma llamada paralela con `Promise.all`.
+`exportarInformeCSV()` — exporta el rango de fechas seleccionado como CSV.
+`enviarInformePorEmail()` — envía el informe del mes visible vía EmailJS.
+`exportarTrabajoCSV(id)` — exporta un único trabajo como CSV.
+`exportarJSON()` / `importarJSON(input)` — backup completo.
 
 ---
 
 ## 6. El sistema de voz
 
-La voz funciona con `webkitSpeechRecognition` (Web Speech API). Requiere HTTPS y permiso de micrófono.
-
-### Campos con voz disponibles
-
-| Campo | ID botón | Tipo |
-|---|---|---|
-| Nombre de obra | `vbtn-obra` | Texto libre |
-| Dirección | `vbtn-2` | Texto libre |
-| Tipo de trabajo | `vbtn-3` | Matching por sinónimos |
-| Maquinaria | `vbtn-4` | Matching por sinónimos |
-| Horas | `vbtn-5` | Extracción de número |
-| Notas | `vbtn-6` | Texto libre |
-
-### Cómo funciona `processVoice(field, texto)`
+Basado en `Web Speech API` (`webkitSpeechRecognition`). Solo funciona en Chrome/Safari con HTTPS.
 
 ```javascript
+function startVoice(field, btnId, resId) {
+  // Crea o reutiliza la instancia recognition
+  // Al recibir resultado llama a processVoice(field, texto)
+}
+
 function processVoice(field, texto) {
-  if (field === 'obra') {
-    form.obra = texto;
-    document.getElementById('f-obra').value = texto;
-    return { ok: true, msg: 'Nombre de obra registrado' };
-  } else if (field === 'cliente') { ... }
-  else if (field === 'tipo') { return matchSinonimo('tipos', t, 'chips-tipo'); }
-  // etc.
+  // Según 'field', procesa el texto y actualiza form o chips
+  // Devuelve { ok: boolean, msg: string }
+}
+
+function matchSinonimo(field, texto, chipsId) {
+  // Busca coincidencias con sinónimos configurados
+  // Activa los chips correspondientes
 }
 ```
 
-El feedback visual usa tres clases CSS:
-- `.vr-interim` — gris, texto provisional mientras escucha
-- `.vr-ok` — verde, reconocimiento exitoso
-- `.vr-err` — rojo, no se reconoció
+Cada tipo de trabajo y máquina tiene sinónimos configurables en Supabase. Por ejemplo, "retro" o "giratorio" activan el Volvo giratorio.
 
 ---
 
 ## 7. El mapa y el GPS
 
-Leaflet.js renderiza el mapa en el paso 2 del formulario. El marcador es arrastrable — al soltarlo, Nominatim hace geocodificación inversa y rellena automáticamente la dirección.
+Leaflet + OpenStreetMap. Se inicializa una sola vez con `inicializarMapa()` y se reutiliza.
 
 ```javascript
-// Al arrastrar el marcador:
-marker.on('dragend', async () => {
-  const { lat, lng } = marker.getLatLng();
-  form.lat = lat; form.lng = lng;
-  const dir = await geocodificarInverso(lat, lng);
-  form.direccion = dir.display_name;
-  form.zona = dir.suburb || dir.village || dir.town || '';
-});
+function abrirMapaGPS() {
+  // Pide permiso GPS → centra el mapa → pone marcador arrastrable
+}
+
+function aceptarMapa() {
+  // Toma las coordenadas del marcador
+  // Llama a Nominatim para obtener la dirección textual
+  // Guarda en form.lat, form.lng, form.direccion, form.zona
+}
 ```
+
+`mapsLink(t)` genera la URL de Google Maps para un trabajo (por GPS si hay coordenadas, o por dirección texto si no).
 
 ---
 
 ## 8. Flujo de una acción
 
-### Crear un trabajo nuevo
+### Ejemplo: cambiar la fecha de un trabajo programado
 
 ```
-Usuario rellena formulario (7 pasos)
+Usuario pulsa ✏ Editar en una tarjeta del listado
     ↓
-Paso 1: selecciona cliente del dropdown (o crea inline)
-    ↓ form.cliente = nombre, form.obra = nombre obra
-Paso 2: GPS → marcador en mapa → Nominatim → dirección
-    ↓ form.lat, form.lng, form.direccion, form.zona
-Pasos 3-6: tipos, maquinaria, horas, urgencia, notas
-    ↓ form.tipos[], form.maquinarias[], form.horas, form.urgencia
-Paso 7: Resumen → botón "Guardar trabajo"
+abrirEditarTrabajo(id)
     ↓
-addTrab(form) → fetch POST a Supabase /rest/v1/trabajos
+Carga datos en el modal: _edFecha = primer día de diasProgramados
     ↓
-loadTrab() → recarga todos los trabajos en _trabCache
+edRenderFecha() — muestra la fecha actual en el bloque "Fecha actual"
     ↓
-showView('listado') → renderListado()
+Usuario selecciona nueva fecha en el picker y pulsa "Cambiar"
+    ↓
+edFechaCambiar()
+    ├── Valida: fecha >= hoy
+    ├── Comprueba carga del día: trabajosDia.length >= 2 → aviso confirm nativo
+    │     ├── Aceptar (elegir otra fecha) → limpia picker, espera
+    │     └── Cancelar (volver a la bolsa) → updateTrab() [estado=Aceptado, diasProgramados=[]]
+    │                                       → renderListado() + renderMes() + showView('mes')
+    └── Sin conflicto → _edFecha = val, edRenderFecha() [muestra nueva fecha]
+    ↓
+Usuario pulsa "✓ Guardar cambios"
+    ↓
+guardarEdicionTrabajo()
+    ├── t.diasProgramados = _edFecha ? [_edFecha] : []
+    ├── Ajusta estado si es necesario (Aceptado↔Programado)
+    ├── await updateTrab(t) → Supabase PATCH + _trabCache update
+    ├── renderListado()
+    └── renderMes()   ← crítico: actualiza el calendario al instante
 ```
 
-### Programar un trabajo
+### Ejemplo: programar un trabajo desde el calendario
 
 ```
-Vista Mes → bolsa de pendientes
+Usuario toca un trabajo en la bolsa
     ↓
-Toca trabajo → activarProgramacion(id)
-    ↓ progTrabajoId = id, progDias = [], progOperarios = []
-    ↓ renderBolsa() (resalta trabajo activo)
-    ↓ renderMes() (días clicables, clase prog-disponible)
-    ↓ actualizarBarraProgramar() (muestra barra fija abajo)
-
-Toca día en el grid → toggleDiaProg(iso)
-    ↓ progDias.push(iso) o filter out
-    ↓ renderMes() (día marcado con clase prog-sel)
-    ↓ actualizarBarraProgramar() (actualiza texto días)
-
-Selecciona operarios en la barra → progOperarios.push/filter
-    ↓ actualizarBarraProgramar() (chip resaltado)
-
-Botón "Programar" → confirmarProgramar()
-    ↓ t.diasProgramados = progDias, t.operarios = progOperarios
-    ↓ t.estado = 'Programado'
-    ↓ cancelarProgramacion() (limpia estado)
-    ↓ updateTrab(t) → fetch PATCH a Supabase
-    ↓ loadTrab() → renderMes() + renderBolsa()
-```
-
-### Marcar un trabajo como realizado
-
-```
-Tarjeta de trabajo → botón "✓ Realizado"
+activarProgramacion(id) → progTrabajoId = id, actualizarBarraProgramar()
     ↓
-abrirModalRealizadoPorId(id)
-    ↓ _mrealMaquinas = copia de t.maquinarias (editable)
-    ↓ renderMrealMaquinas() → inputs de horas + selector añadir/quitar
-    ↓ modal-realizado.show
-
-Usuario edita maquinaria (quita ✕ o añade desde selector)
-    ↓ mrealQuitarMaq(idx) / mrealAddMaq()
-    ↓ renderMrealMaquinas() en tiempo real
-
-Botón "Confirmar Realizado" → confirmarRealizado()
-    ↓ horasReales = { maq: horas } por cada _mrealMaquinas[i]
-    ↓ t.maquinarias = _mrealMaquinas (actualiza si cambió)
-    ↓ t.materiales = textarea materiales
-    ↓ t.notasCierre = textarea notas
-    ↓ t.estado = 'Realizado', t.fechaRealizado = hoy
-    ↓ updateTrab(t) → fetch PATCH a Supabase
+Usuario toca días en el grid
+    ↓
+toggleDiaProg(iso) → valida que no sea pasado → progDias.push/filter
+    ↓
+Usuario selecciona operario(s) en la barra fija
+    ↓
+confirmarProgramar()
+    ├── t.diasProgramados = progDias
+    ├── t.operarios = progOperarios
+    ├── t.estado = 'Programado'
+    ├── await updateTrab(t)
+    ├── cancelarProgramacion()
+    └── renderMes() + renderBolsa()
 ```
 
 ---
@@ -423,15 +400,25 @@ Botón "Confirmar Realizado" → confirmarRealizado()
 
 ### ¿Por qué sin SDK de Supabase?
 
-El SDK oficial de Supabase no es compatible con las claves `sb_publishable_` que emite actualmente. Se usa `fetch` nativo que funciona con cualquier clave.
+El SDK oficial no es compatible con las claves `sb_publishable_`. Se usa `fetch` nativo que funciona con cualquier clave.
 
-### ¿Por qué un solo archivo?
+### ¿Por qué 3 archivos separados desde v7.4?
 
-Para esta fase del proyecto (MVP en producción con un único cliente), la ventaja de cero instalación y actualización en 2 minutos supera el coste de mantenimiento. En Fase 3, con Next.js, se separa en componentes.
+Un solo archivo con HTML + CSS + JS de 3.500+ líneas era imposible de editar en GitHub directamente. La separación permite:
+- Editar solo el CSS sin tocar la lógica
+- Ver el HTML de las vistas limpio
+- El JS puede abrirse y buscarse más fácilmente
 
-### ¿Por qué Leaflet en lugar de Google Maps?
+La separación no afecta al rendimiento — el navegador hace 3 peticiones en lugar de 1.
 
-Leaflet + OpenStreetMap + Nominatim son completamente gratuitos y sin límites de uso. Google Maps requiere tarjeta de crédito y tiene coste por número de peticiones.
+### ¿Por qué `renderMes()` debe llamarse tras cada cambio de fechas?
+
+El calendario genera HTML estático en cada llamada a `renderMes()`. No hay reactividad. Si un trabajo cambia su `diasProgramados` sin llamar a `renderMes()`, el grid sigue mostrando los datos viejos. Funciones que modifican fechas y deben llamar a `renderMes()`:
+- `guardarEdicionTrabajo()`
+- `quitarDelCalendario()`
+- `confirmarProgramar()`
+- `desprogramarDesdeDetalle()`
+- `edFechaCambiar()` (rama "volver a la bolsa")
 
 ### ¿Por qué la programación está en la vista Mes y no en un modal?
 
@@ -440,7 +427,14 @@ Hasta v7.0 había un modal flotante con navegación de semana. Se eliminó en v7
 - El usuario no veía el contexto del mes mientras programaba
 - La vista Mes ya tiene toda la información necesaria
 
-El código resultó más corto (el modal era ~80 líneas eliminadas).
+### ¿Por qué `_edFecha` (singular) en lugar de `_edFechas` (array)?
+
+Hasta v7.5 el modal de editar trabajo tenía chips de múltiples fechas. Desde v7.6 se cambió a fecha única porque:
+- La necesidad real es "cambiar el día de este trabajo" — no añadir varios días
+- El selector de fecha única con min=hoy es más claro en móvil
+- Elimina la confusión de añadir/quitar chips
+
+Si en el futuro un trabajo debe ejecutarse en varios días no consecutivos, se puede volver a array.
 
 ### ¿Por qué `GRANT ALL` además de RLS?
 
@@ -462,9 +456,13 @@ RLS controla *qué filas* puede ver/modificar cada usuario. `GRANT` controla *qu
 5. Añadirlo en el resumen del paso 7
 6. Añadirlo en el CSV si es relevante
 
+### Añadir un tipo de trabajo o máquina nueva
+
+Desde Configuración en la app — no hace falta tocar el código. Los sinónimos de voz también se gestionan desde ahí.
+
 ### Añadir un campo de texto libre con voz
 
-1. Añadir botón `<button class="voice-btn" onclick="startVoice('campo', 'vbtn-campo', 'vres-campo')">` e input en el HTML
+1. Añadir botón `<button onclick="startVoice('campo', 'vbtn-campo', 'vres-campo')">` e input en el HTML
 2. Añadir caso en `processVoice(field, texto)`:
    ```javascript
    } else if (field === 'campo') {
@@ -475,10 +473,6 @@ RLS controla *qué filas* puede ver/modificar cada usuario. `GRANT` controla *qu
    ```
 3. Resetear el campo en `resetForm()`
 
-### Añadir un cliente desde Configuración
-
-`cfgAddCliente()` lee los inputs `inp-cliente-nombre`, `inp-cliente-tel`, `inp-cliente-obs`, llama a `_saveClienteSupabase()` y actualiza `_clientesCache`.
-
 ### Trampas comunes
 
 **Comillas simples en template literals con CSS inline**:
@@ -486,10 +480,8 @@ RLS controla *qué filas* puede ver/modificar cada usuario. `GRANT` controla *qu
 // ❌ MAL — rompe el template literal
 pill.innerHTML = `<span style="font-family:'Courier New'">texto</span>`;
 
-// ✅ BIEN — usar monospace sin comillas o escapar
+// ✅ BIEN
 pill.innerHTML = `<span style="font-family:monospace">texto</span>`;
-// O en cadena con comillas simples:
-pill.innerHTML = '<span style="font-family:\'Courier New\'">texto</span>';
 ```
 
 **IDs como string vs number**:
@@ -499,14 +491,30 @@ pill.innerHTML = '<span style="font-family:\'Courier New\'">texto</span>';
 const t = trabajos.find(x => String(x.id) === String(id));
 ```
 
-**Funciones async en handlers**:
+**`renderMes()` después de cualquier cambio de fechas**:
 ```javascript
-// Si la función usa await showConfirm(), debe ser async
-async function confirmarAlgo() {
-  const ok = await showConfirm('¿Seguro?', 'No se puede deshacer');
-  if (!ok) return;
-  // ...
-}
+// ❌ MAL — el calendario no se actualiza
+await updateTrab(t);
+renderListado();
+
+// ✅ BIEN
+await updateTrab(t);
+renderListado();
+renderMes();  // ← siempre
+```
+
+**El `<script>` al final del `<body>`**:
+```html
+<!-- ❌ MAL — el DOM no existe todavía -->
+<head>
+  <script src="excavaciones_paco.js"></script>
+</head>
+
+<!-- ✅ BIEN -->
+<body>
+  <!-- ... todo el HTML ... -->
+  <script src="excavaciones_paco.js"></script>
+</body>
 ```
 
 ---
@@ -522,7 +530,7 @@ App arranca → checkAuth()
     ├── Sí → _refreshSessionIfNeeded() → si token válido → iniciarApp()
     └── No → mostrar pantalla de login
 
-Usuario introduce email + contraseña → login()
+Usuario introduce email + contraseña → hacerLogin()
     ↓
 POST a Supabase Auth /auth/v1/token?grant_type=password
     ↓
@@ -540,15 +548,6 @@ let _session = null; // { access_token, refresh_token, expires_at, user: { email
 
 Desde v6.8, cuando cualquier petición a Supabase devuelve `401 JWT expired`, la app lo detecta en el wrapper `supa` y redirige al login automáticamente.
 
-### Cambiar contraseña en Supabase
-
-Si las credenciales no funcionan (emails ficticios, sin acceso al buzón):
-```sql
-UPDATE auth.users
-SET encrypted_password = crypt('nueva_contraseña', gen_salt('bf'))
-WHERE email = 'usuario@ejemplo.com';
-```
-
 ### Credenciales actuales
 
 | Usuario | Email | Contraseña |
@@ -558,7 +557,55 @@ WHERE email = 'usuario@ejemplo.com';
 
 ---
 
-## 12. Sistema de roles — diseño para Fase 3
+## 12. Sistema de variables CSS — tema claro
+
+Desde v7.6, todos los colores se definen con variables CSS en `excavaciones_paco.css`. Antes había ~154 colores hardcodeados dispersos.
+
+### Variables principales
+
+```css
+:root {
+  /* Fondos */
+  --bg:           #F5F4F0;   /* fondo principal */
+  --card-bg:      #FFFFFF;   /* fondo de tarjetas */
+  --chip-bg:      #EDECEA;   /* fondo de chips */
+
+  /* Textos */
+  --text:         #1A1A1A;   /* texto principal */
+  --text2:        #555555;   /* texto secundario */
+  --text3:        #999999;   /* texto terciario / placeholders */
+
+  /* Acento principal */
+  --accent:       #FFD100;   /* amarillo EP */
+  --accent-dark:  #1A1A1A;   /* texto sobre amarillo */
+
+  /* Bordes */
+  --border:       #E0DDD6;
+
+  /* Estados semánticos */
+  --success:      #22C55E;
+  --success-bg:   #F0FDF4;
+  --warning:      #F59E0B;
+  --warning-bg:   #FFFBEB;
+  --danger:       #EF4444;
+  --danger-light: #FEF2F2;
+  --info:         #3B82F6;
+  --info-bg:      #EFF6FF;
+  --info-border:  #BFDBFE;
+
+  /* Calendario */
+  --cal-past:      #D1D5DB;  /* días pasados en gris */
+  --cal-past-text: #9CA3AF;
+}
+```
+
+### Cómo cambiar el tema
+
+Para cambiar a cualquier otro color de acento, basta con cambiar `--accent` y `--accent-dark`. Para un tema oscuro, cambiar los valores de `--bg`, `--card-bg`, `--text` y `--text2`.
+
+---
+
+## 13. Sistema de roles — diseño para Fase 3
 
 > No implementado en la versión actual. Diseñado para cuando la app escale a múltiples empresas.
 
@@ -610,9 +657,11 @@ CREATE POLICY "operario_sus_trabajos" ON trabajos
 | **localStorage** | Almacenamiento del navegador. Persiste entre sesiones. Se usa para guardar `supa_session`. |
 | **fetch** | Función nativa de JavaScript para hacer peticiones HTTP. |
 | **hoisting** | Las declaraciones `function` se "elevan" al inicio del script. Las `const`/`let` no. |
-| **cache en memoria** | Variables como `_trabCache`, `_clientesCache` que guardan datos mientras la app está abierta. |
+| **_trabCache** | Variable global que guarda los trabajos en memoria mientras la app está abierta. Evita peticiones repetidas a Supabase. |
+| **_edFecha** | Fecha única (ISO string) que se está editando en el modal de editar trabajo. |
 | **progTrabajoId** | Variable global que indica qué trabajo está en modo programación activa (null = ninguno). |
 | **mesFiltroMaq** | Variable global con el nombre de la máquina filtrada en la vista Mes ('' = todas). |
+| **realizadosMesOffset** | Offset del mes visible en la pestaña Realizados (0 = mes actual, -1 = mes anterior...). |
 
 ---
 
@@ -629,4 +678,4 @@ git push
 
 ---
 
-*Documento generado en Junio 2026 · App v7.3*
+*Documento actualizado en Junio 2026 · App v7.6*
