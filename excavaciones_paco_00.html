@@ -397,8 +397,8 @@
 .login-card input[type=email],
 .login-card input[type=password] {
   width: 100%; padding: 18px 18px 18px 48px;
-  background: var(--card); border: 1px solid #3A3A3A; border-radius: 10px;
-  color: #FFF; font-size: 17px; font-family: Georgia, serif;
+  background: #ffffff; border: 1px solid #e0e0e0; border-radius: 10px;
+  color: #111111; font-size: 17px; font-family: Georgia, serif;
   outline: none; box-sizing: border-box; transition: border-color 0.2s;
 }
 .login-card input:focus { border-color: var(--accent); }
@@ -2608,7 +2608,6 @@ function renderMes() {
       const nombre = (t.obra || t.cliente || 'Trabajo').split(/[-,]/)[0].trim().slice(0, 10);
       const hrsText = t.horas ? ' '+t.horas+'h' : '';
       pill.innerHTML = '<span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+nombre+'</span><span style="display:block;font-size:7px;opacity:0.65;font-family:monospace">'+hrsText+'</span>';
-      const urg = (t.urgencia||'Normal').toLowerCase();
       if(urg==='urgente') pill.classList.add('mes-pill-urgente');
       else if(urg==='alta') pill.classList.add('mes-pill-alta');
       pill.onclick = (e) => { e.stopPropagation(); if(progTrabajoId) toggleDiaProg(isoCapturado); else abrirDetalle(t.id); };
