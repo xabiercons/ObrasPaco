@@ -623,7 +623,7 @@
     <!-- Nombre de obra -->
     <div style="margin-top:12px">
       <div style="font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Nombre de obra (opcional)</div>
-      <button class="voice-btn" id="vbtn-obra" onclick="startVoice('obra', 'vbtn-obra', 'vres-obra')">🎤 Hablar</button>
+      <button class="voice-btn" id="vbtn-obra" onclick="startVoice('obra', 'vbtn-obra', 'vres-obra')">🎤 Nombre de obra</button>
       <div class="voice-result" id="vres-obra"></div>
       <input type="text" id="f-obra" placeholder="Ej: Desmonte en Santeles…" oninput="syncField('obra', this.value)">
     </div>
@@ -631,6 +631,8 @@
     <!-- Formulario inline para nuevo cliente -->
     <div class="cliente-nuevo-inline" id="cs-nuevo-wrap">
       <div style="font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Nuevo cliente</div>
+      <button class="voice-btn" id="vbtn-cliente" onclick="startVoice('clienteNuevo', 'vbtn-cliente', 'vres-cliente')">&#127908; Nombre cliente</button>
+      <div class="voice-result" id="vres-cliente"></div>
       <input type="text" id="cs-nuevo-nombre" placeholder="Nombre del cliente…" style="margin-bottom:8px">
       <input type="tel" id="cs-nuevo-tel" placeholder="Teléfono (opcional)…" style="margin-bottom:8px">
       <textarea id="cs-nuevo-obs" placeholder="Observaciones (opcional)…" style="min-height:56px;margin-bottom:8px"></textarea>
@@ -658,7 +660,7 @@
 
     <div class="gps-result" id="gps-result"></div>
 
-    <button class="voice-btn" id="vbtn-2" onclick="startVoice('direccion', 'vbtn-2', 'vres-2')">🎤 Hablar dirección</button>
+    <button class="voice-btn" id="vbtn-2" onclick="startVoice('direccion', 'vbtn-2', 'vres-2')">🎤 Dirección</button>
     <div class="voice-result" id="vres-2"></div>
     <div class="divider">— o escribe manualmente —</div>
     <input type="text" id="f-direccion" placeholder="Rúa, lugar, número…" oninput="syncField('direccion', this.value)">
@@ -674,7 +676,7 @@
     <div class="step-number">Paso 3 / 7</div>
     <div class="step-title">Tipo de trabajo</div>
     <div class="step-hint">¿Qué hay que hacer?</div>
-    <button class="voice-btn" id="vbtn-3" onclick="startVoice('tipo', 'vbtn-3', 'vres-3')">🎤 Hablar</button>
+    <button class="voice-btn" id="vbtn-3" onclick="startVoice('tipo', 'vbtn-3', 'vres-3')">🎤 Tipo de trabajo</button>
     <div class="voice-result" id="vres-3"></div>
     <div class="chips" id="chips-tipo"></div>
     <div class="btn-row">
@@ -688,7 +690,7 @@
     <div class="step-number">Paso 4 / 7</div>
     <div class="step-title">Maquinaria</div>
     <div class="step-hint">¿Qué máquina se necesita?</div>
-    <button class="voice-btn" id="vbtn-4" onclick="startVoice('maquinaria', 'vbtn-4', 'vres-4')">🎤 Hablar</button>
+    <button class="voice-btn" id="vbtn-4" onclick="startVoice('maquinaria', 'vbtn-4', 'vres-4')">🎤 Maquinaria</button>
     <div class="voice-result" id="vres-4"></div>
     <div class="chips" id="chips-maq"></div>
     <div class="btn-row">
@@ -702,7 +704,7 @@
     <div class="step-number">Paso 5 / 7</div>
     <div class="step-title">Horas previstas</div>
     <div class="step-hint">¿Cuántas horas calculas?</div>
-    <button class="voice-btn" id="vbtn-5" onclick="startVoice('horas', 'vbtn-5', 'vres-5')">🎤 Hablar</button>
+    <button class="voice-btn" id="vbtn-5" onclick="startVoice('horas', 'vbtn-5', 'vres-5')">🎤 Horas</button>
     <div class="voice-result" id="vres-5"></div>
     <div class="stepper">
       <button class="step-btn" onclick="changeHoras(-1)">−</button>
@@ -725,7 +727,7 @@
       <div class="urg-opt" id="urg-alta" onclick="setUrgencia('Alta')">🟡 Alta</div>
       <div class="urg-opt" id="urg-urgente" onclick="setUrgencia('Urgente')">🔴 Urgente</div>
     </div>
-    <button class="voice-btn" id="vbtn-6" onclick="startVoice('notas', 'vbtn-6', 'vres-6')">🎤 Dictar notas</button>
+    <button class="voice-btn" id="vbtn-6" onclick="startVoice('notas', 'vbtn-6', 'vres-6')">🎤 Notas</button>
     <div class="voice-result" id="vres-6"></div>
     <textarea id="f-notas" placeholder="Notas adicionales…" oninput="syncField('notas', this.value)"></textarea>
     <div class="btn-row">
@@ -882,6 +884,25 @@
 <!-- ═══════════════════════════════════════
      MODAL: EDITAR TRABAJO
 ════════════════════════════════════════ -->
+<!-- Modal editar cliente -->
+<div class="modal-overlay hidden" id="modal-editar-cliente" onclick="if(event.target===this)cerrarModal('modal-editar-cliente')">
+  <div class="modal-box" style="max-width:420px;width:95%">
+    <div class="modal-title">✏ Editar cliente</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+      <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Nombre</label>
+        <input class="cfg-input" id="ec-nombre" type="text" style="width:100%;margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Teléfono</label>
+        <input class="cfg-input" id="ec-tel" type="tel" style="width:100%;margin-top:4px"></div>
+      <div><label style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Observaciones</label>
+        <textarea class="cfg-input" id="ec-obs" style="width:100%;min-height:60px;resize:vertical;margin-top:4px"></textarea></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn-back" style="flex:1" onclick="cerrarModal('modal-editar-cliente')">Cancelar</button>
+      <button class="btn-guardar" style="flex:2;margin:0" onclick="guardarEdicionCliente()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="modal-editar" onclick="if(event.target===this)cerrarModal('modal-editar')">
   <div class="modal-box" style="max-width:480px;width:95%">
     <div class="modal-title">✏ Editar trabajo</div>
@@ -1598,6 +1619,10 @@ function changeHoras(delta) {
 }
 
 // Sincroniza un campo de texto con el objeto form al escribir
+function syncClienteNuevoNombre(value) {
+  // Solo sincroniza el campo visual
+}
+
 function syncField(field, val) { form[field] = val; }
 
 // ════════════════════════════════════════════════════════
@@ -1838,7 +1863,10 @@ function resetVoiceBtn(btn, field) {
 // Devuelve {ok: boolean, msg: string} para que el llamador muestre el feedback
 function processVoice(field, texto) {
   const t = texto.toLowerCase();
-  if(field==='cliente') {
+  if(field==='clienteNuevo') {
+    document.getElementById('cs-nuevo-nombre').value = texto;
+    return { ok: true, msg: 'Nombre: ' + texto };
+  } else if(field==='cliente') {
     // Buscar si coincide con un cliente existente (por nombre o sinónimo)
     const clientesActuales = getClientes();
     const tLow = texto.toLowerCase().trim();
@@ -2259,6 +2287,50 @@ async function eliminar(id) {
   if(!await showConfirm('¿Eliminar este trabajo?', 'Esta acción no se puede deshacer.', true)) return;
   await deleteTrab(id);
   renderListado();
+}
+
+// ════════════════════════════════════════════════════════
+// EDITAR CLIENTE
+// ════════════════════════════════════════════════════════
+
+let _editandoClienteId = null;
+
+function abrirEditarCliente(id) {
+  const c = getClientes().find(x=>String(x.id)===String(id));
+  if(!c) return;
+  _editandoClienteId = id;
+  document.getElementById('ec-nombre').value = c.nombre||'';
+  document.getElementById('ec-tel').value = c.telefono||'';
+  document.getElementById('ec-obs').value = c.observaciones||'';
+  document.getElementById('modal-editar-cliente').classList.remove('hidden');
+}
+
+async function guardarEdicionCliente() {
+  if(!_editandoClienteId) return;
+  const nombre = document.getElementById('ec-nombre').value.trim();
+  if(!nombre) { showToast('El nombre es obligatorio'); return; }
+  const body = {
+    nombre,
+    telefono: document.getElementById('ec-tel').value.trim(),
+    observaciones: document.getElementById('ec-obs').value.trim()
+  };
+  showToast('Guardando…');
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/clientes?id=eq.${_editandoClienteId}`, {
+      method:'PATCH', headers:{...supaHeaders(),'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    if(!r.ok) throw new Error(await r.text());
+    // Actualizar cache local
+    const idx = CONFIG.clientes.findIndex(c=>String(c.id)===String(_editandoClienteId));
+    if(idx>-1) CONFIG.clientes[idx] = {...CONFIG.clientes[idx], ...body};
+    cerrarModal('modal-editar-cliente');
+    renderCfgClientes();
+    showToast('✓ Cliente actualizado');
+  } catch(e) {
+    console.error(e);
+    showToast('✗ Error al guardar cliente');
+  }
 }
 
 // ════════════════════════════════════════════════════════
@@ -3303,6 +3375,7 @@ function renderCfgClientes() {
       ${c.telefono ? `<div class="cfg-cliente-tel">📞 ${c.telefono}</div>` : ''}
       ${c.observaciones ? `<div class="cfg-cliente-obs">${c.observaciones}</div>` : ''}
       <div class="cfg-cliente-actions">
+        <button class="cfg-cliente-btn" onclick="abrirEditarCliente(${c.id})" style="color:#FFD100;border-color:rgba(255,209,0,0.4)">✏ Editar</button>
         <button class="cfg-cliente-btn del" onclick="cfgEliminarCliente(${c.id})">Eliminar</button>
       </div>
     </div>`).join('');
