@@ -2234,7 +2234,7 @@ function renderListado() {
       html+=`<div class="trabajo-card" id="tc-${t.id}" style="${esFechasPasadas?'border-left:3px solid #F59E0B;border-color:rgba(245,158,11,0.4)':''}">
         <div class="tc-top">
           <div style="min-width:0;flex:1">
-            ${esFechasPasadas?'<div style="display:inline-block;background:rgba(245,158,11,0.15);color:#F59E0B;font-size:10px;font-weight:600;letter-spacing:.06em;padding:2px 7px;border-radius:4px;margin-bottom:5px">⚠ FECHAS PASADAS</div>':''}
+            ${esFechasPasadas?'<div style="display:inline-block;background:rgba(245,158,11,0.15);color:#F59E0B;font-size:10px;font-weight:600;letter-spacing:.06em;padding:2px 7px;border-radius:4px;margin-bottom:5px">⚠ Fechas pasadas — reprograma o quita del calendario</div>':''}
             <div class="tc-titulo">${clienteCorto}${obraCorta} — ${tiposCorto}</div>
             <div class="tc-dir">${mapsLink(t)
             ? `<a href="${mapsLink(t)}" target="_blank" style="color:#4A9EFF;text-decoration:none">📍 ${t.direccion||'Sin dirección'}${t.zona?' · '+t.zona:''} — Cómo llegar →</a>`
@@ -2251,7 +2251,8 @@ function renderListado() {
           <span class="tc-chip">${t.fechaRealizado||t.fecha||''}</span>
         </div>
         <div class="tc-actions">
-          ${next?`<button class="tc-btn" onclick="cambiarEstado(${t.id},'${next}')">→ ${next}</button>`:''}
+          ${esFechasPasadas?`<button class="tc-btn" onclick="quitarDelCalendario(${t.id})" style="color:#F59E0B;border-color:rgba(245,158,11,0.4)">↩ Quitar del calendario</button>`:''}
+          ${!esFechasPasadas&&next?`<button class="tc-btn" onclick="cambiarEstado(${t.id},'${next}')">→ ${next}</button>`:''}
           ${t.estado!=='Realizado'?`<button class="tc-btn realizado" onclick="cambiarEstado(${t.id},'Realizado')">✓ Realizado</button>`:''}
           ${t.estado==='Realizado'?`<button class="tc-btn" onclick="exportarTrabajoCSV(${t.id})" style="color:#44CC77;border-color:#44CC77">↓ CSV</button>`:''}
           ${t.estado==='Realizado'?`<button class="tc-btn" onclick="enviarTrabajoEmail(${t.id})" style="color:#FFD100;border-color:rgba(255,209,0,0.4)">✉ Email</button>`:''}
@@ -2288,6 +2289,23 @@ async function eliminar(id) {
   if(!await showConfirm('¿Eliminar este trabajo?', 'Esta acción no se puede deshacer.', true)) return;
   await deleteTrab(id);
   renderListado();
+}
+
+// ════════════════════════════════════════════════════════
+// QUITAR TRABAJO DEL CALENDARIO (fechas pasadas → vuelve a Aceptado)
+// ════════════════════════════════════════════════════════
+
+async function quitarDelCalendario(id) {
+  const t = getTrab().find(x=>String(x.id)===String(id));
+  if(!t) return;
+  if(!confirm(`¿Quitar "${t.cliente||'este trabajo'}" del calendario? Volverá a la bolsa de trabajos para reprogramar.`)) return;
+  t.estado = 'Aceptado';
+  t.diasProgramados = [];
+  t.operarios = [];
+  showToast('Guardando…');
+  await updateTrab(t);
+  renderListado();
+  showToast('✓ Trabajo quitado del calendario — reprógramalo desde la vista Mes');
 }
 
 // ════════════════════════════════════════════════════════
