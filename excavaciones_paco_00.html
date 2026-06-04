@@ -148,7 +148,7 @@
 
   /* NAV BUTTONS */
   .btn-row { display: flex; gap: 10px; margin-top: 16px; }
-  .btn-back { flex: 1; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text2); font-size: 15px; cursor: pointer; font-family: Georgia, serif; }
+  .btn-back { flex: 1; padding: 14px; border: 1.5px solid var(--text); border-radius: var(--radius-sm); background: transparent; color: var(--text); font-size: 15px; cursor: pointer; font-family: Georgia, serif; }
   .btn-next { flex: 2; padding: 14px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 15px; cursor: pointer; font-family: Georgia, serif; }
   .btn-next:active { opacity: 0.85; }
   .btn-next:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -169,7 +169,7 @@
   .ltab { flex: 1; padding: 8px 4px; text-align: center; font-size: 12px; color: var(--text2); cursor: pointer; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.04em; }
   .ltab.active { background: var(--accent); color: #1C1C1C; border-color: var(--accent); }
   .maq-group-header { font-size: 11px; color: var(--text2); font-weight: 600; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 0.08em; padding: 12px 0 6px; display: flex; align-items: center; gap: 8px; }
-  .maq-pill { display: inline-block; font-size: 11px; padding: 2px 10px; border-radius: 20px; font-weight: 600; background: var(--nav-bg); color: var(--text-inv); }
+  .maq-pill { display: inline-block; font-size: 11px; padding: 2px 10px; border-radius: 20px; font-weight: 600; background: var(--card); color: var(--text); border: 1.5px solid var(--text); }
   .trabajo-card { background: var(--card); border: 1px solid var(--border); border-left: 3px solid #FFD100; border-radius: var(--radius); padding: 14px; margin-bottom: 8px; }
   .tc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
   .tc-titulo { font-size: 15px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
@@ -309,7 +309,7 @@
   .modal-confirm-msg { font-size: 15px; color: var(--text); margin-bottom: 8px; line-height: 1.5; }
   .modal-confirm-sub { font-size: 12px; color: var(--text2); margin-bottom: 24px; line-height: 1.4; }
   .modal-confirm-btns { display: flex; gap: 10px; }
-  .modal-confirm-cancel { flex: 1; padding: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--chip-bg); color: var(--text2); font-size: 14px; cursor: pointer; font-family: Georgia, serif; }
+  .modal-confirm-cancel { flex: 1; padding: 13px; border: 1.5px solid var(--text); border-radius: var(--radius-sm); background: transparent; color: var(--text); font-size: 14px; cursor: pointer; font-family: Georgia, serif; }
   .modal-confirm-ok { flex: 2; padding: 13px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-family: Georgia, serif; font-weight: bold; }
   .modal-confirm-ok.peligro { background: #FF4444; color: var(--text-inv); }
 
@@ -328,7 +328,7 @@
   .op-chip { padding: 8px 14px; border: 1px solid rgba(255,209,0,0.4); border-radius: 20px; font-size: 13px; cursor: pointer; background: var(--card); color: var(--text-inv); transition: all 0.15s; }
   .op-chip.selected { background: var(--accent); color: #1C1C1C; border-color: var(--accent); }
   .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-  .modal-cancel { flex: 1; padding: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; color: var(--text2); font-size: 14px; cursor: pointer; font-family: Georgia, serif; }
+  .modal-cancel { flex: 1; padding: 13px; border: 1.5px solid var(--text); border-radius: var(--radius-sm); background: transparent; color: var(--text); font-size: 14px; cursor: pointer; font-family: Georgia, serif; }
   .modal-confirm { flex: 2; padding: 13px; background: var(--accent); color: #1C1C1C; border: none; border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; font-family: Georgia, serif; font-weight: bold; }
 
 
@@ -581,7 +581,7 @@
     <button class="btn-desprogramar" onclick="desprogramarDesdeDetalle()">↩ Quitar de la semana</button>
     <div class="modal-actions" style="margin-top:12px">
       <button class="modal-cancel" style="flex:1" onclick="cerrarModal('modal-detalle')">Cerrar</button>
-      <button class="modal-confirm" style="flex:1;background:transparent;color:#FFD100;border:1px solid rgba(255,209,0,0.4)" onclick="cerrarModal('modal-detalle');abrirEditarTrabajo(modalTrabajoId)">✏ Editar</button>
+      <button class="modal-confirm" style="flex:1;background:transparent;color:var(--text);border:1.5px solid var(--text);padding:13px;border-radius:var(--radius-sm);font-size:14px;cursor:pointer;font-family:Georgia,serif" onclick="cerrarModal('modal-detalle');abrirEditarTrabajo(modalTrabajoId)">✏ Editar</button>
     </div>
   </div>
 </div>
