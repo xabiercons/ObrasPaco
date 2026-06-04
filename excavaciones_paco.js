@@ -943,37 +943,40 @@ function aceptarMapa() {
 // btnId: ID del botón que cambia de texto al activarse
 // resId: ID del div donde se muestra la transcripción
 // Array temporal de fechas mientras se edita un trabajo
-let _edFechas = [];
+// Fecha programada actual mientras se edita (ISO string o '')
+let _edFecha = '';
 
-// Renderiza los chips de fechas en el modal de edición
-function edRenderFechas() {
-  const wrap = document.getElementById('ed-fechas-chips');
-  if(!wrap) return;
-  if(_edFechas.length === 0) {
-    wrap.innerHTML = '<span style="font-size:12px;color:var(--text3);font-style:italic">Sin fechas asignadas</span>';
-    return;
+// Muestra la fecha actual en el bloque de edición
+function edRenderFecha() {
+  const label = document.getElementById('ed-fecha-actual-label');
+  const picker = document.getElementById('ed-fecha-picker');
+  if(!label) return;
+  if(_edFecha) {
+    const d = new Date(_edFecha + 'T12:00');
+    label.textContent = d.toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'long'});
+    // Mostrar bloque solo si tiene fecha (trabajo programado)
+    const bloque = document.getElementById('ed-fechas-bloque');
+    if(bloque) bloque.style.display = '';
+  } else {
+    label.textContent = 'Sin fecha asignada';
   }
-  wrap.innerHTML = _edFechas.sort().map(f => {
-    const d = new Date(f + 'T12:00');
-    const label = d.toLocaleDateString('es-ES', {weekday:'short', day:'numeric', month:'short'});
-    return `<span style="display:inline-flex;align-items:center;gap:5px;background:var(--info-bg);color:var(--info);border:1px solid var(--info-border);border-radius:20px;padding:4px 10px;font-size:12px">
-      ${label}
-      <button onclick="edFechaRemove('${f}')" style="background:none;border:none;color:var(--info);cursor:pointer;font-size:14px;padding:0;line-height:1">×</button>
-    </span>`;
-  }).join('');
+  if(picker) {
+    picker.value = '';
+    picker.min = fechaISO(new Date());
+  }
 }
 
-// Añade la fecha seleccionada en el picker al array de fechas
-// Valida: no pasadas, no duplicadas, avisa si el día ya tiene 2+ trabajos
-async function edFechaAdd() {
+// Cambia la fecha del trabajo por la seleccionada en el picker
+// Valida: no pasada, avisa si el día ya tiene 2+ trabajos
+// Si hay carga → ofrece elegir otra fecha o volver a la bolsa (vista Mes)
+async function edFechaCambiar() {
   const picker = document.getElementById('ed-fecha-picker');
   const val = picker.value;
   if(!val) { showToast('Selecciona una fecha'); return; }
   const hoy = fechaISO(new Date());
-  if(val < hoy) { showToast('No se pueden asignar fechas pasadas'); return; }
-  if(_edFechas.includes(val)) { showToast('Esa fecha ya está añadida'); return; }
+  if(val < hoy) { showToast('Solo fechas desde hoy en adelante'); return; }
 
-  // Comprobar cuántos trabajos hay ese día (excluyendo el que se está editando)
+  // Validar carga del día elegido
   const trabajosDia = getTrab().filter(t =>
     String(t.id) !== String(_editandoId) &&
     (t.diasProgramados||[]).includes(val) &&
@@ -983,29 +986,38 @@ async function edFechaAdd() {
   if(trabajosDia.length >= 2) {
     const d = new Date(val + 'T12:00');
     const label = d.toLocaleDateString('es-ES', {weekday:'long', day:'numeric', month:'long'});
-    const ir = await showConfirm(
-      `⚠ El ${label} ya tiene ${trabajosDia.length} trabajos programados`,
-      '¿Añadir igualmente o ir al calendario para reorganizar?',
-      false
+    const nombres = trabajosDia.slice(0,2).map(t=>t.cliente||'Sin cliente').join(', ');
+    // Mostrar aviso: elegir otra fecha o volver a la bolsa
+    const irBolsa = !confirm(
+      `⚠ El ${label} ya tiene ${trabajosDia.length} trabajos programados:\n${nombres}\n\nPulsa Aceptar para elegir otra fecha\nPulsa Cancelar para volver a la bolsa del calendario`
     );
-    if(!ir) {
-      // Ir al calendario — cerrar modal y abrir vista Mes
-      cerrarModal('modal-editar');
-      showView('mes');
+    if(irBolsa) {
+      // Volver a la bolsa: pasar a Aceptado, borrar fecha, ir a vista Mes
+      const t = getTrab().find(x=>String(x.id)===String(_editandoId));
+      if(t) {
+        t.estado = 'Aceptado';
+        t.diasProgramados = [];
+        t.operarios = [];
+        showToast('Guardando...');
+        await updateTrab(t);
+        cerrarModal('modal-editar');
+        renderListado();
+        renderMes();
+        showView('mes');
+        showToast('✓ Trabajo en la bolsa — reprógramalo desde el calendario');
+      }
       return;
     }
-    // Si confirma, añade igualmente
+    // Elegir otra fecha: limpiar picker y esperar
+    picker.value = '';
+    showToast('Elige otra fecha en el calendario');
+    return;
   }
 
-  _edFechas.push(val);
-  picker.value = '';
-  edRenderFechas();
-}
-
-// Elimina una fecha del array de fechas
-function edFechaRemove(fecha) {
-  _edFechas = _edFechas.filter(f => f !== fecha);
-  edRenderFechas();
+  // Sin conflicto — asignar la nueva fecha
+  _edFecha = val;
+  edRenderFecha();
+  showToast('Fecha actualizada — guarda los cambios para confirmar');
 }
 
 // Genera un enlace a Google Maps para una dirección o coordenadas
@@ -1563,6 +1575,7 @@ async function quitarDelCalendario(id) {
   showToast('Guardando…');
   await updateTrab(t);
   renderListado();
+  renderMes();
   showToast('✓ Trabajo quitado del calendario — reprógramalo desde la vista Mes');
 }
 
@@ -1633,10 +1646,11 @@ function abrirEditarTrabajo(id) {
   document.getElementById('ed-urgencia').value = t.urgencia||'Normal';
   document.getElementById('ed-estado').value = t.estado||'Pendiente presupuestar';
   document.getElementById('ed-notas').value = t.notas||'';
-  // Renderizar chips de fechas
-  _edFechas = [...(t.diasProgramados||[])].sort();
-  edRenderFechas();
-  document.getElementById('ed-fecha-picker').value = '';
+  // Cargar fecha programada (primera si hay varias, o vacío)
+  _edFecha = (t.diasProgramados && t.diasProgramados.length > 0)
+    ? [...t.diasProgramados].sort()[0]
+    : '';
+  edRenderFecha();
   document.getElementById('modal-editar').classList.add('show');
 }
 
@@ -1659,16 +1673,17 @@ async function guardarEdicionTrabajo() {
   t.urgencia = document.getElementById('ed-urgencia').value;
   t.estado = document.getElementById('ed-estado').value;
   t.notas = document.getElementById('ed-notas').value.trim();
-  // Fechas: usar el array _edFechas gestionado por los chips
-  t.diasProgramados = [..._edFechas].sort();
-  // Si hay fechas y estado es Aceptado → pasa a Programado
-  if(_edFechas.length > 0 && t.estado === 'Aceptado') t.estado = 'Programado';
-  // Si no hay fechas y estado era Programado → vuelve a Aceptado (bolsa)
-  if(_edFechas.length === 0 && t.estado === 'Programado') t.estado = 'Aceptado';
+  // Fechas: usar _edFecha (fecha única)
+  t.diasProgramados = _edFecha ? [_edFecha] : [];
+  // Si hay fecha y estado es Aceptado → pasa a Programado
+  if(_edFecha && t.estado === 'Aceptado') t.estado = 'Programado';
+  // Si no hay fecha y estado era Programado → vuelve a Aceptado (bolsa)
+  if(!_edFecha && t.estado === 'Programado') t.estado = 'Aceptado';
   showToast('Guardando...');
   await updateTrab(t);
   cerrarModal('modal-editar');
   renderListado();
+  renderMes();
   showToast('✓ Trabajo actualizado');
 }
 
