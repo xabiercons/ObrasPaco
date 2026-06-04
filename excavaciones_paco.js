@@ -2268,7 +2268,17 @@ function abrirDetalle(id) {
     btnReal.style.display = '';
     btnDesp.style.display = '';
   }
+  // Botón Editar — visible siempre excepto si está Realizado
+  const btnEditar = document.getElementById('btn-editar-desde-detalle');
+  if(btnEditar) btnEditar.style.display = t.estado === 'Realizado' ? 'none' : '';
+
   document.getElementById('modal-detalle').classList.add('show');
+}
+
+function editarDesdeDetalle() {
+  if(!modalTrabajoId) return;
+  cerrarModal('modal-detalle');
+  abrirEditarTrabajo(modalTrabajoId);
 }
 
 // Abre el modal de horas reales desde el botón del modal detalle
