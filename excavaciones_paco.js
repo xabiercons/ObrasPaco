@@ -79,6 +79,18 @@
  */
 
 // ════════════════════════════════════════════════════════
+// CACHEBUSTER — Forzar recarga de nueva versión en todos los móviles
+// Llamar a forzarActualizacion() desde consola o botón tras cada deploy.
+// Guarda un nuevo timestamp en localStorage → el HTML lo usa al recargar.
+// ════════════════════════════════════════════════════════
+function forzarActualizacion() {
+  const v = Date.now();
+  localStorage.setItem('app_version', v);
+  showToast('♻ Actualizando app… recargando');
+  setTimeout(() => location.reload(true), 1000);
+}
+
+// ════════════════════════════════════════════════════════
 // AUTH — Supabase Authentication
 // Usa el SDK de Supabase para gestionar sesión con email+contraseña.
 // La sesión persiste en localStorage automáticamente.
@@ -1101,8 +1113,8 @@ function startVoice(field, btnId, resId) {
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
   AppState.recognition = new Rec();
   AppState.recognition.lang = 'es-ES';
-  AppState.recognition.continuous = true;
-  AppState.recognition.interimResults = true; // Resultados provisionales mientras habla
+  AppState.recognition.continuous = false;     // true causa bucle en Android Chrome
+  AppState.recognition.interimResults = true;  // Resultados provisionales mientras habla
 
   const btn = document.getElementById(btnId);
   const res = document.getElementById(resId);
@@ -1146,12 +1158,25 @@ function startVoice(field, btnId, resId) {
     if(e.error !== 'no-speech') { AppState.listening = false; resetVoiceBtn(btn, field); }
   };
 
-  // Al terminar (pausa larga, error, etc.): si seguimos en modo escucha, reinicia
+  // Al terminar: reinicio controlado con delay para evitar bucle en Android
+  // (continuous=false + setTimeout evita el race condition de Android Chrome)
+  AppState.recognition._restarting = false;
   AppState.recognition.onend = () => {
-    if(AppState.listening) {
-      try { AppState.recognition.start(); } catch(err) { AppState.listening = false; resetVoiceBtn(btn, field); }
-    } else {
-      resetVoiceBtn(btn, field); // Restaura el botón a su estado normal
+    if(AppState.listening && !AppState.recognition._restarting) {
+      AppState.recognition._restarting = true;
+      setTimeout(() => {
+        if(AppState.listening) {
+          try {
+            AppState.recognition._restarting = false;
+            AppState.recognition.start();
+          } catch(err) {
+            AppState.listening = false;
+            resetVoiceBtn(btn, field);
+          }
+        }
+      }, 150);
+    } else if(!AppState.listening) {
+      resetVoiceBtn(btn, field);
     }
   };
 
@@ -1162,7 +1187,7 @@ function startVoice(field, btnId, resId) {
 // Restaura el botón de voz a su estado original tras finalizar
 function resetVoiceBtn(btn, field) {
   AppState.listening = false;
-  const labels = { cliente:'🎤 Hablar', direccion:'🎤 Hablar dirección', tipo:'🎤 Hablar', maquinaria:'🎤 Hablar', horas:'🎤 Hablar', notas:'🎤 Dictar notas' };
+  const labels = { cliente:'🎤 Dictar cliente', direccion:'🎤 Hablar dirección', tipo:'🎤 Dictar tipo de trabajo', maquinaria:'🎤 Dictar maquinaria', horas:'🎤 Dictar horas', notas:'🎤 Dictar notas', obra:'🎤 Dictar nombre de obra' };
   btn.textContent = labels[field] || '🎤 Hablar';
   btn.classList.remove('AppState.listening');
 }
@@ -1319,7 +1344,7 @@ function toggleOperarioResumen(nombre, btn) {
 async function guardarTrabajo() {
   const nuevo = {
     id: Date.now(),
-    ...form,
+    ...AppState.form,
     tipo: (AppState.form.tipos||[]).join(', '),
     maquinaria: (AppState.form.maquinarias||[]).join(', '),
     estado: 'Pendiente presupuestar',
