@@ -1351,7 +1351,7 @@ async function guardarTrabajo() {
     fecha: new Date().toISOString().slice(0,10),
     fechaCreacion: new Date().toISOString(),
     diasProgramados: [],
-    operarios: [],
+    operarios: AppState.form.operarios || [],   // operarios seleccionados en paso 7
     jornadasParciales: [],
     horasReales: null,
     notasCierre: ''
@@ -1367,7 +1367,7 @@ async function guardarTrabajo() {
 // Limpia el formulario y lo vuelve al estado inicial (paso 1, valores vacíos)
 // Resetea el formulario de nuevo trabajo a su estado inicial
 function resetForm() {
-  form = { cliente:'', obra:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'' };
+  AppState.form = { cliente:'', obra:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'', operarios:[] };
   // Reset selector cliente
   const csSelected = document.getElementById('cs-selected');
   if (csSelected) csSelected.textContent = 'Seleccionar cliente…';
