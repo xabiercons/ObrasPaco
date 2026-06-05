@@ -298,6 +298,7 @@ const AppState = {
   edTipos: [],       // tipos seleccionados en modal editar
   edMaquinarias: [], // maquinarias seleccionadas en modal editar
   edOperarios: [],   // operarios seleccionados en modal editar
+  mrealOperarios: [], // operarios seleccionados en modal realizado
 };
 
 const CONFIG_DEFAULT = {
@@ -607,6 +608,7 @@ async function loadTrab() {
       row.materiales = row.materiales || '';
       row.obra = row.obra || '';
       row.fechaCreacion = row.fecha_creacion;
+      row.fechaRealizado = row.fecha_realizado || '';
       row.maquinaria = row.maquinarias.join(', ');
       row.tipo = row.tipos.join(', ');
       return row;
@@ -715,7 +717,8 @@ function trabajoToRow(t) {
     jornadas_parciales: JSON.stringify(t.jornadasParciales || []),
     horas_reales: JSON.stringify(t.horasReales || null),
     notas_cierre: t.notasCierre || '',
-    materiales: t.materiales || ''
+    materiales: t.materiales || '',
+    fecha_realizado: t.fechaRealizado || ''
   };
 }
 
@@ -2425,6 +2428,29 @@ function mrealAddMaq() {
   renderMrealMaquinas();
 }
 
+// Renderiza chips de operarios en el modal de realizado
+function renderMrealOperarios() {
+  const wrap = document.getElementById('mreal-operarios');
+  if(!wrap) return;
+  const ops = getOperariosActivos();
+  wrap.innerHTML = ops.map(op => {
+    const activo = AppState.mrealOperarios.includes(op);
+    return `<span onclick="mrealToggleOp('${op.replace(/'/g,"\'")}')"
+      style="display:inline-flex;align-items:center;padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;border:1.5px solid;transition:all .15s;
+      ${activo
+        ? 'background:var(--accent);color:var(--accent-dark);border-color:var(--accent);font-weight:600'
+        : 'background:var(--card);color:var(--text2);border-color:var(--border)'}">${op}</span>`;
+  }).join('');
+}
+
+function mrealToggleOp(val) {
+  if(AppState.mrealOperarios.includes(val))
+    AppState.mrealOperarios = AppState.mrealOperarios.filter(x=>x!==val);
+  else
+    AppState.mrealOperarios.push(val);
+  renderMrealOperarios();
+}
+
 // Abre el modal de horas reales para un trabajo concreto
 // Abre el modal de realizado directamente por ID de trabajo
 function abrirModalRealizadoPorId(id) {
@@ -2433,7 +2459,12 @@ function abrirModalRealizadoPorId(id) {
   AppState.modalTrabajoId = id;
   document.getElementById('mreal-nombre').textContent = (t.cliente||'Sin cliente') + ' — ' + (t.obra||t.direccion||'Sin dirección');
   AppState.mrealMaquinas = t.maquinarias && t.maquinarias.length ? [...t.maquinarias] : (t.maquinaria ? t.maquinaria.split(', ') : ['General']);
+  AppState.mrealOperarios = t.operarios && t.operarios.length ? [...t.operarios] : [];
   renderMrealMaquinas();
+  renderMrealOperarios();
+  // Fecha real: por defecto hoy, pero editable
+  const fechaInput = document.getElementById('mreal-fecha');
+  if(fechaInput) fechaInput.value = new Date().toISOString().slice(0,10);
   document.getElementById('mreal-notas').value = '';
   document.getElementById('mreal-materiales').value = '';
   cerrarModal('modal-detalle');
@@ -2459,6 +2490,11 @@ async function confirmarRealizado() {
   t.horasReales = horasReales;
   t.notasCierre = document.getElementById('mreal-notas').value.trim();
   t.materiales = document.getElementById('mreal-materiales').value.trim();
+  // Fecha real de realización (puede diferir de la fecha programada)
+  const fechaRealInput = document.getElementById('mreal-fecha');
+  if(fechaRealInput && fechaRealInput.value) t.fechaRealizado = fechaRealInput.value;
+  // Operarios que realizaron el trabajo
+  if(AppState.mrealOperarios.length > 0) t.operarios = [...AppState.mrealOperarios];
   t.fechaRealizado = new Date().toISOString().slice(0,10);
   cerrarModal('modal-realizado');
   showToast('Guardando...');
