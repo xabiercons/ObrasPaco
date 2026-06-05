@@ -1566,7 +1566,8 @@ function renderListado() {
         <div class="tc-meta" style="margin-top:8px">
           <span class="tc-chip">⏱ ${t.horas||0}h prev.</span>
           <span class="tc-chip">${t.urgencia||'Normal'}</span>
-          <span class="tc-chip">${t.fechaRealizado||t.fecha||''}</span>
+          <span class="tc-chip">${(()=>{const f=t.fechaRealizado||t.fecha||'';if(!f)return '';const d=new Date(f+'T12:00');return d.toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'});})()}</span>
+          ${t.operarios&&t.operarios.length?`<span class="tc-chip">👷 ${t.operarios.join(', ')}</span>`:''}
         </div>
         <div class="tc-actions">
           ${esFechasPasadas?`<button class="tc-btn" onclick="quitarDelCalendario(${t.id})" style="color:var(--warning);border-color:rgba(245,158,11,0.4)">↩ Quitar del calendario</button>`:''}
@@ -2492,10 +2493,11 @@ async function confirmarRealizado() {
   t.materiales = document.getElementById('mreal-materiales').value.trim();
   // Fecha real de realización (puede diferir de la fecha programada)
   const fechaRealInput = document.getElementById('mreal-fecha');
-  if(fechaRealInput && fechaRealInput.value) t.fechaRealizado = fechaRealInput.value;
+  t.fechaRealizado = (fechaRealInput && fechaRealInput.value)
+    ? fechaRealInput.value
+    : new Date().toISOString().slice(0,10);
   // Operarios que realizaron el trabajo
   if(AppState.mrealOperarios.length > 0) t.operarios = [...AppState.mrealOperarios];
-  t.fechaRealizado = new Date().toISOString().slice(0,10);
   cerrarModal('modal-realizado');
   showToast('Guardando...');
   await updateTrab(t);
