@@ -261,6 +261,71 @@
 <!-- ═══════════════════════════════════════
      VISTA: LISTADO
 ════════════════════════════════════════ -->
+
+<!-- ═══════════════════════════════════════
+     VISTA: MES (Calendario mensual)
+════════════════════════════════════════ -->
+<div class="view" id="view-mes">
+
+  <!-- Cabecera: mes y filtro de maquinaria -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+    <button class="nav-flecha" onclick="cambiarMes(-1)">←</button>
+    <span id="mes-titulo" style="flex:1;text-align:center;font-size:15px;font-family:'Courier New',monospace;font-weight:bold;color:var(--text)"></span>
+    <button class="nav-flecha" onclick="cambiarMes(1)">→</button>
+  </div>
+
+  <!-- Filtro de maquinaria -->
+  <select id="mes-filtro-maq" onchange="renderMes()" style="margin-bottom:12px;font-size:13px;padding:8px 10px">
+    <option value="">Toda la maquinaria</option>
+  </select>
+
+  <!-- Grid del calendario -->
+  <div class="mes-grid-header" id="mes-grid-header"></div>
+  <div class="mes-grid" id="mes-grid"></div>
+
+  <!-- Mensaje cuando está en modo programación -->
+  <div id="mes-prog-hint" style="display:none;text-align:center;font-size:13px;color:var(--text3);padding:8px;font-family:'Courier New',monospace;margin-bottom:12px">
+    Toca los días para programar
+  </div>
+
+  <!-- Bolsa de trabajos pendientes -->
+  <div class="bolsa-header">
+    <span>Bolsa — Aceptados sin fecha</span>
+    <span class="bolsa-count" id="bolsa-count">0</span>
+  </div>
+  <div id="bolsa-trabajos"></div>
+
+  <!-- Barra fija de programación -->
+  <div id="barra-programar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:2px solid var(--accent);padding:12px 16px;z-index:150">
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px">
+      <strong id="bprog-nombre"></strong>
+      <span id="bprog-dias" style="margin-left:8px;color:var(--text3)"></span>
+    </div>
+    <div id="bprog-operarios" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px">
+      <button onclick="cancelarProgramacion()" style="flex:1;padding:11px;border:1px solid var(--border);border-radius:var(--radius-sm);background:none;color:var(--text2);font-size:13px;cursor:pointer;font-family:Georgia,serif">Cancelar</button>
+      <button onclick="confirmarProgramar()" style="flex:2;padding:11px;background:var(--accent);color:#1C1C1C;border:none;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:Georgia,serif;font-weight:bold">✓ Confirmar</button>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     VISTA: HOY (Vista del operario)
+════════════════════════════════════════ -->
+<div class="view" id="view-hoy">
+
+  <div id="op-selector-wrap">
+    <div class="op-selector" id="op-selector"></div>
+  </div>
+
+  <div id="op-fecha-txt" style="font-size:12px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px"></div>
+
+  <div id="op-contenido"></div>
+
+</div>
+
 <div class="view" id="view-listado">
   <div class="backup-panel">
     <div class="backup-title">⚙ Copia de seguridad</div>
