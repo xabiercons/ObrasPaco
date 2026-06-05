@@ -277,6 +277,16 @@ Funciones clave:
 
 `opMarcarRealizado(id)` → abre `abrirModalRealizadoPorId(id)` → al confirmar llama a `confirmarRealizado()`.
 
+**Modal de realizado** — `abrirModalRealizadoPorId(id)` inicializa:
+- `AppState.mrealMaquinas` — array de máquinas del trabajo (editable)
+- `AppState.mrealOperarios` — operarios preseleccionados (chips)
+- `mreal-fecha` — fecha de realización, default hoy, editable
+- `mreal-notas` y `mreal-materiales` — texto libre
+
+`renderMrealOperarios()` — renderiza chips de operarios en `#mreal-operarios`. Toggle con `mrealToggleOp(val)`.
+
+`confirmarRealizado()` guarda: `t.horasReales`, `t.notasCierre`, `t.materiales`, `t.fechaRealizado` (desde `mreal-fecha`), `t.operarios` (desde `AppState.mrealOperarios`). Luego `t.estado = 'Realizado'` y `updateTrab(t)`.
+
 ### Módulo 5 — Configuración
 
 Clientes: `cfgAddCliente()`, `cfgEliminarCliente()`, `renderCfgClientes()`, `abrirEditarCliente()`, `guardarEdicionCliente()`.
@@ -348,8 +358,10 @@ Usuario pulsa ✏ Editar en una tarjeta del listado
     ↓
 abrirEditarTrabajo(id)
     ↓
-Carga datos en el modal: _edFecha = primer día de diasProgramados
+Carga chips: AppState.edTipos/edMaquinarias/edOperarios desde config activa
+edRenderChips() → marca en amarillo los que ya tenía el trabajo
     ↓
+Carga fecha: AppState.edFecha = primer día de diasProgramados
 edRenderFecha() — muestra la fecha actual en el bloque "Fecha actual"
     ↓
 Usuario selecciona nueva fecha en el picker y pulsa "Cambiar"
@@ -365,9 +377,10 @@ edFechaCambiar()
 Usuario pulsa "✓ Guardar cambios"
     ↓
 guardarEdicionTrabajo()
-    ├── t.diasProgramados = _edFecha ? [_edFecha] : []
+    ├── t.tipos/maquinarias/operarios = AppState.edTipos/edMaquinarias/edOperarios
+    ├── t.diasProgramados = AppState.edFecha ? [AppState.edFecha] : []
     ├── Ajusta estado si es necesario (Aceptado↔Programado)
-    ├── await updateTrab(t) → Supabase PATCH + _trabCache update
+    ├── await updateTrab(t) → Supabase PATCH + AppState.trabCache update
     ├── renderListado()
     └── renderMes()   ← crítico: actualiza el calendario al instante
 ```
@@ -559,7 +572,7 @@ Desde v6.8, cuando cualquier petición a Supabase devuelve `401 JWT expired`, la
 
 ## 12. Sistema de variables CSS — tema claro
 
-Desde v7.6, todos los colores se definen con variables CSS en `excavaciones_paco.css`. Antes había ~154 colores hardcodeados dispersos.
+Desde v7.6, todos los colores se definen con variables CSS en `excavaciones_paco.css`. El CSS está reformateado en 14 secciones (una regla por línea) sin colores hardcodeados oscuros. Antes había ~154 colores hardcodeados dispersos.
 
 ### Variables principales
 
@@ -675,6 +688,16 @@ git push
 # Probar en https://xabiercons.github.io/ObrasPaco/excavaciones_paco_00.html
 # Si el navegador no actualiza, añadir ?v2 al final de la URL
 ```
+
+---
+
+## Notas técnicas acumuladas v7.6
+
+- `showView('hoy')` — la vista operario se llama `view-hoy`. El nav usa `showView('hoy')`. Índice 3 del nav = Hoy. Nunca usar `showView('operario')`.
+- La variable local `bprogDias` dentro de `actualizarBarraProgramar()` NO debe renombrarse — no es `AppState.progDias`. Fue un bug del refactor automático de AppState (corregido).
+- Modal realizado: `abrirModalRealizadoPorId(id)` inicializa `AppState.mrealOperarios` y el campo `mreal-fecha`. `confirmarRealizado()` guarda `t.fechaRealizado` y `t.operarios`. Columna Supabase: `fecha_realizado text DEFAULT ''`.
+- CSS 14 secciones: cualquier color nuevo debe ir como variable en `:root`, nunca hardcodeado. Las píldoras de urgencia del calendario (`dia-trabajo-pill.urgente/alta`) usan variables `--danger-bg`, `--warning-bg`.
+- AppState: las propiedades dentro del objeto `const AppState = {}` no llevan prefijo `AppState.` — son solo `stepActual: 1`, no `AppState.stepActual: 1`. El reemplazo automático puede introducir este bug si no se limita al ámbito correcto.
 
 ---
 

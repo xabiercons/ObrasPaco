@@ -1143,7 +1143,9 @@
         <div style="font-size:12px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px;">Campos editables</div>
         <div style="font-size:13px; color:var(--text2); line-height:1.8;">
           Cliente · Nombre de obra · Dirección · Zona<br>
-          Tipo de trabajo · Maquinaria<br>
+          <strong style="color:var(--negro);">Tipo de trabajo</strong> — chips seleccionables<br>
+          <strong style="color:var(--negro);">Maquinaria</strong> — chips seleccionables<br>
+          <strong style="color:var(--negro);">Operarios</strong> — chips seleccionables<br>
           Horas previstas · Urgencia · Estado<br>
           <strong style="color:var(--negro);">Fecha programada</strong> · Notas
         </div>
@@ -1203,9 +1205,21 @@
           <div class="movil-label">Dirección</div>
           <div class="movil-input">Rúa do Monte de Conxo</div>
           <div class="movil-label">Tipo de trabajo</div>
-          <div class="movil-input">Excavación</div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;">
+            <span style="padding:3px 8px;background:var(--amarillo);color:var(--negro);border-radius:20px;font-size:8px;font-weight:700;">Excavación</span>
+            <span style="padding:3px 8px;border:1px solid var(--gris-borde);border-radius:20px;font-size:8px;color:var(--text2);">Picado</span>
+            <span style="padding:3px 8px;border:1px solid var(--gris-borde);border-radius:20px;font-size:8px;color:var(--text2);">Zanjas</span>
+          </div>
           <div class="movil-label">Maquinaria</div>
-          <div class="movil-input">Minipala JCB</div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;">
+            <span style="padding:3px 8px;background:var(--amarillo);color:var(--negro);border-radius:20px;font-size:8px;font-weight:700;">Minipala JCB</span>
+            <span style="padding:3px 8px;border:1px solid var(--gris-borde);border-radius:20px;font-size:8px;color:var(--text2);">Volvo</span>
+          </div>
+          <div class="movil-label">Operarios</div>
+          <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;">
+            <span style="padding:3px 8px;background:var(--amarillo);color:var(--negro);border-radius:20px;font-size:8px;font-weight:700;">Paco</span>
+            <span style="padding:3px 8px;border:1px solid var(--gris-borde);border-radius:20px;font-size:8px;color:var(--text2);">Oper. 2</span>
+          </div>
           <div style="display:flex; gap:6px; margin-bottom:6px;">
             <div style="flex:1;">
               <div class="movil-label">Horas</div>
@@ -1479,7 +1493,21 @@
         <div class="paso-num">4</div>
         <div class="paso-contenido">
           <h3>Marcar como realizado</h3>
-          <p>Cuando termines un trabajo, pulsa <strong>"✓ Marcar como realizado"</strong>. Te preguntará las horas reales empleadas. Confirma y desaparece de la lista.</p>
+          <p>Pulsa <strong>"✓ Marcar como realizado"</strong>. Se abre un modal con cuatro campos:</p>
+          <p style="margin-top:8px; line-height:1.8;">
+            <strong>Fecha de realización</strong> — por defecto hoy. Cámbiala si el trabajo se hizo otro día o terminó más tarde de lo previsto.<br>
+            <strong>Operarios</strong> — chips con los operarios activos. Selecciona quién lo realizó.<br>
+            <strong>Horas reales por maquinaria</strong> — ajusta las horas de cada máquina. Puedes añadir o quitar máquinas.<br>
+            <strong>Notas de cierre y Materiales</strong> — texto libre para observaciones finales.
+          </p>
+        </div>
+      </div>
+
+      <div class="alerta alerta-amarilla">
+        <div class="alerta-icono">📅</div>
+        <div>
+          <div class="alerta-titulo">Fecha real vs fecha programada</div>
+          <div class="alerta-texto">Si el trabajo duró más de lo previsto o lo cubres al día siguiente, cambia la fecha de realización. Esto garantiza que el historial refleja cuándo se hizo realmente, no cuándo estaba programado.</div>
         </div>
       </div>
 
@@ -1503,17 +1531,24 @@
           <div style="padding:5px 10px; border:1px solid rgba(255,255,255,.2); border-radius:20px; font-size:9px; color:rgba(255,255,255,.5);">Oper. 2</div>
         </div>
         <div class="movil-contenido" style="padding:8px;">
-          <div style="font-size:8px; font-weight:700; color:var(--text3); letter-spacing:.08em; margin-bottom:6px; border-bottom:1px solid var(--gris-borde); padding-bottom:4px;">HOY</div>
-          <div class="movil-card" style="border-left:3px solid var(--amarillo);">
-            <div class="movil-card-titulo">García — Excavación</div>
-            <div class="movil-card-sub">Milladoiro · Minipala JCB · 6h</div>
-            <div style="font-size:9px; color:var(--azul); margin-bottom:6px;">📍 Rúa do Monte — Cómo llegar →</div>
-            <div class="movil-btn" style="background:var(--verde); color:var(--blanco);">✓ Marcar como realizado</div>
+          <div style="font-size:9px;font-weight:700;color:var(--negro);margin-bottom:6px;">✓ Trabajo Realizado</div>
+          <div style="font-size:10px;font-weight:600;color:var(--negro);margin-bottom:8px;">García — Excavación</div>
+          <div class="movil-label">Fecha de realización</div>
+          <div class="movil-input">05/06/2026</div>
+          <div class="movil-label">Operarios</div>
+          <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
+            <span style="padding:3px 8px;background:var(--amarillo);color:var(--negro);border-radius:20px;font-size:8px;font-weight:700;">Paco</span>
+            <span style="padding:3px 8px;border:1px solid var(--gris-borde);border-radius:20px;font-size:8px;color:var(--text2);">Juan</span>
           </div>
-          <div style="font-size:8px; font-weight:700; color:var(--text3); letter-spacing:.08em; margin:8px 0 6px; border-bottom:1px solid var(--gris-borde); padding-bottom:4px;">MAÑANA</div>
-          <div class="movil-card">
-            <div class="movil-card-titulo">Rodríguez — Picado</div>
-            <div class="movil-card-sub">Conxo · Manual · 4h</div>
+          <div class="movil-label">Horas reales</div>
+          <div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;">
+            <span style="font-size:9px;color:var(--text2);flex:1;">Minipala JCB</span>
+            <span style="font-size:10px;font-weight:600;">6</span>
+            <span style="font-size:8px;color:var(--text3);">h</span>
+          </div>
+          <div style="display:flex;gap:4px;margin-top:6px;">
+            <div style="flex:1;padding:6px;border:1px solid var(--gris-borde);border-radius:5px;font-size:8px;text-align:center;color:var(--text2);">Cancelar</div>
+            <div style="flex:2;padding:6px;background:var(--amarillo);border-radius:5px;font-size:8px;font-weight:700;text-align:center;color:var(--negro);">✓ Confirmar</div>
           </div>
         </div>
       </div>
