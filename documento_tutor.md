@@ -1,5 +1,5 @@
 # Documento Tutor — Excavaciones Paco
-**Versión 7.6 · Junio 2026**
+**Versión 7.7b · Junio 2026**
 
 Guía técnica del código para quien quiera entenderlo, modificarlo o aprender de él.
 
@@ -56,15 +56,32 @@ Desde v7.4 el código está separado en **3 archivos** (antes todo en uno):
 ObrasPaco/
 ├── excavaciones_paco_00.html   — estructura HTML (vistas, modales, formularios)
 ├── excavaciones_paco.css       — estilos con sistema de variables CSS (~492 líneas)
-└── excavaciones_paco.js        — lógica completa (~3.100 líneas)
+└── excavaciones_paco.js        — lógica completa (~3.220 líneas)
 ```
 
-El HTML referencia los otros dos:
+El HTML referencia los otros dos con **cachebuster automático** (v7.7). El navegador siempre descarga la versión más reciente sin limpiar caché manualmente:
 ```html
-<link rel="stylesheet" href="excavaciones_paco.css">
+<link rel="stylesheet" id="app-css" href="excavaciones_paco.css">
+<script>
+  // Inyecta el CSS con versión desde localStorage
+  (function() {
+    var v = localStorage.getItem('app_version');
+    if (!v) { v = Date.now(); localStorage.setItem('app_version', v); }
+    document.getElementById('app-css').href = 'excavaciones_paco.css?v=' + v;
+  })();
+</script>
 <!-- al final del body, justo antes de </body> -->
-<script src="excavaciones_paco.js"></script>
+<script>
+  (function() {
+    var v = localStorage.getItem('app_version') || Date.now();
+    var s = document.createElement('script');
+    s.src = 'excavaciones_paco.js?v=' + v;
+    document.body.appendChild(s);
+  })();
+</script>
 ```
+
+Para forzar que todos los móviles descarguen la nueva versión tras un deploy: **Configuración → ♻ Forzar actualización**. Esto actualiza el timestamp en `localStorage` y recarga la página.
 
 > **Crítico**: el `<script>` debe estar al final del `<body>`, no en el `<head>`. Si se pone antes, el JS intenta acceder a elementos del DOM que todavía no existen → `Cannot read properties of null`.
 
@@ -215,15 +232,18 @@ GRANT USAGE, SELECT ON SEQUENCE public.clientes_id_seq TO authenticated;
 
 ### Módulo 1 — Formulario de captura (7 pasos)
 
-Estado del formulario en el objeto global `form`:
+Estado del formulario en `AppState.form` (desde v7.6, centralizado en AppState):
 ```javascript
-let form = {
+AppState.form = {
   cliente: '', obra: '', direccion: '', zona: '',
   lat: null, lng: null,
   tipos: [], maquinarias: [],
-  horas: 4, urgencia: 'Normal', notas: ''
+  horas: 4, urgencia: 'Normal', notas: '',
+  operarios: []   // ← añadido en v7.7b: operarios asignados en paso 7
 };
 ```
+
+> **Trampa frecuente**: siempre acceder como `AppState.form.campo`, nunca como `form.campo` suelto. En v7.7 se detectaron dos casos donde la migración a AppState dejó referencias sin prefijo: `...form` en `guardarTrabajo()` y `form =` en `resetForm()`. Ambos corregidos.
 
 Funciones clave:
 - `showStep(n)` — muestra el paso n, oculta el resto
@@ -315,7 +335,7 @@ function startVoice(field, btnId, resId) {
 }
 
 function processVoice(field, texto) {
-  // Según 'field', procesa el texto y actualiza form o chips
+  // Según 'field', procesa el texto y actualiza AppState.form o chips
   // Devuelve { ok: boolean, msg: string }
 }
 
@@ -326,6 +346,32 @@ function matchSinonimo(field, texto, chipsId) {
 ```
 
 Cada tipo de trabajo y máquina tiene sinónimos configurables en Supabase. Por ejemplo, "retro" o "giratorio" activan el Volvo giratorio.
+
+### Configuración de voz (v7.7 — fix Android)
+
+Desde v7.7 la API de voz usa `continuous: false` en lugar de `continuous: true`. Con `continuous: true`, Chrome en Android lanzaba un bucle de repetición: al terminar cada frase el `onend` relanzaba `recognition.start()` sin delay, causando que el texto se duplicara en bucle.
+
+La solución actual:
+```javascript
+AppState.recognition.continuous = false;      // evita bucle en Android
+
+AppState.recognition._restarting = false;
+AppState.recognition.onend = () => {
+  if (AppState.listening && !AppState.recognition._restarting) {
+    AppState.recognition._restarting = true;
+    setTimeout(() => {                         // delay 150ms — evita race condition
+      if (AppState.listening) {
+        AppState.recognition._restarting = false;
+        AppState.recognition.start();
+      }
+    }, 150);
+  } else if (!AppState.listening) {
+    resetVoiceBtn(btn, field);
+  }
+};
+```
+
+En iPhone no hay ningún cambio de comportamiento — funciona igual que antes.
 
 ---
 
@@ -479,7 +525,7 @@ Desde Configuración en la app — no hace falta tocar el código. Los sinónimo
 2. Añadir caso en `processVoice(field, texto)`:
    ```javascript
    } else if (field === 'campo') {
-     form.campo = texto;
+     AppState.form.campo = texto;
      document.getElementById('f-campo').value = texto;
      return { ok: true, msg: 'Registrado' };
    }
@@ -515,6 +561,18 @@ await updateTrab(t);
 renderListado();
 renderMes();  // ← siempre
 ```
+
+**Variables de AppState sin prefijo**:
+```javascript
+// ❌ MAL — 'form' no existe como variable global, rompe en silencio o lanza ReferenceError
+const nuevo = { ...form, estado: 'Pendiente' };
+resetForm: form = { cliente: '', ... };
+
+// ✅ BIEN — siempre con AppState.
+const nuevo = { ...AppState.form, estado: 'Pendiente' };
+resetForm: AppState.form = { cliente: '', ... };
+```
+En v7.7 se hizo un barrido completo: solo `CONFIG` y `OPERARIOS` son globales fuera de AppState (intencional). Todo lo demás debe ir con `AppState.`.
 
 **El `<script>` al final del `<body>`**:
 ```html
@@ -670,11 +728,11 @@ CREATE POLICY "operario_sus_trabajos" ON trabajos
 | **localStorage** | Almacenamiento del navegador. Persiste entre sesiones. Se usa para guardar `supa_session`. |
 | **fetch** | Función nativa de JavaScript para hacer peticiones HTTP. |
 | **hoisting** | Las declaraciones `function` se "elevan" al inicio del script. Las `const`/`let` no. |
-| **_trabCache** | Variable global que guarda los trabajos en memoria mientras la app está abierta. Evita peticiones repetidas a Supabase. |
-| **_edFecha** | Fecha única (ISO string) que se está editando en el modal de editar trabajo. |
-| **progTrabajoId** | Variable global que indica qué trabajo está en modo programación activa (null = ninguno). |
-| **mesFiltroMaq** | Variable global con el nombre de la máquina filtrada en la vista Mes ('' = todas). |
-| **realizadosMesOffset** | Offset del mes visible en la pestaña Realizados (0 = mes actual, -1 = mes anterior...). |
+| **AppState.trabCache** | Guarda los trabajos en memoria mientras la app está abierta. Evita peticiones repetidas a Supabase. |
+| **AppState.edFecha** | Fecha única (ISO string) que se está editando en el modal de editar trabajo. |
+| **AppState.progTrabajoId** | Indica qué trabajo está en modo programación activa (null = ninguno). |
+| **AppState.mesFiltroMaq** | Nombre de la máquina filtrada en la vista Mes ('' = todas). |
+| **AppState.realizadosMesOffset** | Offset del mes visible en la pestaña Realizados (0 = mes actual, -1 = mes anterior...). |
 
 ---
 
@@ -686,10 +744,18 @@ git commit -m "descripción del cambio"
 git push
 # Esperar 1-2 minutos
 # Probar en https://xabiercons.github.io/ObrasPaco/excavaciones_paco_00.html
-# Si el navegador no actualiza, añadir ?v2 al final de la URL
+# Si el navegador no actualiza: Configuración → ♻ Forzar actualización
 ```
 
 ---
+
+## Notas técnicas acumuladas v7.7b
+
+- v7.7: Cachebuster automático — `localStorage('app_version')` + timestamp en URLs de CSS y JS. `forzarActualizacion()` actualiza el timestamp y recarga. Botón en Configuración.
+- v7.7: Web Speech API — `continuous: false` + delay 150ms en `onend` con flag `_restarting`. Evita bucle de repetición en Android Chrome. iPhone no se ve afectado.
+- v7.7b: `guardarTrabajo()` — `operarios: AppState.form.operarios || []`. Los operarios del paso 7 se guardan correctamente (antes se forzaba `[]`).
+- v7.7b: `resetForm()` — usa `AppState.form = {..., operarios:[]}`. Antes usaba `form =` (variable inexistente), dejando AppState.form sin limpiar entre trabajos.
+- v7.7b: Barrido completo de variables sin `AppState.`: ningún caso adicional. `CONFIG` y `OPERARIOS` son las únicas globales fuera de AppState (intencionales).
 
 ## Notas técnicas acumuladas v7.6
 
@@ -701,4 +767,4 @@ git push
 
 ---
 
-*Documento actualizado en Junio 2026 · App v7.6*
+*Documento actualizado en Junio 2026 · App v7.7b*
