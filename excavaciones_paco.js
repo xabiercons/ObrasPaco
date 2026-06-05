@@ -1852,11 +1852,11 @@ function showView(name) {
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
-  const idx = name==='captura'?0:name==='listado'?1:name==='mes'?2:name==='operario'?3:4;
+  const idx = name==='captura'?0:name==='listado'?1:name==='mes'?2:name==='hoy'?3:4;
   document.querySelectorAll('.nav-tab')[idx].classList.add('active');
   if(name==='listado') renderListado();
   if(name==='mes') { renderMes(); renderBolsa(); }
-  if(name==='operario') renderOperario();
+  if(name==='hoy') renderOperario();
   if(name==='config') renderConfig();
 }
 

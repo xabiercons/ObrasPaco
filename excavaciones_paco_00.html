@@ -94,7 +94,7 @@
   <button class="nav-tab active" onclick="showView('captura')">Nuevo</button>
   <button class="nav-tab" onclick="showView('listado')">Listado</button>
   <button class="nav-tab" onclick="showView('mes')">Mes</button>
-  <button class="nav-tab" onclick="showView('operario')">Hoy</button>
+  <button class="nav-tab" onclick="showView('hoy')">Hoy</button>
   <button class="nav-tab" onclick="showView('config')">⚙</button>
 </div>
 
@@ -469,5 +469,145 @@
 </div>
 
 <script src="excavaciones_paco.js"></script>
+
+<!-- ═══════════════════════════════════════
+     MODALES
+════════════════════════════════════════ -->
+
+<!-- Modal: detalle de trabajo (desde calendario) -->
+<div class="modal-overlay" id="modal-detalle" onclick="if(event.target===this)cerrarModal('modal-detalle')">
+  <div class="modal-sheet">
+    <div class="modal-title" id="mdet-titulo">Detalle</div>
+    <div id="mdet-campos"></div>
+    <button class="btn-realizado-modal" onclick="abrirModalRealizado()">✓ Marcar como Realizado</button>
+    <button class="btn-desprogramar" onclick="desprogramarDesdeDetalle()">↩ Quitar de la semana</button>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="modal-cancel" style="flex:1" onclick="cerrarModal('modal-detalle')">Cerrar</button>
+      <button id="btn-editar-desde-detalle" class="btn-next" style="flex:1;padding:12px" onclick="editarDesdeDetalle()">✏ Editar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: confirmar realizado + horas reales -->
+<div class="modal-overlay" id="modal-realizado" onclick="if(event.target===this)cerrarModal('modal-realizado')">
+  <div class="modal-sheet">
+    <div class="modal-title">✓ Trabajo Realizado</div>
+    <div class="modal-sub" id="mreal-nombre"></div>
+    <div style="margin-bottom:10px">
+      <div class="modal-label">Horas reales por maquinaria</div>
+      <div id="mreal-maquinas"></div>
+      <select id="mreal-add-maq" style="margin-top:6px;font-size:13px;padding:8px"></select>
+    </div>
+    <div>
+      <div class="modal-label">Notas de cierre</div>
+      <textarea id="mreal-notas" placeholder="Observaciones finales..." style="min-height:60px"></textarea>
+    </div>
+    <div>
+      <div class="modal-label">Materiales utilizados</div>
+      <textarea id="mreal-materiales" placeholder="Materiales, m³, toneladas..." style="min-height:50px"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" style="flex:1" onclick="cerrarModal('modal-realizado')">Cancelar</button>
+      <button class="modal-confirm" style="flex:2" onclick="confirmarRealizado()">✓ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: jornada parcial -->
+<div class="modal-overlay" id="modal-jornada" onclick="if(event.target===this)cerrarModal('modal-jornada')">
+  <div class="modal-sheet">
+    <div class="modal-title">Añadir jornada parcial</div>
+    <div class="modal-sub" id="mjor-nombre"></div>
+    <div class="modal-label">Fecha</div>
+    <input type="date" id="mjor-fecha">
+    <div class="modal-label">Horas reales por maquinaria</div>
+    <div id="mjor-maquinas"></div>
+    <div class="modal-label">Notas</div>
+    <textarea id="mjor-notas" placeholder="Observaciones de la jornada..." style="min-height:50px"></textarea>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="cerrarModal('modal-jornada')">Cancelar</button>
+      <button class="modal-confirm" onclick="confirmarJornada()">Guardar jornada</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: editar trabajo -->
+<div class="modal-overlay" id="modal-editar" onclick="if(event.target===this)cerrarModal('modal-editar')">
+  <div class="modal-sheet">
+    <div class="modal-title">✏ Editar trabajo</div>
+    <div id="modal-editar-content" style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+      <div><label class="modal-label">Cliente</label><input class="cfg-input" id="ed-cliente" type="text"></div>
+      <div><label class="modal-label">Nombre de obra</label><input class="cfg-input" id="ed-obra" type="text"></div>
+      <div><label class="modal-label">Dirección</label><input class="cfg-input" id="ed-direccion" type="text"></div>
+      <div><label class="modal-label">Zona</label><input class="cfg-input" id="ed-zona" type="text"></div>
+      <div>
+        <label class="modal-label">Tipo de trabajo</label>
+        <div id="ed-tipos-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+      </div>
+      <div>
+        <label class="modal-label">Maquinaria</label>
+        <div id="ed-maq-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+      </div>
+      <div>
+        <label class="modal-label">Operarios</label>
+        <div id="ed-ops-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1"><label class="modal-label">Horas previstas</label><input class="cfg-input" id="ed-horas" type="number" min="1" max="24"></div>
+        <div style="flex:1"><label class="modal-label">Urgencia</label>
+          <select class="cfg-input" id="ed-urgencia">
+            <option>Normal</option><option>Alta</option><option>Urgente</option>
+          </select>
+        </div>
+      </div>
+      <div><label class="modal-label">Estado</label>
+        <select class="cfg-input" id="ed-estado">
+          <option>Pendiente presupuestar</option>
+          <option>Presupuestado</option>
+          <option>Aceptado</option>
+          <option>Programado</option>
+          <option>Realizado</option>
+        </select>
+      </div>
+      <div id="ed-fechas-bloque">
+        <label class="modal-label">Fecha programada</label>
+        <div id="ed-fecha-actual-wrap" style="display:flex;align-items:center;gap:8px;background:var(--chip-bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-top:6px">
+          <span>📅</span>
+          <span id="ed-fecha-actual-label" style="font-size:14px;color:var(--text);flex:1">—</span>
+          <span style="font-size:11px;color:var(--text3)">actual</span>
+        </div>
+        <div style="text-align:center;font-size:16px;color:var(--text3);margin:4px 0">↓</div>
+        <label class="modal-label">Nueva fecha</label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <input type="date" id="ed-fecha-picker" class="cfg-input" style="flex:1;margin:0">
+          <button onclick="edFechaCambiar()" style="padding:8px 14px;background:var(--accent);color:var(--accent-dark);border:none;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:Georgia,serif;white-space:nowrap">Cambiar</button>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">Solo fechas desde hoy · Sin fecha → vuelve a la bolsa para reprogramar desde el calendario</div>
+      </div>
+      <div><label class="modal-label">Notas</label><textarea class="cfg-input" id="ed-notas" style="min-height:70px"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" style="flex:1" onclick="cerrarModal('modal-editar')">Cancelar</button>
+      <button class="modal-confirm" style="flex:2" onclick="guardarEdicionTrabajo()">✓ Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: editar cliente -->
+<div class="modal-overlay" id="modal-editar-cliente" onclick="if(event.target===this)cerrarModal('modal-editar-cliente')">
+  <div class="modal-sheet">
+    <div class="modal-title">✏ Editar cliente</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+      <div><label class="modal-label">Nombre</label><input class="cfg-input" id="ec-nombre" type="text"></div>
+      <div><label class="modal-label">Teléfono</label><input class="cfg-input" id="ec-telefono" type="text"></div>
+      <div><label class="modal-label">Observaciones</label><textarea class="cfg-input" id="ec-observaciones" style="min-height:60px"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" style="flex:1" onclick="cerrarModal('modal-editar-cliente')">Cancelar</button>
+      <button class="modal-confirm" style="flex:2" onclick="guardarEdicionCliente()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
