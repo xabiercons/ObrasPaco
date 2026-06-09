@@ -109,6 +109,7 @@ input[type=text],
 input[type=number],
 input[type=email],
 input[type=password],
+input[type=tel],
 input[type=date],
 textarea,
 select {
@@ -292,6 +293,12 @@ textarea {
   font-family: Georgia, serif;
   margin-bottom: 10px;
   transition: opacity 0.2s;
+}
+
+.voice-btn.voice-active {
+  background: var(--danger);
+  color: #fff;
+  opacity: 1;
 }
 
 .voice-btn:active { opacity: 0.85; transform: scale(0.99); }

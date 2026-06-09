@@ -277,6 +277,7 @@ const AppState = {
   // ── Calendario mes ────────────────────────────────────
   mesOffset: 0,               // 0 = mes actual, -1 = anterior, +1 = siguiente
   mesFiltroMaq: '',           // '' = todas las máquinas
+  mesFiltroZona: '',          // '' = todas las zonas
 
   // ── Programación ─────────────────────────────────────
   progTrabajoId: null,        // ID del trabajo en modo programación activa
@@ -782,6 +783,7 @@ function showStep(n) {
 function nextStep(current) {
   if(current===1 && !AppState.form.cliente.trim()) { showToast('Selecciona o crea un cliente'); return; }
   if(current===2 && !AppState.form.direccion.trim()) { showToast('Indica la dirección o usa el GPS'); return; }
+  if(current===2 && !AppState.form.zona.trim()) { showToast('Indica la zona (Milladoiro, Conxo…)'); return; }
   if(current===3 && (!AppState.form.tipos || AppState.form.tipos.length===0)) { showToast('Selecciona al menos un tipo de trabajo'); return; }
   if(current===4 && (!AppState.form.maquinarias || AppState.form.maquinarias.length===0)) { showToast('Selecciona al menos una máquina'); return; }
   showStep(current+1);
@@ -1119,7 +1121,7 @@ function startVoice(field, btnId, resId) {
   const btn = document.getElementById(btnId);
   const res = document.getElementById(resId);
   btn.textContent = '⏹ Escuchando… (toca para parar)';
-  btn.classList.add('AppState.listening');
+  btn.classList.add('voice-active');
   AppState.listening = true;
 
   let textoAcumulado = ''; // Acumula fragmentos finales confirmados
@@ -1187,9 +1189,9 @@ function startVoice(field, btnId, resId) {
 // Restaura el botón de voz a su estado original tras finalizar
 function resetVoiceBtn(btn, field) {
   AppState.listening = false;
-  const labels = { cliente:'🎤 Dictar cliente', direccion:'🎤 Hablar dirección', tipo:'🎤 Dictar tipo de trabajo', maquinaria:'🎤 Dictar maquinaria', horas:'🎤 Dictar horas', notas:'🎤 Dictar notas', obra:'🎤 Dictar nombre de obra' };
+  const labels = { cliente:'🎤 Dictar cliente', direccion:'🎤 Hablar dirección', zona:'🎤 Dictar zona', tipo:'🎤 Dictar tipo de trabajo', maquinaria:'🎤 Dictar maquinaria', horas:'🎤 Dictar horas', notas:'🎤 Dictar notas', obra:'🎤 Dictar nombre de obra' };
   btn.textContent = labels[field] || '🎤 Hablar';
-  btn.classList.remove('AppState.listening');
+  btn.classList.remove('voice-active');
 }
 
 // Interpreta el texto dictado y lo aplica al campo correcto del formulario
@@ -1254,6 +1256,11 @@ function processVoice(field, texto) {
     AppState.form.obra = texto;
     document.getElementById('f-obra').value = texto;
     return { ok: true, msg: 'Nombre de obra registrado' };
+  } else if(field==='zona') {
+    AppState.form.zona = texto;
+    const fz = document.getElementById('f-zona');
+    if(fz) fz.value = texto;
+    return { ok: true, msg: 'Zona: ' + texto };
   } else if(field==='notas') {
     AppState.form.notas = texto;
     document.getElementById('f-notas').value = texto;
@@ -1667,8 +1674,8 @@ function abrirEditarCliente(id) {
   if(!c) return;
   AppState.editandoClienteId = id;
   document.getElementById('ec-nombre').value = c.nombre||'';
-  document.getElementById('ec-tel').value = c.telefono||'';
-  document.getElementById('ec-obs').value = c.observaciones||'';
+  document.getElementById('ec-telefono').value = c.telefono||'';
+  document.getElementById('ec-observaciones').value = c.observaciones||'';
   document.getElementById('modal-editar-cliente').classList.add('show');
 }
 
@@ -1679,8 +1686,8 @@ async function guardarEdicionCliente() {
   if(!nombre) { showToast('El nombre es obligatorio'); return; }
   const body = {
     nombre,
-    telefono: document.getElementById('ec-tel').value.trim(),
-    observaciones: document.getElementById('ec-obs').value.trim()
+    telefono: document.getElementById('ec-telefono').value.trim(),
+    observaciones: document.getElementById('ec-observaciones').value.trim()
   };
   showToast('Guardando…');
   try {
@@ -1906,6 +1913,11 @@ function setMesFiltroMaq(maq) {
   renderMes();
 }
 
+function setMesFiltroZona(zona) {
+  AppState.mesFiltroZona = AppState.mesFiltroZona === zona ? '' : zona;
+  renderMes();
+}
+
 // Calcula la fecha del primer día del mes visible
 function getPrimerDiaMes() {
   const hoy = new Date();
@@ -1942,6 +1954,32 @@ function renderMes() {
     filtroEl.style.display = maqDisponibles.length > 0 ? 'flex' : 'none';
   }
 
+  // Filtro zona
+  const zonasDisponibles = [...new Set(getTrab()
+    .filter(t => t.diasProgramados && t.diasProgramados.length > 0 && t.estado !== 'Realizado' && t.zona)
+    .map(t => t.zona))].sort();
+  const filtroZonaEl = document.getElementById('mes-filtro-zona');
+  if (filtroZonaEl) {
+    if (zonasDisponibles.length > 0) {
+      const fstyleZ = (bg, color, border) => `font-size:10px;padding:4px 10px;border-radius:20px;cursor:pointer;font-family:monospace;border:1px solid ${border};background:${bg};color:${color}`;
+      let fhtmlZ = '<span style="font-size:10px;color:var(--text2);font-family:monospace;align-self:center;margin-right:2px">Zona:</span>';
+      const bgTodas = AppState.mesFiltroZona === '' ? '#FFD100' : 'var(--chip-bg)';
+      const colTodas = AppState.mesFiltroZona === '' ? '#1C1C1C' : '#444';
+      fhtmlZ += `<div style="${fstyleZ(bgTodas, colTodas, AppState.mesFiltroZona===''?'#FFD100':'var(--border)')}" onclick="setMesFiltroZona('')">Todas</div>`;
+      zonasDisponibles.forEach(z => {
+        const activo = AppState.mesFiltroZona === z;
+        const bg = activo ? '#1a1a1a' : 'var(--chip-bg)';
+        const col = activo ? '#FFD100' : '#444';
+        const brd = activo ? '#1a1a1a' : 'var(--border)';
+        fhtmlZ += `<div style="${fstyleZ(bg, col, brd)}" onclick="setMesFiltroZona('${z.replace(/'/g, "&apos;")}')">${z}</div>`;
+      });
+      filtroZonaEl.innerHTML = fhtmlZ;
+      filtroZonaEl.style.display = 'flex';
+    } else {
+      filtroZonaEl.style.display = 'none';
+    }
+  }
+
   // Cabecera días
   const header = document.getElementById('mes-grid-header');
   header.innerHTML = '';
@@ -1976,11 +2014,17 @@ function renderMes() {
       t.diasProgramados && t.diasProgramados.includes(iso) && t.estado !== 'Realizado'
     );
     // Trabajos visibles según filtro (para píldoras y carga)
-    const trabajosVis = AppState.mesFiltroMaq
-      ? trabajosDia.filter(t => (t.maquinarias||[]).includes(AppState.mesFiltroMaq))
-      : trabajosDia;
-    // Trabajos atenuados (tienen fecha pero no coinciden con filtro)
-    const trabajosDim = AppState.mesFiltroMaq ? trabajosDia.filter(t => !(t.maquinarias||[]).includes(AppState.mesFiltroMaq)) : [];
+    // Aplicar filtros combinados (maquinaria + zona)
+    const trabajosVis = trabajosDia.filter(t => {
+      const okMaq = !AppState.mesFiltroMaq || (t.maquinarias||[]).includes(AppState.mesFiltroMaq);
+      const okZona = !AppState.mesFiltroZona || (t.zona||'') === AppState.mesFiltroZona;
+      return okMaq && okZona;
+    });
+    const trabajosDim = trabajosDia.filter(t => {
+      const okMaq = !AppState.mesFiltroMaq || (t.maquinarias||[]).includes(AppState.mesFiltroMaq);
+      const okZona = !AppState.mesFiltroZona || (t.zona||'') === AppState.mesFiltroZona;
+      return !(okMaq && okZona);
+    });
 
     const cel = document.createElement('div');
     const hoyISOMes = fechaISO(new Date());
@@ -2309,7 +2353,7 @@ function actualizarBarraProgramar() {
   OPERARIOS.forEach(op => {
     const chip = document.createElement('div');
     const sel = AppState.progOperarios.includes(op);
-    chip.style.cssText = 'padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;font-family:Georgia,serif;border:1px solid '+(sel?'#FFD100':'rgba(255,209,0,0.4)')+';background:'+(sel?'#FFD100':'#222')+';color:'+(sel?'#1C1C1C':'#FFF');
+    chip.style.cssText = 'padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;font-family:Georgia,serif;border:1px solid '+(sel?'#FFD100':'rgba(255,209,0,0.4)')+';background:'+(sel?'#FFD100':'var(--card-bg)')+';color:'+(sel?'#1C1C1C':'var(--text)');
     chip.textContent = op;
     chip.onclick = () => {
       if (AppState.progOperarios.includes(op)) AppState.progOperarios = AppState.progOperarios.filter(x => x !== op);

@@ -140,14 +140,6 @@
       <div class="cliente-dropdown" id="cs-dropdown"></div>
     </div>
 
-    <!-- Nombre de obra -->
-    <div style="margin-top:12px">
-      <div style="font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Nombre de obra (opcional)</div>
-      <button class="voice-btn" id="vbtn-obra" onclick="startVoice('obra', 'vbtn-obra', 'vres-obra')">🎤 Dictar nombre de obra</button>
-      <div class="voice-result" id="vres-obra"></div>
-      <input type="text" id="f-obra" placeholder="Ej: Desmonte en Santeles…" oninput="syncField('obra', this.value)">
-    </div>
-
     <!-- Formulario inline para nuevo cliente -->
     <div class="cliente-nuevo-inline" id="cs-nuevo-wrap">
       <div style="font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Nuevo cliente</div>
@@ -155,6 +147,14 @@
       <input type="tel" id="cs-nuevo-tel" placeholder="Teléfono (opcional)…" style="margin-bottom:8px">
       <textarea id="cs-nuevo-obs" placeholder="Observaciones (opcional)…" style="min-height:56px;margin-bottom:8px"></textarea>
       <button class="btn-next" onclick="guardarClienteNuevo()" style="margin-top:0">✓ Guardar cliente</button>
+    </div>
+
+    <!-- Nombre de obra -->
+    <div style="margin-top:12px">
+      <div style="font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Nombre de obra (opcional)</div>
+      <button class="voice-btn" id="vbtn-obra" onclick="startVoice('obra', 'vbtn-obra', 'vres-obra')">🎤 Dictar nombre de obra</button>
+      <div class="voice-result" id="vres-obra"></div>
+      <input type="text" id="f-obra" placeholder="Ej: Desmonte en Santeles…" oninput="syncField('obra', this.value)">
     </div>
 
     <div class="btn-row">
@@ -181,8 +181,18 @@
     <button class="voice-btn" id="vbtn-2" onclick="startVoice('direccion', 'vbtn-2', 'vres-2')">🎤 Hablar dirección</button>
     <div class="voice-result" id="vres-2"></div>
     <div class="divider">— o escribe manualmente —</div>
-    <input type="text" id="f-direccion" placeholder="Rúa, lugar, número…" oninput="syncField('direccion', this.value)">
-    <input type="text" id="f-zona" placeholder="Zona (Milladoiro, Conxo…)" style="margin-top:8px" oninput="syncField('zona', this.value)">
+
+    <div style="margin-bottom:6px">
+      <div style="font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Dirección <span style="color:var(--danger)">*</span></div>
+      <input type="text" id="f-direccion" placeholder="Rúa, lugar, número…" oninput="syncField('direccion', this.value)">
+    </div>
+
+    <div style="margin-top:12px">
+      <div style="font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Zona <span style="color:var(--danger)">*</span> <span style="color:var(--text3);font-weight:normal">(para filtros y agrupación)</span></div>
+      <button class="voice-btn" id="vbtn-zona" onclick="startVoice('zona', 'vbtn-zona', 'vres-zona')" style="margin-bottom:6px">🎤 Dictar zona</button>
+      <div class="voice-result" id="vres-zona"></div>
+      <input type="text" id="f-zona" placeholder="Ej: Milladoiro, Conxo, Brión…" oninput="syncField('zona', this.value)">
+    </div>
     <div class="btn-row">
       <button class="btn-back" onclick="prevStep(2)">← Atrás</button>
       <button class="btn-next" onclick="nextStep(2)" id="next-2">Siguiente →</button>
@@ -283,10 +293,9 @@
     <button class="nav-flecha" onclick="cambiarMes(1)">→</button>
   </div>
 
-  <!-- Filtro de maquinaria -->
-  <select id="mes-filtro-maq" onchange="renderMes()" style="margin-bottom:12px;font-size:13px;padding:8px 10px">
-    <option value="">Toda la maquinaria</option>
-  </select>
+  <!-- Filtros: maquinaria y zona -->
+  <div id="mes-filtro-maq" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center"></div>
+  <div id="mes-filtro-zona" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;align-items:center"></div>
 
   <!-- Grid del calendario -->
   <div class="mes-grid-header" id="mes-grid-header"></div>
