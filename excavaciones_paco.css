@@ -992,6 +992,7 @@ textarea {
   padding: 4px 3px;
   position: relative;
   cursor: pointer;
+  height: auto;
 }
 
 .mes-dia.otro-mes    { opacity: 0.3; cursor: default; }
@@ -1068,14 +1069,14 @@ textarea {
 /* Píldoras mini (vista compacta) */
 .mes-pill-mini {
   font-size: 8px;
-  padding: 2px 4px;
+  padding: 3px 5px;
   border-radius: 3px;
   background: var(--info-bg);
   color: var(--info);
   border-left: 2px solid var(--info);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 .mes-pill-mini.urgente { background: var(--danger-bg);  color: var(--danger);       border-left-color: var(--danger); }

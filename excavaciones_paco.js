@@ -2107,40 +2107,33 @@ function renderMes() {
     num.textContent = cursor.getDate();
     cel.appendChild(num);
 
-    // Píldoras (máx 2 visibles + atenuadas)
+    // Píldoras — todas las visibles, celdas crecen hacia abajo
     const pillsWrap = document.createElement('div');
     pillsWrap.className = 'mes-dia-pills';
-    const mostrar = trabajosVis.slice(0, 2);
-    mostrar.forEach(t => {
+    trabajosVis.forEach(t => {
       const pill = document.createElement('div');
       const urg = (t.urgencia || '').toLowerCase();
       pill.className = 'mes-pill-mini' + (urg === 'urgente' ? ' urgente' : urg === 'alta' ? ' alta' : '');
-      const nombre = (t.obra || t.cliente || 'Trabajo').split(/[-,]/)[0].trim().slice(0, 10);
-      const hrsText = t.horas ? ' '+t.horas+'h' : '';
-      pill.innerHTML = '<span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+nombre+'</span><span style="display:block;font-size:7px;opacity:0.65;font-family:monospace">'+hrsText+'</span>';
-      if(urg==='urgente') pill.classList.add('mes-pill-urgente');
-      else if(urg==='alta') pill.classList.add('mes-pill-alta');
+      const nombre = t.obra || t.cliente || 'Trabajo';
+      const hrsText = t.horas ? t.horas + 'h' : '';
+      const ops = Array.isArray(t.operarios) && t.operarios.length > 0 ? t.operarios.join(', ') : '';
+      pill.innerHTML =
+        '<span style="display:block;font-weight:500">' + nombre + '</span>' +
+        '<span style="display:block;font-size:7px;opacity:0.7;font-family:monospace;margin-top:1px">' +
+          (hrsText ? hrsText : '') + (hrsText && ops ? ' · ' : '') + (ops || '') +
+        '</span>';
       pill.onclick = (e) => { e.stopPropagation(); if(AppState.progTrabajoId) toggleDiaProg(isoCapturado); else abrirDetalle(t.id); };
       pillsWrap.appendChild(pill);
     });
-    // Atenuadas (filtro activo, no coinciden)
-    if (AppState.mesFiltroMaq && trabajosDim.length > 0 && trabajosVis.length < 2) {
-      trabajosDim.slice(0, 2 - trabajosVis.length).forEach(t => {
-        const pill = document.createElement('div');
-        pill.className = 'mes-pill-mini';
-        pill.style.opacity = '0.25';
-        pill.textContent = (t.obra || t.cliente || 'Trabajo').split(/[-,]/)[0].trim().slice(0, 10);
-        pill.onclick = (e) => { e.stopPropagation(); if(AppState.progTrabajoId) toggleDiaProg(isoCapturado); else abrirDetalle(t.id); };
-        pillsWrap.appendChild(pill);
-      });
-    }
-    const totalMas = trabajosDia.length > 2 ? trabajosDia.length - 2 : 0;
-    if (totalMas > 0) {
-      const mas = document.createElement('div');
-      mas.className = 'mes-mas-mini';
-      mas.textContent = '+' + totalMas + ' más';
-      pillsWrap.appendChild(mas);
-    }
+    // Atenuadas — trabajos que no coinciden con el filtro
+    trabajosDim.forEach(t => {
+      const pill = document.createElement('div');
+      pill.className = 'mes-pill-mini';
+      pill.style.opacity = '0.2';
+      pill.textContent = t.obra || t.cliente || 'Trabajo';
+      pill.onclick = (e) => { e.stopPropagation(); if(AppState.progTrabajoId) toggleDiaProg(isoCapturado); else abrirDetalle(t.id); };
+      pillsWrap.appendChild(pill);
+    });
     cel.appendChild(pillsWrap);
 
     if (esMes) {
