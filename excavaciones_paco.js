@@ -2006,10 +2006,11 @@ function renderMes() {
     fhtml += `<div style="${fstyle(bgTodas, colTodas, sinFiltroMaq?'#FFD100':'var(--border)')}" onclick="setMesFiltroMaq('')">Todas</div>`;
     maqDisponibles.forEach(m => {
       const activo = AppState.mesFiltroMaq.includes(m);
-      const bg = activo ? 'var(--accent)' : 'var(--chip-bg)';
-      const col = activo ? '#1C1C1C' : '#444';
+      const bg = activo ? 'var(--accent)' : (AppState.mesFiltroMaq.length > 0 ? 'transparent' : 'var(--chip-bg)');
+      const col = activo ? '#1C1C1C' : (AppState.mesFiltroMaq.length > 0 ? 'var(--text3)' : 'var(--text2)');
       const brd = activo ? 'var(--accent)' : 'var(--border)';
-      fhtml += `<div style="${fstyle(bg, col, brd)}" onclick="setMesFiltroMaq('${m.replace(/'/g, "&apos;")}')">` + m + '</div>';
+      const dimMaq = (!activo && AppState.mesFiltroMaq.length > 0) ? 'opacity:0.4;' : '';
+      fhtml += `<div style="${dimMaq}${fstyle(bg, col, brd)}" onclick="setMesFiltroMaq('${m.replace(/'/g, "&apos;")}')">` + m + '</div>';
     });
     filtroEl.innerHTML = fhtml;
     filtroEl.style.display = maqDisponibles.length > 0 ? 'flex' : 'none';
@@ -2029,10 +2030,11 @@ function renderMes() {
       fhtmlZ += `<div style="${fstyleZ(bgTodas, colTodas, AppState.mesFiltroZona===''?'#FFD100':'var(--border)')}" onclick="setMesFiltroZona('')">Todas</div>`;
       zonasDisponibles.forEach(z => {
         const activo = AppState.mesFiltroZona === z;
-        const bg = activo ? 'var(--accent)' : 'var(--chip-bg)';
-        const col = activo ? '#1C1C1C' : '#444';
+        const bg = activo ? 'var(--accent)' : (AppState.mesFiltroZona !== '' ? 'transparent' : 'var(--chip-bg)');
+        const col = activo ? '#1C1C1C' : (AppState.mesFiltroZona !== '' ? 'var(--text3)' : 'var(--text2)');
         const brd = activo ? 'var(--accent)' : 'var(--border)';
-        fhtmlZ += `<div style="${fstyleZ(bg, col, brd)}" onclick="setMesFiltroZona('${z.replace(/'/g, "&apos;")}')">${z}</div>`;
+        const dimZona = (!activo && AppState.mesFiltroZona !== '') ? 'opacity:0.4;' : '';
+                fhtmlZ += `<div style="${dimZona}${fstyleZ(bg, col, brd)}" onclick="setMesFiltroZona('${z.replace(/'/g, "&apos;")}')">${z}</div>`;
       });
       filtroZonaEl.innerHTML = fhtmlZ;
       filtroZonaEl.style.display = 'flex';
@@ -2344,7 +2346,9 @@ function activarProgramacion(id) {
   }
   AppState.progTrabajoId = id;
   AppState.progDias = [];
-  AppState.progOperarios = [];
+  const tProg = getTrab().find(x => String(x.id) === String(id));
+  AppState.progOperarios = (tProg && Array.isArray(tProg.operarios) && tProg.operarios.length > 0)
+    ? [...tProg.operarios] : [];
   renderBolsa();
   renderMes();
   actualizarBarraProgramar();
@@ -2419,6 +2423,10 @@ function actualizarBarraProgramar() {
     chip.onclick = () => {
       if (AppState.progOperarios.includes(op)) AppState.progOperarios = AppState.progOperarios.filter(x => x !== op);
       else AppState.progOperarios.push(op);
+      if (AppState.progOperarios.length > 0) {
+        const ow = document.getElementById('bprog-operarios');
+        if (ow) { ow.style.outline = ''; ow.style.padding = ''; }
+      }
       actualizarBarraProgramar();
     };
     opWrap.appendChild(chip);
@@ -2434,10 +2442,10 @@ async function confirmarProgramar() {
     // Resaltar chips de operario en rojo
     const opWrap = document.getElementById('bprog-operarios');
     if (opWrap) {
+      opWrap.dataset.requiereOperario = '1';
       opWrap.style.outline = '2px solid var(--danger)';
       opWrap.style.borderRadius = '8px';
       opWrap.style.padding = '4px';
-      setTimeout(() => { opWrap.style.outline = ''; opWrap.style.padding = ''; }, 3000);
     }
     return;
   }
