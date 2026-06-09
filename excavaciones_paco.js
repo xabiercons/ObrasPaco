@@ -1189,7 +1189,7 @@ function startVoice(field, btnId, resId) {
 // Restaura el botón de voz a su estado original tras finalizar
 function resetVoiceBtn(btn, field) {
   AppState.listening = false;
-  const labels = { cliente:'🎤 Dictar cliente', direccion:'🎤 Hablar dirección', zona:'🎤 Dictar zona', tipo:'🎤 Dictar tipo de trabajo', maquinaria:'🎤 Dictar maquinaria', horas:'🎤 Dictar horas', notas:'🎤 Dictar notas', obra:'🎤 Dictar nombre de obra' };
+  const labels = { cliente:'🎤 Dictar cliente', clienteNuevo:'🎤 Dictar nombre de cliente', direccion:'🎤 Hablar dirección', zona:'🎤 Dictar zona', tipo:'🎤 Dictar tipo de trabajo', maquinaria:'🎤 Dictar maquinaria', horas:'🎤 Dictar horas', notas:'🎤 Dictar notas', obra:'🎤 Dictar nombre de obra' };
   btn.textContent = labels[field] || '🎤 Hablar';
   btn.classList.remove('voice-active');
 }
