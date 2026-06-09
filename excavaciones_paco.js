@@ -1692,7 +1692,7 @@ async function guardarEdicionCliente() {
   showToast('Guardando…');
   try {
     const r = await fetch(`${SUPA_URL}/rest/v1/clientes?id=eq.${AppState.editandoClienteId}`, {
-      method:'PATCH', headers:{...supaHeaders(),'Content-Type':'application/json'},
+      method:'PATCH', headers:{...SUPA_HEADERS,'Content-Type':'application/json'},
       body: JSON.stringify(body)
     });
     if(!r.ok) throw new Error(await r.text());
@@ -2971,7 +2971,7 @@ async function cfgToggleCliente(id) {
   AppState.clientesCache = clientes;
   try {
     const r = await fetch(`${SUPA_URL}/rest/v1/clientes?id=eq.${id}`, {
-      method: 'PATCH', headers: {...supaHeaders(), 'Content-Type': 'application/json'},
+      method: 'PATCH', headers: {...SUPA_HEADERS, 'Content-Type': 'application/json'},
       body: JSON.stringify({ activo: c.activo })
     });
     if (!r.ok) throw new Error(await r.text());
