@@ -216,14 +216,18 @@
     </div>
   </div>
 
-  <!-- PASO 4: MAQUINARIA -->
+  <!-- PASO 4: MAQUINARIA + OPERARIOS -->
   <div class="step-card" id="step-4" style="display:none">
     <div class="step-number">Paso 4 / 7</div>
-    <div class="step-title">Maquinaria</div>
+    <div class="step-title">Maquinaria y operario</div>
     <div class="step-hint">¿Qué máquina se necesita?</div>
     <button class="voice-btn" id="vbtn-4" onclick="startVoice('maquinaria', 'vbtn-4', 'vres-4')">🎤 Dictar maquinaria</button>
     <div class="voice-result" id="vres-4"></div>
     <div class="chips" id="chips-maq"></div>
+
+    <div class="divider" style="margin-top:16px">— Operario (opcional) —</div>
+    <div class="chips" id="chips-operarios"></div>
+
     <div class="btn-row">
       <button class="btn-back" onclick="prevStep(4)">← Atrás</button>
       <button class="btn-next" onclick="nextStep(4)" id="next-4">Siguiente →</button>

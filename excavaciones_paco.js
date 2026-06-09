@@ -820,6 +820,14 @@ function buildChips() {
   cm.innerHTML = maqActiva.map(m =>
     `<div class="chip-opt ${(AppState.form.maquinarias||[]).includes(m)?'selected':''}" onclick="selectChipMulti('maquinarias','${m}',this)">${m}</div>`
   ).join('');
+  // Chips de operarios en paso 4
+  const co = document.getElementById('chips-operarios');
+  if (co) {
+    co.innerHTML = getOperariosActivos().map(op => {
+      const sel = (AppState.form.operarios||[]).includes(op);
+      return `<div class="chip-opt ${sel?'selected':''}" onclick="selectChipMulti('operarios','${op}',this)">${op}</div>`;
+    }).join('');
+  }
 }
 
 // Añade o quita un valor del array correspondiente en el formulario
@@ -1318,15 +1326,7 @@ function buildResumen() {
       </select>
     </div>
     <div class="resumen-field" style="flex-direction:column;align-items:flex-start"><span class="resumen-key" style="margin-bottom:4px">Notas</span><textarea class="resumen-input" style="width:100%;min-height:60px;resize:vertical" oninput="AppState.form.notas=this.value">${AppState.form.notas||''}</textarea></div>
-    <div class="resumen-field" style="flex-direction:column;align-items:flex-start">
-      <span class="resumen-key" style="margin-bottom:6px">Operario (opcional)</span>
-      <div style="display:flex;flex-wrap:wrap;gap:6px" id="re-operarios-chips">
-        ${getOperariosCfg().filter(o=>o.activo!==false).map(o=>{
-          const sel = (AppState.form.operarios||[]).includes(o.nombre);
-          return '<button onclick="toggleOperarioResumen(\''+o.nombre+'\',this)" style="padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:'+(sel?'var(--accent)':'transparent')+';color:'+(sel?'#1C1C1C':'var(--text2)')+';transition:all .15s">'+o.nombre+'</button>';
-        }).join('')}
-      </div>
-    </div>
+
   `;
 }
 
@@ -2385,8 +2385,16 @@ function actualizarBarraProgramar() {
 async function confirmarProgramar() {
   if (AppState.progDias.length === 0) { showToast('Toca uno o más días en el calendario'); return; }
   if (AppState.progOperarios.length === 0) {
-    const ok = await showConfirm('¿Programar sin asignar operario?', 'El trabajo quedará programado pero sin operario asignado.');
-    if (!ok) return;
+    showToast('⚠ Asigna al menos un operario antes de programar');
+    // Resaltar chips de operario en rojo
+    const opWrap = document.getElementById('bprog-operarios');
+    if (opWrap) {
+      opWrap.style.outline = '2px solid var(--danger)';
+      opWrap.style.borderRadius = '8px';
+      opWrap.style.padding = '4px';
+      setTimeout(() => { opWrap.style.outline = ''; opWrap.style.padding = ''; }, 3000);
+    }
+    return;
   }
   const t = getTrab().find(x => String(x.id) === String(AppState.progTrabajoId));
   if (!t) return;
