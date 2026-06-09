@@ -2468,6 +2468,7 @@ function abrirDetalle(id) {
   document.getElementById('mdet-titulo').textContent = t.cliente || 'Sin cliente';
   const campos = [
     ['Obra', t.obra||'—'],
+    ['Zona', t.zona||'—'],
     ['Dirección', t.direccion ? (mapsLink(t) ? `<a href="${mapsLink(t)}" target="_blank" style="color:#4A9EFF;text-decoration:none">📍 ${t.direccion} — Cómo llegar →</a>` : t.direccion) : '—'],
     ['Trabajo', (t.tipos||[]).join(', ')||'—'],
     ['Maquinaria', (t.maquinarias||[]).join(', ')||'—'],
