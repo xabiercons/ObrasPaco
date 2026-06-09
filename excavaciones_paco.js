@@ -2644,6 +2644,7 @@ async function confirmarRealizado() {
   renderListado();
   renderMes();
   renderBolsa();
+  renderOperario();
   showToast('✓ Trabajo realizado');
 }
 
