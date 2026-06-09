@@ -1945,9 +1945,9 @@ function renderMes() {
     fhtml += `<div style="${fstyle(bgTodas, colTodas, AppState.mesFiltroMaq===''?'#FFD100':'var(--border)')}" onclick="setMesFiltroMaq('')">Todas</div>`;
     maqDisponibles.forEach(m => {
       const activo = AppState.mesFiltroMaq === m;
-      const bg = activo ? '#1a1a1a' : 'var(--chip-bg)';
-      const col = activo ? '#FFD100' : '#444';
-      const brd = activo ? '#1a1a1a' : 'var(--border)';
+      const bg = activo ? 'var(--accent)' : 'var(--chip-bg)';
+      const col = activo ? '#1C1C1C' : '#444';
+      const brd = activo ? 'var(--accent)' : 'var(--border)';
       fhtml += `<div style="${fstyle(bg, col, brd)}" onclick="setMesFiltroMaq('${m.replace(/'/g, "&apos;")}')">` + m + '</div>';
     });
     filtroEl.innerHTML = fhtml;
@@ -1968,9 +1968,9 @@ function renderMes() {
       fhtmlZ += `<div style="${fstyleZ(bgTodas, colTodas, AppState.mesFiltroZona===''?'#FFD100':'var(--border)')}" onclick="setMesFiltroZona('')">Todas</div>`;
       zonasDisponibles.forEach(z => {
         const activo = AppState.mesFiltroZona === z;
-        const bg = activo ? '#1a1a1a' : 'var(--chip-bg)';
-        const col = activo ? '#FFD100' : '#444';
-        const brd = activo ? '#1a1a1a' : 'var(--border)';
+        const bg = activo ? 'var(--accent)' : 'var(--chip-bg)';
+        const col = activo ? '#1C1C1C' : '#444';
+        const brd = activo ? 'var(--accent)' : 'var(--border)';
         fhtmlZ += `<div style="${fstyleZ(bg, col, brd)}" onclick="setMesFiltroZona('${z.replace(/'/g, "&apos;")}')">${z}</div>`;
       });
       filtroZonaEl.innerHTML = fhtmlZ;
