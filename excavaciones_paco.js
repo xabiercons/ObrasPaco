@@ -2638,10 +2638,9 @@ async function confirmarRealizado() {
     : new Date().toISOString().slice(0,10);
   // Operarios que realizaron el trabajo
   if(AppState.mrealOperarios.length > 0) t.operarios = [...AppState.mrealOperarios];
-  cerrarModal('modal-realizado');
   showToast('Guardando...');
   await updateTrab(t);
-  await loadTrab();
+  cerrarModal('modal-realizado');
   renderListado();
   renderMes();
   renderBolsa();
