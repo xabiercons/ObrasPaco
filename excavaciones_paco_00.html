@@ -152,7 +152,7 @@
     </div>
 
     <!-- Nombre de obra -->
-    <div style="margin-top:12px">
+    <div style="margin-top:12px;position:relative">
       <div style="font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Nombre de obra (opcional)</div>
       <button class="voice-btn" id="vbtn-obra" onclick="startVoice('obra', 'vbtn-obra', 'vres-obra')">🎤 Dictar nombre de obra</button>
       <div class="voice-result" id="vres-obra"></div>
@@ -194,7 +194,11 @@
       <div style="font-size:11px;color:var(--text3);font-family:'Courier New',monospace;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Zona <span style="color:var(--danger)">*</span> <span style="color:var(--text3);font-weight:normal">(para filtros y agrupación)</span></div>
       <button class="voice-btn" id="vbtn-zona" onclick="startVoice('zona', 'vbtn-zona', 'vres-zona')" style="margin-bottom:6px">🎤 Dictar zona</button>
       <div class="voice-result" id="vres-zona"></div>
-      <input type="text" id="f-zona" placeholder="Ej: Milladoiro, Conxo, Brión…" oninput="syncField('zona', this.value)">
+      <input type="text" id="f-zona" placeholder="Ej: Calo, Teo, Vedra…" 
+        oninput="syncField('zona', this.value); mostrarSugerenciasZona(this.value)"
+        onblur="setTimeout(()=>document.getElementById('zona-sugerencias').style.display='none',200)"
+        autocomplete="off">
+      <div id="zona-sugerencias" style="display:none;position:absolute;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>
     </div>
     <div class="btn-row">
       <button class="btn-back" onclick="prevStep(2)">← Atrás</button>

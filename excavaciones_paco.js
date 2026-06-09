@@ -276,7 +276,7 @@ const AppState = {
 
   // ── Calendario mes ────────────────────────────────────
   mesOffset: 0,               // 0 = mes actual, -1 = anterior, +1 = siguiente
-  mesFiltroMaq: '',           // '' = todas las máquinas
+  mesFiltroMaq: [],           // [] = todas las máquinas (array para multifiltro)
   mesFiltroZona: '',          // '' = todas las zonas
 
   // ── Programación ─────────────────────────────────────
@@ -870,7 +870,41 @@ function syncClienteNuevoNombre(value) {
 }
 
 // Actualiza un campo del objeto form desde un input manual
-function syncField(field, val) { AppState.form[field] = val; }
+// Muestra sugerencias de zonas ya usadas mientras el usuario escribe
+function mostrarSugerenciasZona(texto) {
+  const wrap = document.getElementById('zona-sugerencias');
+  if (!wrap) return;
+  if (!texto || texto.length < 1) { wrap.style.display = 'none'; return; }
+  const zonasExistentes = [...new Set(getTrab()
+    .map(t => t.zona).filter(z => z && z.length > 0))].sort();
+  const textLow = texto.toLowerCase();
+  const matches = zonasExistentes.filter(z => z.toLowerCase().includes(textLow) && z.toLowerCase() !== textLow);
+  if (matches.length === 0) { wrap.style.display = 'none'; return; }
+  wrap.innerHTML = matches.map(z =>
+    `<div style="padding:10px 14px;cursor:pointer;font-size:14px;font-family:Georgia,serif;border-bottom:1px solid var(--border)"
+      onmousedown="seleccionarZona('${z.replace(/'/g,"&apos;")}')">${z}</div>`
+  ).join('');
+  wrap.style.display = 'block';
+}
+
+function seleccionarZona(zona) {
+  AppState.form.zona = zona;
+  const fz = document.getElementById('f-zona');
+  if (fz) fz.value = zona;
+  const wrap = document.getElementById('zona-sugerencias');
+  if (wrap) wrap.style.display = 'none';
+}
+
+function syncField(field, val) {
+  // Normalizar zona: Title Case + quitar espacios extra
+  if (field === 'zona') {
+    val = val.trim().replace(/\s+/g, ' ')
+      .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+    const fz = document.getElementById('f-zona');
+    if (fz && fz.value !== val) fz.value = val;
+  }
+  AppState.form[field] = val;
+}
 
 // ════════════════════════════════════════════════════════
 // MAPA LEAFLET + GPS — Paso 2 del formulario
@@ -1906,6 +1940,8 @@ function showView(name) {
   document.getElementById('view-'+name).classList.add('active');
   const idx = name==='captura'?0:name==='listado'?1:name==='mes'?2:name==='hoy'?3:4;
   document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+  // Reset filtros al cambiar de vista
+  if(name !== 'mes') { AppState.mesFiltroMaq = []; AppState.mesFiltroZona = ''; }
   if(name==='listado') renderListado();
   if(name==='mes') { renderMes(); renderBolsa(); }
   if(name==='hoy') renderOperario();
@@ -1920,12 +1956,20 @@ function showView(name) {
 // Navega al mes anterior o siguiente en la vista Mes
 function cambiarMes(dir) {
   AppState.mesOffset += dir;
+  AppState.mesFiltroMaq = [];
+  AppState.mesFiltroZona = '';
   renderMes();
 }
 
 // Activa o desactiva el filtro de maquinaria en la vista Mes
 function setMesFiltroMaq(maq) {
-  AppState.mesFiltroMaq = AppState.mesFiltroMaq === maq ? '' : maq; // toggle
+  if (maq === '') {
+    AppState.mesFiltroMaq = [];
+  } else {
+    const idx = AppState.mesFiltroMaq.indexOf(maq);
+    if (idx === -1) AppState.mesFiltroMaq.push(maq);
+    else AppState.mesFiltroMaq.splice(idx, 1);
+  }
   renderMes();
 }
 
@@ -1956,11 +2000,12 @@ function renderMes() {
   if (filtroEl) {
     const fstyle = (bg, color, border) => `font-size:10px;padding:4px 10px;border-radius:20px;cursor:pointer;font-family:monospace;border:1px solid ${border};background:${bg};color:${color}`;
     let fhtml = '<span style="font-size:10px;color:var(--text2);font-family:monospace;align-self:center;margin-right:2px">Filtro:</span>';
-    const bgTodas = AppState.mesFiltroMaq === '' ? '#FFD100' : 'var(--chip-bg)';
-    const colTodas = AppState.mesFiltroMaq === '' ? '#1C1C1C' : '#444';
-    fhtml += `<div style="${fstyle(bgTodas, colTodas, AppState.mesFiltroMaq===''?'#FFD100':'var(--border)')}" onclick="setMesFiltroMaq('')">Todas</div>`;
+    const sinFiltroMaq = AppState.mesFiltroMaq.length === 0;
+    const bgTodas = sinFiltroMaq ? '#FFD100' : 'var(--chip-bg)';
+    const colTodas = sinFiltroMaq ? '#1C1C1C' : '#444';
+    fhtml += `<div style="${fstyle(bgTodas, colTodas, sinFiltroMaq?'#FFD100':'var(--border)')}" onclick="setMesFiltroMaq('')">Todas</div>`;
     maqDisponibles.forEach(m => {
-      const activo = AppState.mesFiltroMaq === m;
+      const activo = AppState.mesFiltroMaq.includes(m);
       const bg = activo ? 'var(--accent)' : 'var(--chip-bg)';
       const col = activo ? '#1C1C1C' : '#444';
       const brd = activo ? 'var(--accent)' : 'var(--border)';
@@ -2032,12 +2077,12 @@ function renderMes() {
     // Trabajos visibles según filtro (para píldoras y carga)
     // Aplicar filtros combinados (maquinaria + zona)
     const trabajosVis = trabajosDia.filter(t => {
-      const okMaq = !AppState.mesFiltroMaq || (t.maquinarias||[]).includes(AppState.mesFiltroMaq);
+      const okMaq = AppState.mesFiltroMaq.length === 0 || AppState.mesFiltroMaq.some(m => (t.maquinarias||[]).includes(m));
       const okZona = !AppState.mesFiltroZona || (t.zona||'') === AppState.mesFiltroZona;
       return okMaq && okZona;
     });
     const trabajosDim = trabajosDia.filter(t => {
-      const okMaq = !AppState.mesFiltroMaq || (t.maquinarias||[]).includes(AppState.mesFiltroMaq);
+      const okMaq = AppState.mesFiltroMaq.length === 0 || AppState.mesFiltroMaq.some(m => (t.maquinarias||[]).includes(m));
       const okZona = !AppState.mesFiltroZona || (t.zona||'') === AppState.mesFiltroZona;
       return !(okMaq && okZona);
     });
