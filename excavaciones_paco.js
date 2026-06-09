@@ -2906,6 +2906,7 @@ function opMarcarRealizado(id) {
 
 // Devuelve la lista de clientes en memoria
 function getClientes() { return AppState.clientesCache || []; }
+function getClientesActivos() { return getClientes().filter(c => c.activo !== false); }
 
 // Guarda un cliente nuevo en Supabase
 async function _saveClienteSupabase(cliente) {
@@ -2957,6 +2958,32 @@ async function cfgEliminarCliente(id) {
 
 // Renderiza la lista de clientes en Configuración
 // Renderiza la lista de clientes en Configuración
+async function cfgToggleCliente(id) {
+  const clientes = getClientes();
+  const c = clientes.find(x => String(x.id) === String(id));
+  if (!c) return;
+  const activo = c.activo !== false;
+  // No permitir dar de baja si es el último activo
+  if (activo && clientes.filter(x => x.activo !== false).length <= 1) {
+    showToast('Debe haber al menos 1 cliente activo'); return;
+  }
+  c.activo = !activo;
+  AppState.clientesCache = clientes;
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/clientes?id=eq.${id}`, {
+      method: 'PATCH', headers: {...supaHeaders(), 'Content-Type': 'application/json'},
+      body: JSON.stringify({ activo: c.activo })
+    });
+    if (!r.ok) throw new Error(await r.text());
+    CONFIG.clientes = clientes;
+    renderCfgClientes();
+    showToast(c.activo ? '✓ Cliente activado' : '✓ Cliente dado de baja');
+  } catch(e) {
+    console.error(e);
+    showToast('✗ Error al actualizar cliente');
+  }
+}
+
 function renderCfgClientes() {
   const wrap = document.getElementById('cfg-clientes');
   if (!wrap) return;
@@ -2965,16 +2992,24 @@ function renderCfgClientes() {
     wrap.innerHTML = '<span style="color:var(--text2);font-size:12px">Sin clientes. Añade el primero abajo.</span>';
     return;
   }
-  wrap.innerHTML = clientes.map(c => `
-    <div class="cfg-cliente-chip">
-      <div class="cfg-cliente-nombre">${c.nombre}</div>
+  wrap.innerHTML = clientes.map(c => {
+    const activo = c.activo !== false;
+    const badge = activo ? '' : '<span class="cfg-badge-baja">(desactivado)</span>';
+    const btnBajaAlta = activo
+      ? `<button class="cfg-btn-baja" onclick="cfgToggleCliente(${c.id})">Dar de baja</button>`
+      : `<button class="cfg-btn-alta" onclick="cfgToggleCliente(${c.id})">Dar de alta</button>`;
+    return `
+    <div class="cfg-cliente-chip ${activo ? '' : 'cfg-chip-baja'}">
+      <div class="cfg-cliente-nombre">${c.nombre} ${badge}</div>
       ${c.telefono ? `<div class="cfg-cliente-tel">📞 ${c.telefono}</div>` : ''}
       ${c.observaciones ? `<div class="cfg-cliente-obs">${c.observaciones}</div>` : ''}
       <div class="cfg-cliente-actions">
         <button class="cfg-cliente-btn" onclick="abrirEditarCliente(${c.id})" style="color:var(--info);border-color:rgba(37,99,235,0.4)">✏ Editar</button>
+        ${btnBajaAlta}
         <button class="cfg-cliente-btn del" onclick="cfgEliminarCliente(${c.id})">Eliminar</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ── SELECTOR DE CLIENTE EN FORMULARIO ──────────────────────
@@ -2995,7 +3030,7 @@ function toggleClienteDropdown() {
 // Construye el contenido del dropdown con los clientes disponibles
 function buildClienteDropdown() {
   const dd = document.getElementById('cs-dropdown');
-  const clientes = getClientes();
+  const clientes = getClientesActivos();
   let html = clientes.map(c => `
     <div class="cliente-drop-item" onclick="seleccionarCliente(${c.id})">
       <strong>${c.nombre}</strong>${c.telefono ? `<span style="font-size:11px;color:var(--text3);margin-left:8px">${c.telefono}</span>` : ''}
