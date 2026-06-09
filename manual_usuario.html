@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EP · Manual de Usuario v7.6</title>
+<title>EP · Manual de Usuario v7.9</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;900&display=swap');
 
@@ -691,7 +691,7 @@
 
   <div class="pie">
     <span class="pie-logo">EP · Excavaciones Paco</span>
-    <span>Manual de Usuario v7.6</span>
+    <span>Manual de Usuario v7.9</span>
   </div>
 </div>
 
@@ -858,21 +858,21 @@
         <div class="paso-num">1</div>
         <div class="paso-contenido">
           <h3>Cliente</h3>
-          <p>Di el nombre del cliente por el micrófono o escríbelo. Si el cliente ya existe, la app avisa — puedes seguir igualmente.</p>
+          <p>Selecciona un cliente existente del desplegable o toca "+ Nuevo cliente" para crearlo en el momento — puedes dictar el nombre por voz. Si te equivocas, el botón <strong>🗑 Limpiar</strong> resetea todo el paso 1 para empezar de nuevo.</p>
         </div>
       </div>
       <div class="paso">
         <div class="paso-num">2</div>
         <div class="paso-contenido">
           <h3>Nombre de obra</h3>
-          <p>Di el nombre de la obra por voz o escríbelo. Identifica el trabajo dentro del mismo cliente.</p>
+          <p>Di el nombre de la obra por voz o escríbelo. Identifica el trabajo dentro del mismo cliente. Es opcional.</p>
         </div>
       </div>
       <div class="paso">
         <div class="paso-num">3</div>
         <div class="paso-contenido">
-          <h3>Ubicación GPS</h3>
-          <p>Pulsa "Localizar en el mapa". El GPS centra el mapa donde estás. Arrastra el marcador rojo si hay que ajustarlo. Pulsa "Aceptar esta ubicación".</p>
+          <h3>Ubicación y zona</h3>
+          <p>Pulsa "Localizar en el mapa". El GPS centra el mapa y rellena la <strong>dirección</strong> automáticamente (usada para el enlace "Cómo llegar"). Arrastra el marcador si hay que ajustarlo. La <strong>zona</strong> (Calo, Teo, Vedra…) la introduces tú por voz o teclado — es obligatoria y se usa para los filtros del calendario. Si ya has usado esa zona antes, aparecerán sugerencias al escribir.</p>
         </div>
       </div>
       <div class="paso">
@@ -885,8 +885,8 @@
       <div class="paso">
         <div class="paso-num">5</div>
         <div class="paso-contenido">
-          <h3>Maquinaria</h3>
-          <p>Selecciona la máquina o máquinas necesarias. Puedes marcar más de una. También funciona por voz: di "volvo" o "minipala".</p>
+          <h3>Maquinaria y operario</h3>
+          <p>Selecciona la máquina o máquinas necesarias — puedes marcar más de una, también por voz. Debajo del separador, selecciona el operario asignado. El operario es opcional al crear el trabajo pero <strong>obligatorio para programarlo</strong> en el calendario.</p>
         </div>
       </div>
       <div class="paso">
@@ -1282,22 +1282,22 @@
       <div class="paso">
         <div class="paso-num">3</div>
         <div class="paso-contenido">
-          <h3>Programar un trabajo</h3>
-          <p>Toca un trabajo en la <strong>bolsa de pendientes</strong> (debajo del grid) → se activa en amarillo. Luego toca los días del grid que quieras asignar. Una barra fija abajo muestra los operarios y el botón Confirmar.</p>
+          <h3>Filtrar el calendario</h3>
+          <p>Encima del grid hay dos filas de chips: <strong>Filtro</strong> (maquinaria) y <strong>Zona</strong>. Puedes seleccionar varias máquinas a la vez. Los chips no seleccionados se atenúan. Al cambiar de mes o de pestaña, los filtros se resetean solos.</p>
         </div>
       </div>
       <div class="paso">
         <div class="paso-num">4</div>
         <div class="paso-contenido">
-          <h3>Ver detalle de un trabajo</h3>
-          <p>Toca cualquier píldora en el grid → abre el modal de detalle con todos los datos, dirección con Google Maps, botón ✏ Editar y botón ✓ Realizado.</p>
+          <h3>Programar un trabajo</h3>
+          <p>Toca un trabajo en la <strong>bolsa de pendientes</strong> (debajo del grid) → se activa en amarillo. Luego toca los días del grid que quieras asignar. La barra fija abajo muestra los operarios — es <strong>obligatorio seleccionar al menos uno</strong> antes de confirmar. Si el trabajo ya tenía operario asignado, aparece preseleccionado.</p>
         </div>
       </div>
       <div class="paso">
         <div class="paso-num">5</div>
         <div class="paso-contenido">
-          <h3>Días pasados en gris</h3>
-          <p>Los días anteriores a hoy se muestran en gris. No se puede programar en días pasados. Las píldoras de esos días mantienen su color de urgencia para que se vean.</p>
+          <h3>Ver detalle de un trabajo</h3>
+          <p>Toca cualquier píldora en el grid → abre el modal de detalle con todos los datos, zona, dirección con Google Maps, operarios, botón ✏ Editar y botón ✓ Realizado. Las píldoras muestran el nombre completo de la obra y el operario asignado. Las celdas crecen si hay varios trabajos el mismo día.</p>
         </div>
       </div>
 
@@ -1674,7 +1674,7 @@
       </div>
       <div style="margin-bottom:24px;">
         <div style="font-size:13px; font-weight:600; color:var(--negro); margin-bottom:8px;">Clientes</div>
-        <div style="font-size:13px; color:var(--text2); line-height:1.7;">Gestiona los clientes habituales con nombre, teléfono y observaciones. Botón ✏ Editar para modificar sus datos. Los clientes dados de baja no aparecen en el formulario de nuevo trabajo pero su historial se conserva.</div>
+        <div style="font-size:13px; color:var(--text2); line-height:1.7;">Gestiona los clientes habituales con nombre, teléfono y observaciones. Igual que los operarios: botón <strong>Dar de baja</strong> (desaparece del selector al crear trabajos pero el historial queda intacto), <strong>Dar de alta</strong> (lo reactiva) y <strong>✏ Editar</strong> para modificar sus datos.</div>
       </div>
       <div style="margin-bottom:24px;">
         <div style="font-size:13px; font-weight:600; color:var(--negro); margin-bottom:8px;">Tipos de trabajo y maquinaria</div>

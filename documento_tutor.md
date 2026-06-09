@@ -1,5 +1,5 @@
 # Documento Tutor — Excavaciones Paco
-**Versión 7.7b · Junio 2026**
+**Versión 7.9f · Junio 2026**
 
 Guía técnica del código para quien quiera entenderlo, modificarlo o aprender de él.
 
@@ -239,19 +239,28 @@ AppState.form = {
   lat: null, lng: null,
   tipos: [], maquinarias: [],
   horas: 4, urgencia: 'Normal', notas: '',
-  operarios: []   // ← añadido en v7.7b: operarios asignados en paso 7
+  operarios: []   // seleccionados en paso 4 (junto a maquinaria)
 };
 ```
 
 > **Trampa frecuente**: siempre acceder como `AppState.form.campo`, nunca como `form.campo` suelto. En v7.7 se detectaron dos casos donde la migración a AppState dejó referencias sin prefijo: `...form` en `guardarTrabajo()` y `form =` en `resetForm()`. Ambos corregidos.
 
+**Cambios v7.8-v7.9:**
+- Paso 1: botón 🗑 Limpiar (`resetearPaso1()`), voz para nuevo cliente (`clienteNuevo`), formulario nuevo cliente antes que nombre de obra
+- Paso 2: zona obligatoria, introducida por voz o teclado. GPS (`aceptarMapa()`) ya NO rellena zona — solo `direccion`. Autocomplete con `mostrarSugerenciasZona()` y normalización Title Case en `syncField('zona', val)`
+- Paso 4: operarios debajo de maquinaria con separador — `buildChips()` también renderiza `chips-operarios`
+- Paso 7: chips de operario eliminados del resumen
+
 Funciones clave:
 - `showStep(n)` — muestra el paso n, oculta el resto
-- `nextStep(current)` / `prevStep(current)` — navegación entre pasos
-- `buildChips()` — construye los botones de selección de tipos y maquinaria
-- `selectChipMulti(field, val, el)` — toggle de un chip (añade/quita del array)
+- `nextStep(current)` / `prevStep(current)` — navegación con validaciones (zona obligatoria en paso 2)
+- `buildChips()` — construye chips de tipos, maquinaria y operarios
+- `selectChipMulti(field, val, el)` — toggle genérico para tipos, maquinarias y operarios
 - `guardarTrabajo()` — construye el objeto trabajo, llama a `addTrab()` y resetea
 - `resetForm()` — limpia todo el formulario
+- `resetearPaso1()` — limpia solo el paso 1 (cliente, obra, nuevo cliente inline)
+- `mostrarSugerenciasZona(texto)` — autocomplete con zonas existentes
+- `seleccionarZona(zona)` — rellena el campo y cierra el desplegable
 
 ### Módulo 2 — Listado
 
@@ -273,18 +282,21 @@ Si `esFechasPasadas` es true, la tarjeta muestra el badge naranja y el botón "�
 
 Variables de estado del módulo:
 ```javascript
-let mesOffset = 0;           // 0 = mes actual, -1 = anterior, +1 = siguiente
-let mesFiltroMaq = '';       // '' = todas las máquinas
-let progTrabajoId = null;    // ID del trabajo en modo programación activa (null = ninguno)
-let progDias = [];           // Días seleccionados en modo programación
-let progOperarios = [];      // Operarios seleccionados
+AppState.mesOffset = 0;        // 0 = mes actual, -1 = anterior, +1 = siguiente
+AppState.mesFiltroMaq = [];    // [] = todas las máquinas (array desde v7.8 — multifiltro)
+AppState.mesFiltroZona = '';   // '' = todas las zonas
+AppState.progTrabajoId = null; // ID del trabajo en modo programación activa (null = ninguno)
+AppState.progDias = [];        // Días seleccionados en modo programación
+AppState.progOperarios = [];   // Operarios seleccionados (precargados desde el trabajo)
 ```
 
 Funciones clave:
 - `renderMes()` — genera el grid mensual completo con píldoras
 - `renderBolsa()` — genera la bolsa de trabajos Aceptados sin fecha
-- `activarProgramacion(id)` — activa el modo programación para un trabajo
+- `activarProgramacion(id)` — activa el modo programación; precarga `progOperarios` desde el trabajo
 - `cancelarProgramacion()` — cancela sin guardar
+- `setMesFiltroMaq(maq)` — toggle en array (multifiltro); '' resetea todo
+- `setMesFiltroZona(zona)` — toggle zona activa
 - `toggleDiaProg(iso)` — marca/desmarca un día en modo programación
 - `confirmarProgramar()` — guarda los días y operarios, llama a `updateTrab()`
 - `abrirDetalle(id)` — abre el modal de detalle al tocar una píldora
@@ -309,7 +321,7 @@ Funciones clave:
 
 ### Módulo 5 — Configuración
 
-Clientes: `cfgAddCliente()`, `cfgEliminarCliente()`, `renderCfgClientes()`, `abrirEditarCliente()`, `guardarEdicionCliente()`.
+Clientes: `cfgAddCliente()`, `cfgEliminarCliente()`, `cfgToggleCliente(id)` (dar de baja/alta — columna `activo` en Supabase), `renderCfgClientes()`, `abrirEditarCliente()`, `guardarEdicionCliente()`. `getClientesActivos()` filtra por `activo !== false` para el dropdown del paso 1.
 
 Dropdown de clientes en el formulario: `toggleClienteDropdown()`, `buildClienteDropdown()`, `seleccionarCliente()`, `mostrarNuevoClienteInline()`, `guardarClienteNuevo()`.
 
@@ -749,6 +761,22 @@ git push
 
 ---
 
+## Notas técnicas acumuladas v7.9f
+
+- v7.8: `mesFiltroMaq` es array (multifiltro). `setMesFiltroMaq('')` resetea todo. `setMesFiltroZona(zona)` añadida.
+- v7.8: Filtros se resetean en `showView()` al salir de MES y en `cambiarMes()`.
+- v7.8: Chips filtro activos en `var(--accent)`, inactivos al 40% de opacidad cuando hay filtro activo.
+- v7.8: GPS (`aceptarMapa()`) ya no rellena `zona` — solo `direccion`. Zona = campo libre obligatorio con autocomplete.
+- v7.8: `syncField('zona', val)` normaliza Title Case + quita espacios extra. `mostrarSugerenciasZona()` sugiere zonas existentes.
+- v7.8: Paso 4 tiene `chips-operarios` debajo de maquinaria. `buildChips()` los renderiza. `selectChipMulti('operarios',...)` funciona igual que tipo/maquinaria.
+- v7.8: `confirmarProgramar()` bloquea si `progOperarios.length === 0`. Borde rojo en `#bprog-operarios` hasta seleccionar uno.
+- v7.8: `activarProgramacion(id)` precarga `progOperarios` desde `tProg.operarios`.
+- v7.8: `cfgToggleCliente(id)` — dar de baja/alta clientes. Columna `activo boolean DEFAULT true` en Supabase. `getClientesActivos()` filtra activos para dropdown.
+- v7.8: `SUPA_HEADERS` en vez de `supaHeaders()` (función inexistente).
+- v7.9: Píldoras calendario sin `slice(0,2)` — todas visibles, celdas crecen con `height: auto`. Nombre completo + operario visible en cada píldora.
+- v7.9: Zona visible en modal detalle (campo entre Obra y Dirección).
+- v7.9f: `confirmarRealizado()` llama a `renderOperario()` además de `renderListado()` y `renderMes()`. `cerrarModal` después de `updateTrab`, no antes.
+
 ## Notas técnicas acumuladas v7.7b
 
 - v7.7: Cachebuster automático — `localStorage('app_version')` + timestamp en URLs de CSS y JS. `forzarActualizacion()` actualiza el timestamp y recarga. Botón en Configuración.
@@ -767,4 +795,4 @@ git push
 
 ---
 
-*Documento actualizado en Junio 2026 · App v7.7b*
+*Documento actualizado en Junio 2026 · App v7.9f*
