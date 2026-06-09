@@ -984,8 +984,8 @@ function aceptarMapa() {
       // Determina la zona (barrio, pueblo, ciudad...)
       const zona = addr.suburb || addr.neighbourhood || addr.town || addr.village || addr.city_district || addr.city || '';
       if (dir) { AppState.form.direccion = dir; document.getElementById('f-direccion').value = dir; }
-      if (zona) { AppState.form.zona = zona; document.getElementById('f-zona').value = zona; }
-      res.textContent = `📍 ${dir || AppState.form.lat+', '+AppState.form.lng}${zona ? ' · '+zona : ''}`;
+      // Zona NO se rellena desde GPS — el usuario la introduce por voz o teclado
+      res.textContent = `📍 ${dir || AppState.form.lat+', '+AppState.form.lng}`;
       document.getElementById('map-wrap').classList.remove('show'); // Oculta el mapa
       document.getElementById('btn-abrirmapa').textContent = '✓ Ubicación en mapa — toca para cambiar';
       showToast('✓ Ubicación guardada');
@@ -1373,6 +1373,22 @@ async function guardarTrabajo() {
 
 // Limpia el formulario y lo vuelve al estado inicial (paso 1, valores vacíos)
 // Resetea el formulario de nuevo trabajo a su estado inicial
+// Resetea el paso 1 completamente — limpia cliente, obra y formulario nuevo cliente
+function resetearPaso1() {
+  // Limpiar cliente
+  AppState.form.cliente = '';
+  AppState.form.obra = '';
+  document.getElementById('cs-selected').textContent = 'Seleccionar cliente…';
+  document.getElementById('cs-dropdown').classList.remove('show');
+  AppState.clienteDropdownOpen = false;
+  // Cerrar y limpiar formulario nuevo cliente
+  cancelarNuevoCliente();
+  // Limpiar nombre de obra
+  const fObra = document.getElementById('f-obra');
+  if (fObra) fObra.value = '';
+  document.getElementById('vres-obra').textContent = '';
+}
+
 function resetForm() {
   AppState.form = { cliente:'', obra:'', direccion:'', zona:'', lat:null, lng:null, tipos:[], maquinarias:[], horas:4, urgencia:'Normal', notas:'', operarios:[] };
   // Reset selector cliente
@@ -3048,6 +3064,15 @@ function seleccionarCliente(id) {
   document.getElementById('cs-dropdown').classList.remove('show');
   document.getElementById('cs-nuevo-wrap').classList.remove('show');
   AppState.clienteDropdownOpen = false;
+}
+
+// Cancela el formulario de nuevo cliente y vuelve al selector limpio
+function cancelarNuevoCliente() {
+  document.getElementById('cs-nuevo-wrap').classList.remove('show');
+  document.getElementById('cs-nuevo-nombre').value = '';
+  document.getElementById('cs-nuevo-tel').value = '';
+  document.getElementById('cs-nuevo-obs').value = '';
+  document.getElementById('vres-cliente-nuevo').textContent = '';
 }
 
 // Muestra el formulario inline de creación de cliente nuevo
