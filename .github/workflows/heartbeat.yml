@@ -1,0 +1,43 @@
+# ============================================================
+# SUPABASE HEARTBEAT
+# Objetivo: hacer una consulta minima a la base de datos cada
+# pocos dias para que Supabase la vea "activa" y no pause el
+# proyecto por inactividad (limite del plan gratuito: 7 dias
+# sin uso).
+# ============================================================
+ 
+name: Supabase Heartbeat
+ 
+on:
+  # ---- CUANDO SE EJECUTA AUTOMATICAMENTE ----
+  schedule:
+    # Formato cron: minuto hora dia-mes mes dia-semana
+    # '0 9 * * 1,4' = a las 09:00 UTC, los lunes (1) y jueves (4)
+    - cron: '0 9 * * 1,4'
+ 
+  # ---- PERMITE LANZARLO A MANO ----
+  # Anade un boton "Run workflow" en la pestana Actions de GitHub,
+  # util para probar sin esperar al horario programado.
+  workflow_dispatch: {}
+ 
+jobs:
+  ping:
+    # Maquina temporal (Ubuntu) que GitHub crea solo para este job
+    # y destruye automaticamente al terminar.
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Hacer consulta minima a la tabla
+        run: |
+          # curl = hacer una peticion HTTP, como un navegador pidiendo datos.
+          # -X GET = solo pedir datos, no modificar nada.
+          # La URL apunta a la tabla "trabajos": pide solo la columna id
+          # y limita a 1 fila (la consulta mas ligera posible).
+          # Las cabeceras "apikey" y "Authorization" son las credenciales
+          # de acceso. Sus valores reales viven como "secrets" en GitHub
+          # (Settings > Secrets and variables > Actions) y nunca aparecen
+          # en este archivo ni en los logs publicos.
+          curl -s -X GET \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/trabajos?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_SECRET_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SECRET_KEY }}"
